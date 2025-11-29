@@ -1,0 +1,13 @@
+# Python venv
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Streamlit logs
+techgpt_log.txt
+
+# macOS
+.DS_Store
+
+ai_agent/
