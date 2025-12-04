@@ -27,7 +27,7 @@ from openai import OpenAI, APIError, RateLimitError, APIConnectionError
 # LangChain imports
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 # -------------------------------------------------------------------
 # 0. 환경 설정
