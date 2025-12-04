@@ -34,10 +34,22 @@ from langchain_core.documents import Document
 # -------------------------------------------------------------------
 def init_openai_client():
     """OpenAI 클라이언트 초기화"""
-    api_key = os.getenv("OPENAI_API_KEY")
+    # Streamlit Cloud secrets 또는 환경변수에서 API 키 로드
+    api_key = None
+
+    # 1. Streamlit secrets에서 먼저 확인 (Cloud 배포용)
+    try:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        pass
+
+    # 2. 환경변수에서 확인 (로컬 개발용)
     if not api_key:
-        st.error("환경변수 OPENAI_API_KEY가 설정되어 있지 않습니다.")
-        st.info("터미널에서 다음 명령어로 설정하세요: export OPENAI_API_KEY='your-api-key'")
+        api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        st.error("OPENAI_API_KEY가 설정되어 있지 않습니다.")
+        st.info("Streamlit Cloud: Settings → Secrets에서 설정하세요.")
         st.stop()
     return OpenAI(api_key=api_key)
 
