@@ -1,18 +1,25 @@
 """
-ETF 질의응답 챗봇 - 2주차 프로토타입
+ETF 질의응답 챗봇 - 3주차 MVP (Minimum Viable Product)
 
 LLM 기반 ETF 질의응답 시스템
 - RAG 파이프라인: LangChain + FAISS (Vector DB)
 - LLM: OpenAI GPT-4o
 - UI: Streamlit
 
-멘토 피드백 반영사항:
+[2주차] 멘토 피드백 반영:
 1. 세션 기반 대화 기록 (st.session_state)
 2. 스트리밍 응답 (실시간 답변 생성)
 3. API 예외 처리 강화 (RateLimitError, APIConnectionError 등)
 4. 인라인 출처 표시 ([ETF-001] 형식)
 5. 사용자 피드백 수집 (좋아요/싫어요)
 6. Edge Case 처리 (검색 결과 없을 때 명시적 안내)
+
+[3주차] 고도화 적용:
+1. 프롬프트 엔지니어링 (역할지정/형식지정/CoT/Few-shot)
+2. 질문 유형별 분류 및 최적화 처리
+3. 응답 시간 측정 및 성능 모니터링
+4. 상세 로깅 시스템 (검색/LLM/전체 시간)
+5. UX 개선 (로딩 상태, 성능 지표 표시)
 """
 
 import os
@@ -141,33 +148,192 @@ def retrieve_relevant_docs(vectorstore, query: str, k: int = 3) -> Tuple[str, Li
     return context, sources
 
 # -------------------------------------------------------------------
-# 3. LLM 호출 함수 (스트리밍 지원)
+# 3. 질문 유형 분류 (3주차 추가)
 # -------------------------------------------------------------------
-def call_llm_streaming(client: OpenAI, context: str, question: str, chat_history: list):
+def classify_question_type(question: str) -> str:
+    """
+    질문 유형을 분류하여 최적화된 프롬프트 적용
+
+    유형:
+    - simple: 단일 ETF 정보 질문 ("KODEX 200 수익률은?")
+    - compare: 비교 질문 ("A와 B 비교해줘")
+    - recommend: 추천 질문 ("배당 높은 ETF 추천")
+    - risk: 위험/주의사항 질문 ("위험도", "주의")
+    - general: 일반 ETF 지식 질문
+
+    [3주차 개선] 분류 정확도 향상을 위한 우선순위 조정
+    """
+    question_lower = question.lower()
+
+    # 특정 ETF 이름이 언급되면 우선 체크
+    etf_names = ["kodex", "tiger", "코덱스", "타이거", "etf-"]
+    has_specific_etf = any(name in question_lower for name in etf_names)
+
+    # 1. 비교 질문 패턴 (최우선)
+    compare_keywords = ["비교", "차이", "vs", "중에", "어떤게", "어떤 게", "둘 중"]
+    # "와 ", "과 "는 비교 맥락에서만 사용
+    compare_connectors = ["와 ", "과 "]
+    has_compare_connector = any(conn in question_lower for conn in compare_connectors)
+    has_compare_keyword = any(kw in question_lower for kw in compare_keywords)
+
+    if has_compare_keyword or (has_compare_connector and has_specific_etf):
+        return "compare"
+
+    # 2. 위험/주의 질문 패턴
+    risk_keywords = ["위험", "리스크", "주의", "손실", "안전", "변동성"]
+    if any(kw in question_lower for kw in risk_keywords):
+        return "risk"
+
+    # 3. 특정 ETF 정보 질문 (단순 정보 요청)
+    # "알려줘", "뭐야", "얼마" 등과 함께 특정 ETF 언급 시 simple
+    info_keywords = ["알려줘", "뭐야", "뭐예요", "얼마", "무엇", "설명", "정보", "에 대해"]
+    if has_specific_etf and any(kw in question_lower for kw in info_keywords):
+        return "simple"
+
+    # 4. 추천 질문 패턴 (조건부 추천)
+    recommend_keywords = ["추천", "좋은", "괜찮은", "어떤 etf", "뭐가 좋", "골라", "선택"]
+    if any(kw in question_lower for kw in recommend_keywords):
+        return "recommend"
+
+    # 5. 특정 ETF 이름만 있으면 simple
+    if has_specific_etf:
+        return "simple"
+
+    return "general"
+
+# -------------------------------------------------------------------
+# 4. 프롬프트 엔지니어링 시스템 (3주차 핵심)
+# -------------------------------------------------------------------
+def build_system_prompt(question_type: str) -> str:
+    """
+    질문 유형별 최적화된 시스템 프롬프트 생성
+
+    프롬프트 엔지니어링 기법 적용:
+    - 역할 지정 (Role)
+    - 형식 지정 (Format)
+    - 제약조건 (Constraints)
+    - Chain of Thought (CoT) - 비교/추천 질문
+    - Few-shot 예시
+    """
+
+    # 기본 역할 정의 (역할 지정 기법)
+    base_role = """#역할
+당신은 10년 경력의 ETF 투자 전문 어드바이저입니다.
+금융투자협회 인증 투자상담사 자격을 보유하고 있으며,
+개인 투자자에게 ETF 상품 정보를 쉽고 정확하게 전달하는 것이 목표입니다."""
+
+    # 공통 제약조건 (형식 지정 기법)
+    base_constraints = """
+#제약조건
+- 제공된 ETF 문서 정보만 사용하여 답변합니다
+- 문서에 없는 내용은 "해당 정보는 보유한 데이터에 없습니다"라고 안내합니다
+- ETF 정보 인용 시 반드시 [ETF-XXX] 형식으로 출처를 표시합니다
+- 투자 권유가 아닌 정보 제공임을 명확히 합니다
+- 한국어로 친절하게 답변합니다
+- 전문 용어는 쉬운 설명을 덧붙입니다"""
+
+    # 질문 유형별 특화 프롬프트
+    type_specific = {
+        "simple": """
+#답변 방식
+단일 ETF에 대한 명확하고 구조화된 정보를 제공합니다.
+
+#출력형식
+1. **상품 개요**: 이름, 티커, 운용사
+2. **핵심 정보**: 수수료, 위험등급, 배당정책
+3. **투자 포인트**: 주요 특징 2-3개
+4. ⚠️ **투자 유의사항**
+5. 📎 **참고 ETF**: [ETF-XXX]""",
+
+        "compare": """
+#답변 방식
+차근차근 단계별로 비교 분석합니다. (Chain of Thought)
+
+먼저, 각 ETF의 핵심 특징을 파악합니다.
+다음으로, 주요 항목별로 비교합니다.
+마지막으로, 투자자 상황별 적합성을 정리합니다.
+
+#출력형식
+1. **비교 대상**: 각 ETF 간단 소개
+2. **항목별 비교표**:
+   | 항목 | ETF A | ETF B |
+   |------|-------|-------|
+   | 수수료 | | |
+   | 위험등급 | | |
+   | 배당 | | |
+3. **분석 요약**: 각각의 장단점
+4. **투자자 유형별 추천**
+5. ⚠️ **투자 유의사항**
+6. 📎 **참고 ETF**""",
+
+        "recommend": """
+#답변 방식
+논리적으로 단계별 추론을 통해 추천합니다. (Chain of Thought)
+
+우선, 사용자의 요구사항을 파악합니다.
+그 다음, 조건에 맞는 ETF를 필터링합니다.
+마지막으로, 적합한 순서대로 추천합니다.
+
+#Few-shot 예시
+Q: "배당 수익률 높은 ETF 추천해줘"
+A: 배당 수익률을 중시하시는군요. 보유 데이터 중 배당 관련 ETF를 찾아보겠습니다.
+
+[ETF-006] KODEX 고배당은 배당수익률 상위 50개 종목에 투자하며,
+연 4~5%의 배당수익률을 기대할 수 있습니다. 분기 배당으로 정기적인
+현금흐름을 원하시는 분께 적합합니다.
+
+다만 금융주 비중이 높아 금리 변동에 민감한 점 참고해주세요.
+
+#출력형식
+1. **요구사항 파악**: 사용자가 원하는 조건
+2. **추천 ETF**: 조건 부합 상품 (우선순위 순)
+3. **추천 이유**: 각 상품별 장점
+4. **대안**: 차선책 ETF
+5. ⚠️ **투자 유의사항**
+6. 📎 **참고 ETF**""",
+
+        "risk": """
+#답변 방식
+투자 위험을 정확하고 균형있게 설명합니다.
+
+#출력형식
+1. **위험등급 설명**: 1~5등급 의미
+2. **주요 위험 요소**: 해당 ETF의 리스크
+3. **위험 관리 방안**: 분산투자 등 제안
+4. ⚠️ **반드시 알아야 할 사항**
+5. 📎 **참고 ETF**""",
+
+        "general": """
+#답변 방식
+ETF 일반 지식을 쉽게 설명합니다.
+
+#출력형식
+1. **핵심 개념**: 질문에 대한 직접 답변
+2. **상세 설명**: 추가 정보
+3. **관련 ETF 예시**: 해당되는 경우
+4. 📎 **참고 ETF** (해당 시)"""
+    }
+
+    return f"{base_role}\n{base_constraints}\n{type_specific.get(question_type, type_specific['general'])}"
+
+# -------------------------------------------------------------------
+# 5. LLM 호출 함수 (스트리밍 지원) - 3주차 개선
+# -------------------------------------------------------------------
+def call_llm_streaming(client: OpenAI, context: str, question: str, chat_history: list, question_type: str = "general"):
     """
     OpenAI API 스트리밍 호출
 
-    멘토 피드백 반영:
+    [2주차] 멘토 피드백 반영:
     - 스트리밍 응답으로 UX 개선
     - 예외 처리 강화
     - 대화 히스토리 반영
+
+    [3주차] 프롬프트 엔지니어링 적용:
+    - 질문 유형별 최적화 프롬프트
+    - 역할 지정 / 형식 지정 / CoT / Few-shot
     """
-    system_prompt = """너는 ETF 투자 전문 상담사야. 다음 규칙을 반드시 지켜:
-
-1. 역할(Role): ETF 투자 정보를 정확하게 제공하는 전문가
-2. 맥락(Context): 제공된 ETF 문서 정보를 기반으로 답변
-3. 목표(Goal): 투자자가 ETF 상품을 이해하고 적절한 투자 결정을 내릴 수 있도록 도움
-4. 제약조건(Constraint):
-   - 문서에 없는 내용은 추측하지 말고 "해당 정보는 제공된 문서에 없습니다"라고 답해
-   - 답변 중 특정 ETF 정보를 인용할 때는 반드시 [ETF-001] 형식으로 출처를 표시해
-   - 투자 권유가 아닌 정보 제공임을 명시해
-   - 한국어로 답변해
-   - 3~5문단 이내로 핵심 위주로 설명해
-
-5. 출력 형식:
-   - 마지막에 "📎 참고 ETF" 섹션을 만들어 사용한 ETF ID를 bullet으로 정리해
-   - 투자자 유의사항이 있으면 "⚠️ 투자 유의사항" 섹션에 포함해
-"""
+    # 질문 유형별 시스템 프롬프트 생성
+    system_prompt = build_system_prompt(question_type)
 
     # 대화 히스토리를 메시지에 포함
     messages = [{"role": "system", "content": system_prompt}]
@@ -219,12 +385,27 @@ def call_llm_streaming(client: OpenAI, context: str, question: str, chat_history
         return None
 
 # -------------------------------------------------------------------
-# 4. 로깅 함수
+# 6. 로깅 함수 (3주차 강화)
 # -------------------------------------------------------------------
-def log_interaction(question: str, answer: str, sources: list, feedback: str = None):
+def log_interaction(
+    question: str,
+    answer: str,
+    sources: list,
+    question_type: str = "general",
+    search_time: float = 0,
+    llm_time: float = 0,
+    total_time: float = 0,
+    feedback: str = None
+):
     """
-    질의응답 로그 저장
-    - 프롬프트 튜닝 및 서비스 개선을 위한 데이터 수집
+    질의응답 로그 저장 (3주차: 성능 메트릭 추가)
+
+    기록 항목:
+    - 질문/답변 내용
+    - 질문 유형 (simple/compare/recommend/risk/general)
+    - 검색 시간, LLM 응답 시간, 전체 처리 시간
+    - 사용된 ETF 출처
+    - 사용자 피드백
     """
     log_dir = os.path.join(os.path.dirname(__file__), "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -234,8 +415,14 @@ def log_interaction(question: str, answer: str, sources: list, feedback: str = N
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "question": question,
+        "question_type": question_type,
         "answer": answer,
-        "sources": [s["id"] for s in sources],
+        "sources": [s["id"] for s in sources] if sources else [],
+        "performance": {
+            "search_time_ms": round(search_time * 1000, 2),
+            "llm_time_ms": round(llm_time * 1000, 2),
+            "total_time_ms": round(total_time * 1000, 2)
+        },
         "feedback": feedback
     }
 
@@ -259,8 +446,48 @@ def log_feedback(question: str, answer: str, feedback: str):
     with open(feedback_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+def get_performance_stats() -> dict:
+    """
+    로그에서 성능 통계 계산 (3주차 추가)
+    """
+    log_file = os.path.join(os.path.dirname(__file__), "logs", "chat_log.jsonl")
+
+    if not os.path.exists(log_file):
+        return None
+
+    total_times = []
+    search_times = []
+    llm_times = []
+    question_types = {}
+
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            for line in f:
+                entry = json.loads(line)
+                if "performance" in entry:
+                    perf = entry["performance"]
+                    total_times.append(perf.get("total_time_ms", 0))
+                    search_times.append(perf.get("search_time_ms", 0))
+                    llm_times.append(perf.get("llm_time_ms", 0))
+
+                q_type = entry.get("question_type", "unknown")
+                question_types[q_type] = question_types.get(q_type, 0) + 1
+
+        if not total_times:
+            return None
+
+        return {
+            "total_queries": len(total_times),
+            "avg_total_time_ms": round(sum(total_times) / len(total_times), 2),
+            "avg_search_time_ms": round(sum(search_times) / len(search_times), 2),
+            "avg_llm_time_ms": round(sum(llm_times) / len(llm_times), 2),
+            "question_types": question_types
+        }
+    except Exception:
+        return None
+
 # -------------------------------------------------------------------
-# 5. Streamlit UI
+# 7. Streamlit UI (3주차 개선)
 # -------------------------------------------------------------------
 def main():
     # 페이지 설정
@@ -272,7 +499,7 @@ def main():
 
     # 헤더
     st.title("📈 ETF 질의응답 챗봇")
-    st.caption("LLM 기반 ETF 투자 정보 검색 시스템 | 2주차 프로토타입")
+    st.caption("LLM 기반 ETF 투자 정보 검색 시스템 | 3주차 MVP")
 
     # 사이드바
     with st.sidebar:
@@ -314,6 +541,27 @@ def main():
         투자 결정은 본인의 판단과
         책임 하에 이루어져야 합니다.
         """)
+
+        # 3주차 추가: 성능 모니터링 대시보드
+        st.divider()
+        st.header("📊 성능 모니터링")
+        stats = get_performance_stats()
+        if stats:
+            st.metric("총 질의 수", stats["total_queries"])
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("평균 응답시간", f"{stats['avg_total_time_ms']:.0f}ms")
+            with col2:
+                st.metric("평균 검색시간", f"{stats['avg_search_time_ms']:.0f}ms")
+
+            # 질문 유형 분포
+            if stats["question_types"]:
+                st.markdown("**질문 유형 분포:**")
+                for q_type, count in stats["question_types"].items():
+                    pct = count / stats["total_queries"] * 100
+                    st.progress(pct / 100, text=f"{q_type}: {count}건 ({pct:.0f}%)")
+        else:
+            st.info("아직 통계 데이터가 없습니다.")
 
     # OpenAI 클라이언트 초기화
     client = init_openai_client()
@@ -375,6 +623,9 @@ def main():
     question = example_question or user_input
 
     if question:
+        # 전체 처리 시간 측정 시작
+        total_start_time = time.time()
+
         # 사용자 메시지 추가
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
@@ -382,18 +633,36 @@ def main():
 
         # 답변 생성
         with st.chat_message("assistant"):
-            # 1. 관련 문서 검색
+            # [3주차] 질문 유형 분류
+            question_type = classify_question_type(question)
+            st.session_state.last_question_type = question_type
+
+            # 1. 관련 문서 검색 (시간 측정)
+            search_start_time = time.time()
             context, sources = retrieve_relevant_docs(vectorstore, question)
+            search_time = time.time() - search_start_time
+
             st.session_state.last_sources = sources
             st.session_state.last_question = question
 
-            # 2. LLM 스트리밍 호출
+            # [3주차] 질문 유형 표시 (디버그용)
+            type_labels = {
+                "simple": "📝 단순 정보",
+                "compare": "⚖️ 비교 분석",
+                "recommend": "💡 추천",
+                "risk": "⚠️ 위험 분석",
+                "general": "📚 일반 질문"
+            }
+            st.caption(f"질문 유형: {type_labels.get(question_type, question_type)}")
+
+            # 2. LLM 스트리밍 호출 (시간 측정)
+            llm_start_time = time.time()
             response_stream = call_llm_streaming(
-                client, context, question, st.session_state.messages
+                client, context, question, st.session_state.messages, question_type
             )
 
             if response_stream:
-                # 스트리밍 응답 표시 (멘토 피드백: 스트리밍 구현)
+                # 스트리밍 응답 표시
                 answer_placeholder = st.empty()
                 full_response = ""
 
@@ -401,6 +670,9 @@ def main():
                     if chunk.choices[0].delta.content:
                         full_response += chunk.choices[0].delta.content
                         answer_placeholder.markdown(full_response + "▌")
+
+                llm_time = time.time() - llm_start_time
+                total_time = time.time() - total_start_time
 
                 answer_placeholder.markdown(full_response)
                 st.session_state.last_answer = full_response
@@ -418,8 +690,19 @@ def main():
                     for src in sources:
                         st.write(f"- **{src['id']}** {src['name']} ({src['ticker']}) - 관련도: {src['relevance_score']:.0%}")
 
-                # 로그 저장
-                log_interaction(question, full_response, sources)
+                # [3주차] 성능 지표 표시
+                st.caption(f"⏱️ 응답시간: {total_time*1000:.0f}ms (검색: {search_time*1000:.0f}ms, LLM: {llm_time*1000:.0f}ms)")
+
+                # 로그 저장 (3주차: 성능 메트릭 포함)
+                log_interaction(
+                    question=question,
+                    answer=full_response,
+                    sources=sources,
+                    question_type=question_type,
+                    search_time=search_time,
+                    llm_time=llm_time,
+                    total_time=total_time
+                )
 
     # 피드백 버튼 (멘토 피드백: 사용자 피드백 수집)
     if st.session_state.last_answer:
