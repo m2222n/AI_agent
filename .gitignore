@@ -11,3 +11,17 @@ techgpt_log.txt
 .DS_Store
 
 ai_agent/
+
+# Claude local config (API keys)
+.claude/local/
+
+# Logs
+logs/
+*.jsonl
+
+# Old assignments (exclude from git)
+2week_assignment_taemin/
+3week_assignment_taemin/
+
+# Mentor reference files
+2주차_코멘토_인공지능_*.ipynb
