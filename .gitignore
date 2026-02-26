@@ -15,6 +15,9 @@ ai_agent/
 # Claude local config (API keys)
 .claude/local/
 
+# Environment
+.env
+
 # Logs
 logs/
 *.jsonl

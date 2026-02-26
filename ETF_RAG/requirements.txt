@@ -6,3 +6,4 @@ langchain-openai>=0.0.5
 langchain-community>=0.0.10
 faiss-cpu>=1.7.0
 python-dotenv>=1.0.0
+pytest>=7.0.0
