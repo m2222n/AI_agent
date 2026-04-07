@@ -38,7 +38,7 @@ def render_chat_history():
             st.markdown(message["content"])
 
 
-def process_question(question: str, client, vectorstore):
+def process_question(question: str, client, retriever):
     """질문 처리: 분류 → 검색 → LLM 스트리밍 → 로깅"""
     total_start_time = time.time()
 
@@ -53,7 +53,7 @@ def process_question(question: str, client, vectorstore):
 
         # 관련 문서 검색
         search_start_time = time.time()
-        context, sources = retrieve_relevant_docs(vectorstore, question)
+        context, sources = retrieve_relevant_docs(retriever, question)
         search_time = time.time() - search_start_time
 
         st.session_state.last_sources = sources

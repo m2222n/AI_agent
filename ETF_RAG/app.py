@@ -2,7 +2,7 @@
 ETF RAG 챗봇 - Streamlit Entry Point
 
 LLM 기반 ETF 질의응답 시스템
-- RAG 파이프라인: LangChain + FAISS
+- RAG 파이프라인: FAISS + Kiwi BM25 하이브리드 검색
 - LLM: OpenAI GPT-4o
 - UI: Streamlit
 """
@@ -11,6 +11,7 @@ import streamlit as st
 
 from src.data.loader import load_etf_data as _load_etf_data, create_documents
 from src.rag.vectorstore import create_vectorstore as _create_vectorstore
+from src.rag.retriever import HybridRetriever
 from src.llm.client import get_api_key, create_client, APIKeyMissingError
 from src.ui.sidebar import render_sidebar
 from src.ui.chat import init_session_state, render_chat_history, process_question
@@ -23,10 +24,12 @@ def load_etf_data():
 
 
 @st.cache_resource
-def init_vector_db():
+def init_retriever():
+    """하이브리드 검색기 초기화 (FAISS + Kiwi BM25)"""
     etf_data = load_etf_data()
     documents = create_documents(etf_data)
-    return _create_vectorstore(documents)
+    vectorstore = _create_vectorstore(documents)
+    return HybridRetriever(vectorstore, documents)
 
 
 def main():
@@ -48,9 +51,9 @@ def main():
 
     client = create_client(api_key)
 
-    # 벡터 DB 초기화
+    # 하이브리드 검색기 초기화
     with st.spinner("ETF 데이터베이스 로딩 중..."):
-        vectorstore = init_vector_db()
+        retriever = init_retriever()
 
     # 세션 상태
     init_session_state()
@@ -67,7 +70,7 @@ def main():
     question = example_question or user_input
 
     if question:
-        process_question(question, client, vectorstore)
+        process_question(question, client, retriever)
 
     # 피드백 + 초기화
     render_feedback_buttons()

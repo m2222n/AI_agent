@@ -37,11 +37,24 @@ def _render_service_info():
 
 def _render_etf_list(etf_data: list):
     st.header("📊 ETF 목록")
-    for etf in etf_data:
+    # 수집 데이터: 거래대금 상위 20개만 표시
+    display_data = etf_data
+    if len(etf_data) > 20 and "trade_value" in etf_data[0]:
+        display_data = sorted(etf_data, key=lambda e: e.get("trade_value", 0), reverse=True)[:20]
+        st.caption(f"거래대금 상위 20개 (전체 {len(etf_data)}종목)")
+
+    for etf in display_data:
         with st.expander(f"{etf['name']} ({etf['ticker']})"):
-            st.write(f"**카테고리:** {etf['category']}")
-            st.write(f"**위험등급:** {etf['risk_level']}")
-            st.write(f"**총보수:** {etf['total_expense_ratio']}")
+            if "category" in etf:
+                # 하드코딩 포맷
+                st.write(f"**카테고리:** {etf['category']}")
+                st.write(f"**위험등급:** {etf['risk_level']}")
+                st.write(f"**총보수:** {etf['total_expense_ratio']}")
+            else:
+                # 수집 데이터 포맷
+                st.write(f"**종가:** {etf.get('close', 0):,}원")
+                st.write(f"**등락률:** {etf.get('change_pct', 0):+.2f}%")
+                st.write(f"**거래대금:** {etf.get('trade_value', 0):,}원")
 
 
 def _render_investment_warning():
