@@ -39,6 +39,7 @@ HYBRID_SEARCH = {
     "dense_k": 20,            # FAISS 1차 후보 수
     "final_k": 5,             # 최종 반환 문서 수
     "mmr_lambda": 0.7,        # MMR λ: 1.0=관련성만, 0.0=다양성만
+    "min_rrf_score": 0.002,   # RRF 최소 점수 (이 이하는 무관한 결과로 판단)
 }
 
 # Embedding model

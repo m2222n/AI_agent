@@ -214,6 +214,13 @@ def retrieve_relevant_docs(
         if not results:
             return None, []
 
+        # RRF 최소 점수 필터링 — 무관한 결과 제거
+        min_score = HYBRID_SEARCH.get("min_rrf_score", 0.0)
+        results = [(doc, score) for doc, score in results if score >= min_score]
+        if not results:
+            logger.info(f"모든 검색 결과가 min_rrf_score({min_score}) 미달 — 관련 문서 없음")
+            return None, []
+
         context_parts = []
         sources = []
         for doc, score in results:

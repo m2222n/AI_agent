@@ -2,7 +2,7 @@ import time
 
 import streamlit as st
 
-from src.rag.retriever import retrieve_relevant_docs
+from src.rag.retriever import retrieve_relevant_docs, HybridRetriever
 from src.llm.classifier import classify_question_type
 from src.llm.client import (
     call_llm_streaming, LLMError, RateLimitExceededError, ConnectionFailedError
@@ -16,6 +16,12 @@ QUESTION_TYPE_LABELS = {
     "risk": "⚠️ 위험 분석",
     "general": "📚 일반 질문"
 }
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_search(_retriever, query: str):
+    """검색 결과 캐싱 (동일 쿼리 1시간 내 재사용)"""
+    return retrieve_relevant_docs(_retriever, query)
 
 
 def init_session_state():
@@ -51,9 +57,9 @@ def process_question(question: str, client, retriever):
         question_type = classify_question_type(question)
         st.session_state.last_question_type = question_type
 
-        # 관련 문서 검색
+        # 관련 문서 검색 (캐싱 적용)
         search_start_time = time.time()
-        context, sources = retrieve_relevant_docs(retriever, question)
+        context, sources = _cached_search(retriever, question)
         search_time = time.time() - search_start_time
 
         st.session_state.last_sources = sources
