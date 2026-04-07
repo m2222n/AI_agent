@@ -135,10 +135,11 @@
 
 **3-3. 응답 품질**
 - [ ] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답
-- [ ] Hallucination 방어: 검색 결과 없으면 "모른다" + CoV 검증
-- [ ] 대화 히스토리 토큰 관리 (tiktoken 카운팅 + 요약 압축)
+- [x] Hallucination 방어: 검색 결과 없으면 "모른다" (프롬프트 모순 수정 + min_rrf_score 필터)
+- [ ] Hallucination 방어: CoV 검증 (추후)
+- [x] 대화 히스토리 토큰 관리 (tiktoken 카운팅, _trim_history)
 - [ ] 비교 질문 시 표/차트 자동 생성
-- [ ] 응답 캐싱 (동일/유사 질문 재활용)
+- [x] 검색 결과 캐싱 (@st.cache_data, ttl=1h)
 
 **자기 검증:** "ChatGPT보다 나은 점이 있나?" → 없으면 실패
 
@@ -188,7 +189,7 @@ ETF_RAG/
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons()
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
-├── tests/                  # pytest 51개 (classifier 10 + loader 12 + prompts 7 + retriever 22)
+├── tests/                  # pytest 61개 (classifier 10 + loader 12 + prompts 7 + retriever 22 + PDF 4 + 기타 6)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
@@ -236,4 +237,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-07 (Phase 1 완료(1-3 보류), Phase 2-1 하이브리드+MMR 완료, Phase 2-2 PDF 파이프라인 완료)_
+_Last Updated: 2026-04-07 (Phase 1 완료(1-3 보류), Phase 2-1 하이브리드+MMR 완료, Phase 2-2 PDF 파이프라인 완료, 품질 안정화 스프린트 완료)_

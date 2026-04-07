@@ -428,6 +428,48 @@
 
 ---
 
+## 품질 안정화 스프린트 기록 (2026-04-07)
+
+### Task 1: 프롬프트 모순 수정 (할루시네이션 방지)
+- **문제:** `prompts.py`는 "문서 정보만 사용" ↔ `client.py`는 context=None일 때 "일반적인 ETF 지식으로 답변" → 모순
+- **수정 (client.py):** no-context 분기를 "추측하지 마세요 + 데이터 없다고 솔직히 안내"로 변경
+- **수정 (prompts.py):** base_constraints에 "검색 결과 없으면 절대 추측 금지", "구체적 수치는 문서 값만 사용" 추가
+
+### Task 2: 검색 신뢰도 임계값 추가
+- **문제:** 하이브리드 검색이 점수가 극히 낮아도 결과를 반환 → 무관한 ETF가 context에 포함
+- **수정 (config.py):** `HYBRID_SEARCH["min_rrf_score"] = 0.002` 추가
+- **수정 (retriever.py):** `retrieve_relevant_docs()`에서 RRF 최소 점수 필터링 → 미달 시 context=None
+
+### Task 3: 토큰 관리 (tiktoken)
+- **문제:** `chat_history[-10:]` 단순 슬라이스 → 긴 대화 시 context window 초과 가능
+- **수정 (client.py):** `_trim_history(messages, max_tokens=6000)` 함수 추가
+  - tiktoken으로 토큰 수 카운팅, 최신 메시지 우선 유지, 초과 시 오래된 메시지 제거
+  - `_get_encoder()` 싱글턴, `_count_tokens()` 유틸
+
+### Task 4: 검색 결과 캐싱
+- **문제:** 동일 질문 재질문 시 FAISS+BM25 전부 재실행
+- **수정 (chat.py):** `@st.cache_data(ttl=3600)` 적용한 `_cached_search()` 함수 추가
+  - 1시간 TTL, LLM 호출은 대화 히스토리 의존이므로 캐싱하지 않음
+
+### Task 5: requirements 정리
+- `tiktoken>=0.5.0`, `langchain-text-splitters>=0.0.1`, `numpy>=1.24.0` 추가
+
+### Task 6: 분류기 강화
+- **문제:** ETF 브랜드가 KODEX/TIGER만 → ACE, ARIRANG, KBSTAR 등 누락
+- **수정 (classifier.py):**
+  - ETF 브랜드 18개로 확장 (ACE, ARIRANG, KBSTAR, HANARO, KOSEF, SOLS, PLUS 등)
+  - 6자리 티커 패턴 매칭 (`\b\d{6}\b`)
+  - 비교 키워드 확장 ("중에서", "어떤것", "셋 중", "뭐가 더", "이랑", "하고", "랑")
+  - 정보 키워드 확장 ("수익률", "종가", "거래량", "보유종목")
+  - 추천 키워드 확장 ("적합한", "알맞은", "찾아줘")
+  - 위험 키워드 확장 ("하락", "폭락")
+  - `_normalize()` 함수: 공백 정규화 + 소문자 변환
+
+### 테스트 결과: 61개 전체 통과
+- classifier 10개 + data_loader 12개 + prompts 7개 + retriever 22개 + PDF 관련 4개 = 총 55 + 6(기존 누락분) = 61개
+
+---
+
 ## Phase 2 참고 메모
 
 - **Azure AI Search를 Vector DB 대안으로 검토** (2026-03-23)
@@ -438,4 +480,4 @@
 ---
 
 _Last Updated: 2026-04-07_
-_Phase 1 + Phase 2-1(하이브리드+MMR) + Phase 2-2(PDF 파이프라인) + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2-1(하이브리드+MMR) + Phase 2-2(PDF 파이프라인) + 품질 안정화 스프린트 + 부트캠프/Semiconductor AI 교안_
