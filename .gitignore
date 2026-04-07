@@ -22,6 +22,9 @@ ai_agent/
 logs/
 *.jsonl
 
+# Collected data (regenerated daily by collector.py)
+ETF_RAG/src/data/collected/
+
 # Old assignments (exclude from git)
 2week_assignment_taemin/
 3week_assignment_taemin/

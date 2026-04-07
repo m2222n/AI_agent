@@ -2,12 +2,13 @@
 
 ## 프로젝트 개요
 
-**목표:** 부트캠프 과제 수준의 ETF 챗봇을 **실제 사용 가능한 서비스**로 발전시키면서 RAG를 깊이 학습한다.
+**목표:** 부트캠프 과제 수준의 ETF 챗봇을 **실제 사용 가능한 서비스**로 발전시키면서 RAG + AI Agent를 깊이 학습한다.
 
 **핵심 차별점 (ChatGPT와 다른 이유):**
-- 실시간 ETF 데이터 (오늘의 NAV, 수익률, 거래량)
+- 실시간 ETF 데이터 (오늘의 NAV, 수익률, 거래량) — ChatGPT는 학습 데이터 기준, 우리는 오늘 기준
 - 공식 투자설명서/운용보고서 기반 정확한 답변 + 출처 보장
 - ETF 비교 분석 특화 (표/차트 자동 생성)
+- Function Calling 기반 Multi-Tool Agent — 질문에 따라 도구를 자동 선택
 
 **GitHub:** https://github.com/m2222n/AI_agent.git
 **배포:** https://aiagent-mrfkacatrcjjpzrmjzsdfc.streamlit.app/
@@ -16,139 +17,185 @@
 
 ## 기술 스택
 
-| 구분 | 현재 (부트캠프) | 목표 (서비스) |
+| 구분 | 현재 (Phase 2) | 목표 (서비스) |
 |------|----------------|--------------|
-| LLM | GPT-4o only | GPT-4o + GPT-4o-mini (비용 최적화) |
-| Vector DB | FAISS (인메모리) | Chroma 또는 Qdrant |
-| 데이터 | 하드코딩 JSON 8개 | 실시간 크롤링 100개+ ETF |
-| 검색 | 단순 similarity_search | Hybrid Search (BM25 + Dense) + Re-ranking |
-| 문서 | 없음 | ETF 투자설명서 PDF 파싱 |
-| 평가 | 수동 17건 테스트 | RAGAS 자동 평가 |
-| 구조 | 단일 파일 741줄 | 모듈별 분리 |
-| UI | Streamlit 기본 | 커스텀 테마 + 차트/표 |
+| LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
+| Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
+| 데이터 | **pykrx** (일배치 1084종목) | + **한국투자증권 OpenAPI** (실시간) |
+| 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
+| 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
+| 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
+| 분류 | 키워드 매칭 classifier.py | **LangGraph** 기반 LLM 라우팅 + Function Calling |
+| 평가 | 수동 17건 + pytest 51개 | **RAGAS** 자동 평가 (Faithfulness, Relevancy, Context Recall) |
+| 한국어 | **Kiwi** 형태소 분석 (BM25 토크나이저) | ✅ 적용 완료 |
+| 모니터링 | 로컬 JSONL 로그 | **LangSmith** (free tier, 파이프라인 트레이싱) |
+| 배포 | Streamlit Cloud | Streamlit Cloud (→ 추후 Railway + 커스텀 도메인) |
+
+**예상 월 비용:** $5~17 (개인 프로젝트)
 
 ---
 
 ## 로드맵
 
-### Phase 0: 프로젝트 리셋 [현재 단계]
-> 지금의 단일 파일 구조로는 어떤 개선도 고통. 먼저 뼈대를 잡는다.
+### Phase 0: 프로젝트 리셋 ✅ 완료
+> 단일 파일 741줄 → 모듈 분리. 뼈대 잡기.
 
-**완료:**
 - [x] 프로젝트 구조 재설계 (모듈 분리)
 - [x] 설정 관리 체계 (config.py, .env)
 - [x] 테스트 프레임워크 세팅 (pytest, 22개 테스트 통과)
 - [x] 기존 app.py 로직을 새 구조로 마이그레이션
 - [x] 디렉토리 rename: `2week_etf_chatbot` → `ETF_RAG`
 
-**현재 구조:**
-```
-ETF_RAG/
-├── app.py                  # Streamlit 진입점 (~75줄, 오케스트레이션만)
-├── config.py               # 설정/경로/상수 관리
-├── requirements.txt
-├── .env.example
-├── src/
-│   ├── data/
-│   │   ├── loader.py       # load_etf_data(), create_documents()
-│   │   └── etf_data.json   # (Phase 1에서 크롤러로 대체)
-│   ├── rag/
-│   │   ├── vectorstore.py  # create_vectorstore()
-│   │   └── retriever.py    # retrieve_relevant_docs()
-│   ├── llm/
-│   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
-│   │   ├── prompts.py      # build_system_prompt()
-│   │   └── classifier.py   # classify_question_type()
-│   ├── ui/
-│   │   ├── sidebar.py      # render_sidebar()
-│   │   ├── chat.py         # init_session_state(), render_chat_history(), process_question()
-│   │   └── components.py   # render_example_questions(), render_feedback_buttons()
-│   └── utils/
-│       └── logging.py      # log_interaction(), log_feedback(), get_performance_stats()
-├── tests/
-│   ├── conftest.py         # 공유 fixture
-│   ├── test_classifier.py  # 10개 테스트
-│   ├── test_prompts.py     # 7개 테스트
-│   └── test_data_loader.py # 5개 테스트
-└── docs/
-    ├── report_2week.md     # 부트캠프 과제 보고서 (아카이브)
-    ├── report_3week.md
-    ├── test_scenarios.py   # 기존 시나리오 테스트 (아카이브)
-    └── test_report.json
-```
-
-**자기 검증:** "새 기능 추가할 때 기존 코드를 건드려야 하나?" → No. 각 모듈이 독립적.
-
 ---
 
-### Phase 1: 진짜 데이터 확보
+### Phase 1: 진짜 데이터 확보 ✅ 완료 (1-3 보류)
 > 가짜 데이터로는 서비스가 아님. 이게 없으면 나머지는 전부 의미 없음.
 
-**할 일:**
-- [ ] KRX/네이버금융 ETF 데이터 크롤링 파이프라인 구축
-- [ ] 국내 상장 ETF 100개+ 기본 정보 수집
-- [ ] 일별 NAV/수익률/거래량 업데이트 스크립트
-- [ ] ETF 투자설명서(PDF) 수집 및 파싱
-- [ ] 데이터 정합성 검증 로직
-- [ ] 크롤링 스케줄러 (수동 → 자동)
+**1-1. pykrx 기반 일배치 데이터 수집**
+- [x] pykrx로 국내 ETF 전종목 목록 수집 (종목코드, 이름) — 1084종목 확인
+- [x] KRX 로그인 워크어라운드 구현 (2026-02 정책변경 대응, pykrx#276)
+- [x] 일별 데이터 수집: 시세(OHLCV) + NAV + 기초지수 + 등락률 — 일괄 API로 전종목 1초
+- [x] ETF 보유종목(PDF 구성종목) 수집 — 거래대금 상위 100개
+- [x] 추적오차율, 괴리율 수집
+- [x] 수익률 계산 (1일/1주/1개월/3개월/1년) — `collect_bulk_returns()` 일괄 API × 5기간
+- [x] 주요 ETF 선별 기준 정의 — 거래대금 1억+, 종가 0 제외 (`ETF_SELECTION` in config.py)
+
+**1-2. 데이터 저장 구조** ✅ 완료
+- [x] etf_data.json 하드코딩 → 자동 갱신 구조로 전환 (loader.py 리팩토링 완료)
+- [x] config.py: `get_latest_collected_path()` — 최신 수집 파일 자동 탐색
+- [x] retriever.py: 수집 데이터 metadata 호환성 수정 (id/ticker fallback)
+- [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
+- [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
+- [ ] 메타데이터(정적) vs 시세데이터(동적) 분리 설계
+- [x] 데이터 정합성 검증 로직 — validate_result() 구현 완료
+
+**1-3. 한국투자증권 OpenAPI 연동**
+- [ ] KIS Developers 계좌 개설 + API 키 발급
+- [ ] 실시간 시세 조회 연동 (REST, 추후 WebSocket)
+- [ ] 에러 핸들링 패턴 적용 (timeout, retry, rate limit)
+
+**1-4. 수집 자동화** ✅ 완료
+- [x] 일배치 셸 스크립트 (`scripts/daily_collect.sh`) — 수집 + 로깅 + 정리
+- [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:00 자동 실행
+- [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
+- [x] 30일 이상 된 수집 파일/로그 자동 삭제
 
 **자기 검증:** "내일 실제 ETF 가격이 반영되나?" → No면 실패
 
 ---
 
-### Phase 2: RAG 파이프라인 고도화
-> RAG 공부의 핵심. 여기서 배우는 게 이 프로젝트의 가장 큰 가치.
+### Phase 2: RAG 파이프라인 재구축 ← 현재 단계
+> RAG를 "제대로" 하는 단계. 면접에서 "왜 이 구조인가?" 에 답할 수 있어야 한다.
 
-**할 일:**
-- [ ] Chunking 전략 설계 (고정 길이 vs 의미 단위 vs Recursive)
-- [ ] 메타데이터 태깅 (ETF ID, 카테고리, 문서 유형 등)
-- [ ] Embedding 모델 비교 실험 (OpenAI vs 한국어 특화 모델)
-- [ ] Vector DB 교체 (FAISS → Chroma/Qdrant)
-- [ ] Hybrid Search 구현 (BM25 + Dense Vector)
-- [ ] Re-ranking 적용 (Cross-encoder)
-- [ ] Multi-query Retrieval (질문 변형으로 검색 품질 향상)
-- [ ] 평가 체계 구축 (RAGAS: Faithfulness, Relevancy, Context Recall)
-- [ ] 평가 결과 정량 기록 (변경 전후 비교)
+**2-1. 하이브리드 검색 (FAISS + Kiwi BM25)** ✅ 완료
+- [x] **Kiwi** 형태소 분석기 도입 (한국어 BM25 토크나이저, `kiwipiepy`)
+- [x] **FAISS + BM25 하이브리드 검색** 구현 (`HybridRetriever` 클래스)
+- [x] **RRF (Reciprocal Rank Fusion)** 결합 — dense 70% + sparse 30%
+- [x] **MMR (Maximal Marginal Relevance)** — Jaccard 유사도 기반 다양성 확보 (λ=0.7)
+- [x] 임베딩: **OpenAI text-embedding-3-small** 명시 적용
+- [x] FAISS 단독 검색 하위 호환 유지 (retriever.py)
 
-**학습 포인트:**
-| 주제 | 배울 것 |
-|------|---------|
-| Chunking | 문서를 어떻게 나누느냐에 따라 검색 품질이 결정됨 |
-| Embedding | 한국어 금융 도메인에 어떤 모델이 최적인지 |
-| Hybrid Search | Dense만으로는 키워드 매칭이 약함, BM25 보완 |
-| Re-ranking | 1차 검색 후 정밀 정렬로 정확도 향상 |
-| RAGAS | RAG 품질을 숫자로 증명하는 방법 |
+**2-2. PDF 문서 처리 파이프라인** ✅ 완료 (파이프라인 구축, PDF 미적용)
+- [x] `pdf_loader.py` — PyPDFLoader + RecursiveCharacterTextSplitter (chunk_size=1000, overlap=100)
+- [x] 파일명 기반 메타데이터 추출 ({ticker}_{name}_{doc_type}.pdf)
+- [x] `create_documents(include_pdfs=True)`로 ETF 데이터 + PDF 통합
+- [ ] ETF 투자설명서 PDF 수집 및 적용 (pdfs/ 디렉토리에 파일 추가 시 자동 인식)
+
+**2-3. Vector DB 교체 (추후)**
+- [ ] FAISS → **Pinecone** 마이그레이션 (free tier, 서버리스)
+- [ ] Pinecone sparse-dense 하이브리드 검색으로 전환
+
+**2-4. Re-ranking (추후)**
+- [ ] **Cohere Rerank v3** 적용 (1차 검색 → 재정렬)
+
+**2-5. 평가 체계**
+- [ ] RAGAS 평가 파이프라인 구축 (Faithfulness, Relevancy, Context Recall)
+- [ ] 평가 데이터셋 구축 (질문-정답-컨텍스트 쌍 50개+)
+- [ ] 변경 전후 정량 비교 기록 (스프레드시트 or JSON)
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
 ---
 
-### Phase 3: LLM 응답 품질
+### Phase 3: 에이전트 + LLM 응답 품질
 > "ChatGPT보다 나은 점이 있나?" 에 답할 수 있어야 한다.
 
-**할 일:**
-- [ ] 질문 분류를 LLM 기반으로 전환 (키워드 → 의미 기반)
-- [ ] 구조화 데이터(가격/수익률)와 비구조화 데이터(문서) 통합 응답
-- [ ] Hallucination 감지/방지 로직
-- [ ] 비교 질문 시 차트/표 자동 생성
-- [ ] GPT-4o-mini fallback (단순 질문은 저비용 모델)
-- [ ] 응답 캐싱 (동일 질문 재활용)
+**3-1. LangGraph 기반 에이전트**
+- [ ] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프
+- [ ] Function Calling 도구 정의:
+  - `search_etf_documents`: Pinecone RAG 검색
+  - `get_etf_price`: 실시간 시세 조회 (KIS API)
+  - `compare_etfs`: ETF 비교 분석 + 표/차트 생성
+  - `search_holdings`: 보유종목/섹터 비중 조회
+- [ ] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge)
+
+**3-2. 모델 라우팅**
+- [ ] 단순 질문 → GPT-4o-mini, 복잡한 비교/분석 → GPT-4o
+- [ ] 라우팅 기준 정의 + 비용 모니터링
+
+**3-3. 응답 품질**
+- [ ] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답
+- [ ] Hallucination 방어: 검색 결과 없으면 "모른다" + CoV 검증
+- [ ] 대화 히스토리 토큰 관리 (tiktoken 카운팅 + 요약 압축)
+- [ ] 비교 질문 시 표/차트 자동 생성
+- [ ] 응답 캐싱 (동일/유사 질문 재활용)
 
 **자기 검증:** "ChatGPT보다 나은 점이 있나?" → 없으면 실패
 
 ---
 
-### Phase 4: 서비스 마감
+### Phase 4: 서비스 마감 + 포트폴리오
 > "친구한테 URL 보내서 쓰라고 할 수 있나?" 에 부끄럽지 않아야 한다.
 
-**할 일:**
-- [ ] UI/UX 전면 개편 (커스텀 테마, 반응형)
-- [ ] 에러 핸들링 완성
-- [ ] 배포 인프라 정비 (환경 분리, 시크릿 관리)
-- [ ] 사용자 피드백 기반 개선 루프
-- [ ] README 및 프로젝트 문서화 (포트폴리오 용)
+- [ ] UI/UX 전면 개편 (커스텀 CSS, 반응형, 차트 라이브러리)
+- [ ] LangSmith 모니터링 연동
+- [ ] 에러 핸들링 완성 (API 장애, 데이터 누락 등 모든 엣지 케이스)
+- [ ] 사용자 피드백 루프 (thumbs up/down → 검색 품질 개선)
+- [ ] README + 아키텍처 다이어그램 (포트폴리오용)
+- [ ] 비용 분석 문서 ("월 $X로 서비스 운영 가능" — 상용화 근거)
+- [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
 **자기 검증:** "친구한테 URL 보내서 쓰라고 할 수 있나?" → 부끄러우면 실패
+
+---
+
+## 프로젝트 구조
+
+```
+ETF_RAG/
+├── app.py                  # Streamlit 진입점 (HybridRetriever 사용)
+├── config.py               # 설정/경로/상수 관리 (HYBRID_SEARCH, EMBEDDING_MODEL 등)
+├── requirements.txt
+├── .env.example
+├── src/
+│   ├── data/
+│   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
+│   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
+│   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF)
+│   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
+│   │   ├── collected/      # 수집 결과 JSON (etf_data_YYYYMMDD.json)
+│   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
+│   ├── rag/
+│   │   ├── vectorstore.py  # create_vectorstore(), get_embeddings() — text-embedding-3-small
+│   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
+│   ├── llm/
+│   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
+│   │   ├── prompts.py      # build_system_prompt()
+│   │   └── classifier.py   # classify_question_type() → Phase 3에서 LangGraph
+│   ├── ui/
+│   │   ├── sidebar.py      # render_sidebar()
+│   │   ├── chat.py         # process_question()
+│   │   └── components.py   # render_example_questions(), render_feedback_buttons()
+│   └── utils/
+│       └── logging.py      # log_interaction(), log_feedback()
+├── tests/                  # pytest 51개 (classifier 10 + loader 12 + prompts 7 + retriever 22)
+├── scripts/
+│   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
+│   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
+│   └── README_cron.md                 # 자동화 설정 안내
+└── docs/
+    └── TODO_deferred.md               # 보류된 작업 목록 (Pinecone, Cohere, KIS, RAGAS)
+```
 
 ---
 
@@ -173,7 +220,7 @@ ETF_RAG/
 - 모니터링/로깅, UX 개선
 
 ### 기술 이슈
-- Chroma SQLite 버전 문제 → FAISS로 변경
+- Chroma SQLite 버전 문제 → FAISS로 변경 → Phase 2에서 Pinecone으로 최종 전환
 
 </details>
 
@@ -185,7 +232,8 @@ ETF_RAG/
 - 새 기능은 반드시 테스트 코드와 함께 작성
 - RAG 관련 변경은 반드시 정량 평가(RAGAS) 전후 비교 기록
 - 커밋은 Phase 단위가 아니라 기능 단위로 잘게 나누기
+- 법적 이슈: 네이버 크롤링 금지 (ToS 위반), KRX 실시간 시세 재배포 시 라이선스 필요
 
 ---
 
-_Last Updated: 2026-02-26_
+_Last Updated: 2026-04-07 (Phase 1 완료(1-3 보류), Phase 2-1 하이브리드+MMR 완료, Phase 2-2 PDF 파이프라인 완료)_
