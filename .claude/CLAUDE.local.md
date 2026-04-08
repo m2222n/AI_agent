@@ -854,10 +854,40 @@
 - 기존 168개 + 신규 22개 (test_realtime.py)
 
 ### 다음 작업
-1. Phase 4-4: Multi-Agent, Pinecone, 한국어 임베딩
-2. KIS OpenAPI는 계좌 개설 후 추후 추가
+1. ~~섹터 분석~~ → ✅ 완료
+2. Phase 4-4: Multi-Agent, Pinecone, 한국어 임베딩
+3. KIS OpenAPI는 계좌 개설 후 추후 추가
+
+---
+
+## Phase 4-3 섹터 분석 도구 (2026-04-08)
+
+### 설계
+- ETF 보유종목 데이터를 역활용: 종목→ETF 역인덱스로 cross-reference
+- "삼성전자 담고 있는 ETF", "반도체 관련 ETF 보유종목" 등의 질문에 답변 가능
+- 기존 구조화 데이터 인덱스 위에 역인덱스만 추가 → 최소 변경
+
+### 구현
+- **`src/llm/tools.py`**:
+  - `_holdings_reverse_index`: {stock_ticker → [{etf_name, etf_ticker, weight}]} 역인덱스
+  - `_build_holdings_reverse_index(etf_data)`: ETF 보유종목 → 종목별 편입 ETF 목록 구축
+    - 종목 티커 + 종목명(소문자) 양쪽으로 조회 가능
+  - `set_retriever()`: ETF 데이터 주입 시 역인덱스도 함께 구축
+  - `analyze_sector(query)` 도구 추가 (6번째 LangGraph 도구):
+    1. 정확 매칭: 티커/종목명으로 해당 종목을 보유한 ETF 목록 (비중 높은 순)
+    2. 부분 매칭: 키워드로 관련 종목 검색 후 편입 ETF 목록
+    3. 통계: 평균 비중, 최대 비중 ETF 표시
+  - `ALL_TOOLS` 6개로 확장
+- **`src/llm/prompts.py`**: 섹터 분석 도구 사용 안내 추가
+
+### 테스트: 204개 전체 통과
+- 신규 14개 (test_sector.py):
+  - 역인덱스 4개 (기본/종목명/빈데이터/비중값)
+  - 도구 8개 (정확매칭/종목명/정렬/SK하이닉스/현대차/없는종목/부분매칭/통계)
+  - 엣지케이스 1개 (보유종목 없을 때)
+  - ALL_TOOLS 1개 (6개 확인)
 
 ---
 
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance 장중 시세 + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance+섹터분석 + 부트캠프/Semiconductor AI 교안_

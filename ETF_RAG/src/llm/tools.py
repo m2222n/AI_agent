@@ -22,6 +22,9 @@ _documents = None
 _etf_data_index = {}       # {name_lower: dict, ticker: dict}
 _stock_data_index = {}     # {name_lower: dict, ticker: dict}
 
+# 역인덱스 — 보유종목 → ETF 매핑 (섹터 분석용)
+_holdings_reverse_index = {}   # {stock_ticker: [{etf_name, etf_ticker, weight}]}
+
 
 def _build_data_index(data_list):
     """데이터 리스트에서 이름/티커 → dict 인덱스 구축"""
@@ -36,16 +39,41 @@ def _build_data_index(data_list):
     return index
 
 
+def _build_holdings_reverse_index(etf_data_list):
+    """보유종목 → ETF 역인덱스 구축 (종목이 어떤 ETF에 담겨있는지)"""
+    reverse = {}
+    for etf in etf_data_list:
+        etf_name = etf.get("name", "")
+        etf_ticker = etf.get("ticker", "")
+        for h in etf.get("holdings", []):
+            stock_ticker = h.get("stock_ticker", "")
+            stock_name = h.get("stock_name", "")
+            if not stock_ticker:
+                continue
+            entry = {
+                "etf_name": etf_name,
+                "etf_ticker": etf_ticker,
+                "weight": h.get("weight", 0),
+                "stock_name": stock_name,
+            }
+            reverse.setdefault(stock_ticker, []).append(entry)
+            # 종목명으로도 조회 가능하게
+            if stock_name:
+                reverse.setdefault(stock_name.lower(), []).append(entry)
+    return reverse
+
+
 def set_retriever(retriever, documents=None, stock_retriever=None,
                   etf_data=None, stock_data=None):
     """앱 초기화 시 retriever와 documents를 주입"""
     global _retriever, _documents, _stock_retriever
-    global _etf_data_index, _stock_data_index
+    global _etf_data_index, _stock_data_index, _holdings_reverse_index
     _retriever = retriever
     _documents = documents or (retriever.documents if hasattr(retriever, "documents") else [])
     _stock_retriever = stock_retriever
     if etf_data is not None:
         _etf_data_index = _build_data_index(etf_data)
+        _holdings_reverse_index = _build_holdings_reverse_index(etf_data)
     if stock_data is not None:
         _stock_data_index = _build_data_index(stock_data)
 
@@ -372,5 +400,86 @@ def get_realtime_price(name_or_ticker: str) -> str:
     return line
 
 
+@tool
+def analyze_sector(query: str) -> str:
+    """특정 종목이 포함된 ETF를 찾거나, 섹터/테마별 ETF 노출도를 분석합니다.
+    "삼성전자 담고 있는 ETF", "반도체 관련 ETF 보유종목", "SK하이닉스 비중 높은 ETF" 등의 질문에 사용합니다.
+
+    Args:
+        query: 분석할 종목명, 티커, 또는 섹터/테마 키워드 (예: "삼성전자", "005930", "반도체")
+    """
+    if not _holdings_reverse_index:
+        return "보유종목 데이터가 없습니다. ETF 데이터 수집 후 이용 가능합니다."
+
+    query_lower = query.lower().strip()
+
+    # 1. 정확 매칭 — 종목명 또는 티커로 직접 조회
+    matches = _holdings_reverse_index.get(query_lower) or _holdings_reverse_index.get(query)
+    if matches:
+        stock_name = matches[0].get("stock_name", query)
+        # 비중 높은 순으로 정렬
+        sorted_matches = sorted(matches, key=lambda x: x["weight"], reverse=True)
+        # 중복 제거 (같은 ETF가 name/ticker 양쪽 키로 들어갈 수 있음)
+        seen = set()
+        unique = []
+        for m in sorted_matches:
+            if m["etf_ticker"] not in seen:
+                seen.add(m["etf_ticker"])
+                unique.append(m)
+
+        lines = [f"[{stock_name}]을(를) 보유한 ETF ({len(unique)}개):\n"]
+        for m in unique[:15]:  # 상위 15개
+            lines.append(
+                f"- [{m['etf_ticker']}] {m['etf_name']} (비중: {m['weight']:.2f}%)"
+            )
+        if len(unique) > 15:
+            lines.append(f"  ... 외 {len(unique) - 15}개")
+
+        # 평균 비중 통계
+        avg_weight = sum(m["weight"] for m in unique) / len(unique)
+        max_m = unique[0]
+        lines.append(f"\n[통계] 평균 비중: {avg_weight:.2f}%, "
+                      f"최대 비중: {max_m['etf_name']} ({max_m['weight']:.2f}%)")
+        return "\n".join(lines)
+
+    # 2. 부분 매칭 — 키워드로 종목명 검색
+    keyword_matches = {}  # {stock_ticker: {stock_name, etfs: [...]}}
+    for key, entries in _holdings_reverse_index.items():
+        # 종목명 키만 검색 (티커 키는 건너뜀)
+        if not key.replace(" ", "").isalpha() and not any(
+            '\uac00' <= c <= '\ud7a3' for c in key
+        ):
+            continue
+        if query_lower in key:
+            for e in entries:
+                st = e.get("stock_name", "")
+                stk = entries[0].get("stock_name", key)
+                if st not in keyword_matches:
+                    keyword_matches[st] = {"stock_name": st, "etfs": []}
+                if e["etf_ticker"] not in [x["etf_ticker"] for x in keyword_matches[st]["etfs"]]:
+                    keyword_matches[st]["etfs"].append(e)
+
+    if keyword_matches:
+        lines = [f"'{query}' 관련 종목을 보유한 ETF:\n"]
+        for stock_name, info in sorted(
+            keyword_matches.items(),
+            key=lambda x: len(x[1]["etfs"]),
+            reverse=True,
+        )[:5]:  # 상위 5개 종목
+            etfs = sorted(info["etfs"], key=lambda x: x["weight"], reverse=True)
+            lines.append(f"**{stock_name}** ({len(etfs)}개 ETF에 편입)")
+            for e in etfs[:5]:
+                lines.append(
+                    f"  - [{e['etf_ticker']}] {e['etf_name']} (비중: {e['weight']:.2f}%)"
+                )
+            if len(etfs) > 5:
+                lines.append(f"    ... 외 {len(etfs) - 5}개")
+            lines.append("")
+        return "\n".join(lines)
+
+    return f"'{query}'에 해당하는 보유종목 정보를 찾지 못했습니다."
+
+
 # 에이전트에 바인딩할 도구 목록
-ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price]
+ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
+             get_realtime_price, analyze_sector]

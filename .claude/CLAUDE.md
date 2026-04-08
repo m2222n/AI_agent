@@ -135,6 +135,7 @@
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
   - `get_realtime_price`: 장중 실시간 시세 (yfinance, 15분 지연) + 장 외 종가 fallback
+  - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -173,8 +174,8 @@
 
 **4-3. 데이터/분석 확장**
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
+- [x] 종목→ETF 역인덱스 + 섹터 분석 (analyze_sector 도구, 보유종목 cross-reference)
 - [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요, 추후)
-- [ ] 종목 간 상관관계/섹터 분석 (ETF 보유종목 역활용, 섹터별 집계)
 - [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
 
 **4-4. 아키텍처 고도화 (추후)**
@@ -212,7 +213,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price) + 구조화 데이터 인덱스
+│   │   ├── tools.py        # Function Calling 도구 6개 (search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price, analyze_sector) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -228,7 +229,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (65개 질문: ETF 50 + 주식 15)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 190개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + stock 22 + ui_features 12)
+├── tests/                  # pytest 204개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
@@ -277,4 +278,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (Phase 4-3 yfinance 장중 시세 연동, 테스트 190개 통과)_
+_Last Updated: 2026-04-08 (Phase 4-3 yfinance 시세 + 섹터 분석, 테스트 204개 통과)_
