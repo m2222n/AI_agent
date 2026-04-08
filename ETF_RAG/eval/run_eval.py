@@ -193,8 +193,12 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
             model_used = "error"
 
         # 2. 검색 컨텍스트 추출 (RAGAS Faithfulness 평가용)
+        #    에이전트가 실제로 보는 것과 동일하게 구조화 데이터도 포함
+        from src.llm.tools import _enrich_with_structured_data, _etf_data_index, _stock_data_index
+
         if asset_type == "stock" and stock_retriever:
             context, sources = retrieve_relevant_docs(stock_retriever, question)
+            enriched = _enrich_with_structured_data(sources or [], _stock_data_index)
         elif asset_type == "mixed":
             ctx_etf, src_etf = retrieve_relevant_docs(etf_retriever, question)
             ctx_stock, src_stock = (
@@ -204,8 +208,19 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
             parts = [c for c in [ctx_etf, ctx_stock] if c]
             context = "\n\n".join(parts) if parts else None
             sources = (src_etf or []) + (src_stock or [])
+            enriched = _enrich_with_structured_data(
+                (src_etf or []) + (src_stock or []),
+                {**_etf_data_index, **_stock_data_index},
+            )
         else:
             context, sources = retrieve_relevant_docs(etf_retriever, question)
+            enriched = _enrich_with_structured_data(sources or [], _etf_data_index)
+
+        # 구조화 데이터를 context에 합산 (에이전트가 LLM에 전달하는 것과 동일)
+        if context and enriched:
+            context = context + enriched
+        elif enriched:
+            context = enriched
 
         retrieved_contexts = [context] if context else ["관련 문서 없음"]
 
