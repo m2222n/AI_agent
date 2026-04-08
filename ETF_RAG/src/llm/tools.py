@@ -109,6 +109,16 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
 
         enriched.append(line)
 
+        # 보유종목 정보 추가 (ETF)
+        holdings = data.get("holdings", [])
+        if holdings:
+            top_h = holdings[:10]
+            h_parts = [
+                f"{h.get('stock_name', '?')}({h.get('weight', 0):.1f}%)"
+                for h in top_h
+            ]
+            enriched.append(f"  보유종목(상위 {len(top_h)}개): " + ", ".join(h_parts))
+
     if not enriched:
         return ""
     return "\n\n[실시간 데이터 요약]\n" + "\n".join(enriched)

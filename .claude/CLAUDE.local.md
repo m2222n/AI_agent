@@ -889,5 +889,30 @@
 
 ---
 
+## RAGAS Full 평가 + 프롬프트 개선 (2026-04-08)
+
+### 평가 파이프라인 리라이트
+- **`eval/run_eval.py`**: 직접 OpenAI → `run_agent()` 에이전트 기반
+- RAGAS 0.4.3: `SingleTurnSample` → `EvaluationDataset` → `evaluate()`
+- `LangchainLLMWrapper`/`LangchainEmbeddingsWrapper` (RAGAS 네이티브 embed_query 버그 회피)
+- `--sample N` CLI 옵션, `_json_safe()` numpy 직렬화
+
+### 프롬프트 개선 3가지
+1. **면책 + 데이터 기반 의견** (`prompts.py`): risk/recommend에 적극적 의견 제시 + 면책 footer
+2. **데이터 없는 항목 출력 방지**: simple/compare에서 수수료/위험등급/배당정책 삭제
+3. **보유종목 enrichment** (`tools.py`): `_enrich_with_structured_data()`에 holdings 상위 10개
+
+### 평가 결과 비교
+| 지표 | Baseline | 개선 후 | 변화 |
+|------|----------|---------|------|
+| Faithfulness | 0.500 | 0.521 | +0.021 |
+| Answer Relevancy | 0.423 | 0.301 | -0.122 |
+| Context Recall | 0.336 | 0.400 | +0.064 |
+
+- AR 하락 원인: 면책 문구가 모든 답변에 포함 → RAGAS가 "질문 무관 내용"으로 평가 (측정 아티팩트)
+- 결과: `eval/results/eval_20260408_162135.json` (baseline), `eval_20260408_163838.json` (개선)
+
+---
+
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance+섹터분석 + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance+섹터분석 + RAGAS Full 평가+프롬프트 개선 + 부트캠프/Semiconductor AI 교안_

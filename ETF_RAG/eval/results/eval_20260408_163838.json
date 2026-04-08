@@ -1,0 +1,1857 @@
+{
+  "timestamp": "20260408_163838",
+  "total_questions": 65,
+  "retrieval": {
+    "hit_rate": 0.908,
+    "avg_precision": 0.561,
+    "avg_recall": 0.908,
+    "by_type": {
+      "simple": {
+        "hit_rate": 0.933,
+        "total": 30,
+        "hits": 28
+      },
+      "compare": {
+        "hit_rate": 0.9,
+        "total": 10,
+        "hits": 9
+      },
+      "recommend": {
+        "hit_rate": 0.929,
+        "total": 14,
+        "hits": 13
+      },
+      "risk": {
+        "hit_rate": 0.8,
+        "total": 5,
+        "hits": 4
+      },
+      "general": {
+        "hit_rate": 0.833,
+        "total": 6,
+        "hits": 5
+      }
+    },
+    "by_asset": {
+      "etf": {
+        "hit_rate": 0.88,
+        "total": 50,
+        "hits": 44
+      },
+      "stock": {
+        "hit_rate": 1.0,
+        "total": 13,
+        "hits": 13
+      },
+      "mixed": {
+        "hit_rate": 1.0,
+        "total": 2,
+        "hits": 2
+      }
+    }
+  },
+  "retrieval_details": [
+    {
+      "question": "KODEX 200 ETF의 오늘 종가는 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "069500",
+      "retrieved_tickers": [
+        "069500",
+        "226980",
+        "379800"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 반도체 ETF 수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "091160",
+      "retrieved_tickers": [
+        "091160",
+        "390390",
+        "219480"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200의 주요 보유종목이 뭐야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "069500",
+      "retrieved_tickers": [
+        "069500",
+        "226980",
+        "363580"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200 ETF의 NAV는 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "069500",
+      "retrieved_tickers": [
+        "069500",
+        "226980",
+        "379800"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200 등락률이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "069500",
+      "retrieved_tickers": [
+        "069500",
+        "226980",
+        "498400"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200선물인버스2X 수익률은?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "252670",
+      "retrieved_tickers": [
+        "252670",
+        "069500",
+        "360140"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 미국나스닥100 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "133690",
+      "retrieved_tickers": [
+        "133690",
+        "486290",
+        "381180"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 차이나전기차 ETF 최근 성과가 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "371460",
+      "retrieved_tickers": [
+        "371460",
+        "360750",
+        "371160"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 레버리지 종가 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "122630",
+      "retrieved_tickers": [
+        "122630",
+        "0100K0",
+        "462330"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 인버스 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "114800",
+      "retrieved_tickers": [
+        "114800",
+        "261260",
+        "266370"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 반도체TOP10 보유종목 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "396500",
+      "retrieved_tickers": [
+        "396500",
+        "091230",
+        "494670"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 코스닥150 수익률은?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "229200",
+      "retrieved_tickers": [
+        "229200",
+        "337140",
+        "251340"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 미국S&P500 ETF 정보 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "360750",
+      "retrieved_tickers": [
+        "360750",
+        "448290",
+        "482730"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 미국S&P500 수익률 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "379800",
+      "retrieved_tickers": [
+        "379800",
+        "0005A0",
+        "453640"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 2차전지산업 종가가 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "305720",
+      "retrieved_tickers": [
+        "305720",
+        "462330",
+        "252670"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 미국나스닥100 수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "379810",
+      "retrieved_tickers": [
+        "379810",
+        "411420",
+        "494300"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "ACE 200 ETF 거래량이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "105190",
+      "retrieved_tickers": [
+        "105190",
+        "332500",
+        "438080"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "069500 종가 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "069500",
+      "retrieved_tickers": [
+        "069500",
+        "138520",
+        "0141S0"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 200이랑 KODEX 200 비교해줘",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "069500",
+        "102110"
+      ],
+      "retrieved_tickers": [
+        "102110",
+        "069500",
+        "226980"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 반도체와 KODEX 200 중에 수익률이 더 좋은 건?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "091160",
+        "069500"
+      ],
+      "retrieved_tickers": [
+        "091160",
+        "069500",
+        "0162L0"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "133690",
+        "091160"
+      ],
+      "retrieved_tickers": [
+        "449190",
+        "381180",
+        "438100"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 레버리지와 KODEX 인버스 비교해줘",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "122630",
+        "114800"
+      ],
+      "retrieved_tickers": [
+        "122630",
+        "114800",
+        "0100K0"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "TIGER 미국S&P500이랑 KODEX 미국S&P500 차이가 뭐야?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "360750",
+        "379800"
+      ],
+      "retrieved_tickers": [
+        "360750",
+        "379800",
+        "488500"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200이랑 RISE 200 중에 뭐가 나아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "069500",
+        "148020"
+      ],
+      "retrieved_tickers": [
+        "069500",
+        "148020",
+        "475720"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 코스닥150레버리지와 KODEX 코스닥150 비교",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "233740",
+        "229200"
+      ],
+      "retrieved_tickers": [
+        "233740",
+        "229200",
+        "498400"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 반도체레버리지와 TIGER 반도체TOP10레버리지 어떤 게 좋아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "494310",
+        "488080"
+      ],
+      "retrieved_tickers": [
+        "488080",
+        "396500",
+        "494310"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "수익률 높은 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "399110",
+        "289040",
+        "438080"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "안정적인 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "399110",
+        "289040",
+        "310970"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 비중이 높은 ETF가 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": [
+        "069500",
+        "102110",
+        "091160"
+      ],
+      "retrieved_tickers": [
+        "448330",
+        "399110",
+        "139260"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "해외 ETF 중에 수익률 좋은 거 알려줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "472840",
+        "468370",
+        "0057H0"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "배당 수익률 높은 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "484880",
+        "315960",
+        "143850"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "거래량 많은 ETF가 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "472840",
+        "482730",
+        "360750"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "방산 관련 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "490480",
+        "449450",
+        "0177A0"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "2차전지 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "305540",
+        "364980",
+        "482730"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "expected_ticker": "252670",
+      "retrieved_tickers": [
+        "261270",
+        "271050",
+        "465350"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "레버리지 ETF 위험성에 대해 알려줘",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "152500",
+        "0138T0",
+        "225040"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 코스닥150레버리지 투자해도 되나?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "expected_ticker": "233740",
+      "retrieved_tickers": [
+        "233740",
+        "229200",
+        "337140"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KODEX 200선물인버스2X 장기 보유하면 어떻게 돼?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "expected_ticker": "252670",
+      "retrieved_tickers": [
+        "252670",
+        "069500",
+        "261270"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "2차전지 ETF 지금 투자해도 괜찮을까?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "305540",
+        "462010",
+        "412570"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "ETF란 무엇인가요?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "0040Y0",
+        "433880",
+        "456880"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "NAV가 뭔가요?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "476030",
+        "0100K0",
+        "455860"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "괴리율이 뭐야?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "498050",
+        "423160",
+        "456880"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "추적오차율이 무슨 뜻이야?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "228800",
+        "414780",
+        "0104N0"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "비트코인 ETF 있어?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "468370",
+        "0005G0",
+        "482730"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "테슬라 주가 알려줘",
+      "question_type": "general",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "457480",
+        "0132K0",
+        "471780"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "미국 국채 ETF 있어?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "468370",
+        "490490",
+        "438080"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "금 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "139320",
+        "482730",
+        "289040"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "반도체 ETF 보유종목 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "expected_ticker": "091160",
+      "retrieved_tickers": [
+        "475310",
+        "0041E0",
+        "469050"
+      ],
+      "hit": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "num_sources": 3
+    },
+    {
+      "question": "코스닥 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "450910",
+        "233740",
+        "0163Y0"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "S&P500 추종하는 ETF 알려줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "433330",
+        "360200",
+        "488500"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 오늘 종가 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "005930",
+        "028050",
+        "017900"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "SK하이닉스 주가 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "000660",
+      "retrieved_tickers": [
+        "000660",
+        "402340",
+        "039570"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "현대차 PER이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "005380",
+      "retrieved_tickers": [
+        "005380",
+        "089470",
+        "267250"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 시가총액이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "005930",
+        "005935",
+        "207940"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 배당수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "005930",
+        "207940",
+        "028050"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "현대건설 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "000720",
+      "retrieved_tickers": [
+        "000720",
+        "267250",
+        "294870"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "KB금융 주가 정보 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "105560",
+      "retrieved_tickers": [
+        "105560",
+        "138930",
+        "033780"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자랑 SK하이닉스 비교해줘",
+      "question_type": "compare",
+      "asset_type": "stock",
+      "expected_ticker": [
+        "005930",
+        "000660"
+      ],
+      "retrieved_tickers": [
+        "000660",
+        "005930",
+        "005935"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "현대차와 삼성SDI 중에 PER이 낮은 건?",
+      "question_type": "compare",
+      "asset_type": "stock",
+      "expected_ticker": [
+        "005380",
+        "006400"
+      ],
+      "retrieved_tickers": [
+        "006400",
+        "005380",
+        "267250"
+      ],
+      "hit": true,
+      "precision": 0.667,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "거래대금 많은 주식이 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "stock",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "105560",
+        "024060",
+        "005830"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "배당수익률 높은 주식 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "stock",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "000250",
+        "097955",
+        "016610"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "PBR이 뭔가요?",
+      "question_type": "general",
+      "asset_type": "stock",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "004840",
+        "415640",
+        "000990"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 ETF에 많이 들어가 있어?",
+      "question_type": "simple",
+      "asset_type": "mixed",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "448330",
+        "139260",
+        "278530",
+        "005930",
+        "028050",
+        "017900"
+      ],
+      "hit": true,
+      "precision": 0.167,
+      "recall": 1.0,
+      "num_sources": 6
+    },
+    {
+      "question": "반도체 관련 주식이랑 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "mixed",
+      "expected_ticker": null,
+      "retrieved_tickers": [
+        "475310",
+        "379800",
+        "471990",
+        "080220",
+        "005830",
+        "004840"
+      ],
+      "hit": true,
+      "precision": 1.0,
+      "recall": 1.0,
+      "num_sources": 6
+    },
+    {
+      "question": "한화에어로스페이스 주가 어때?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "expected_ticker": "012450",
+      "retrieved_tickers": [
+        "012450",
+        "096760",
+        "044450"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    }
+  ],
+  "ragas": {
+    "faithfulness": 0.521,
+    "answer_relevancy": 0.301,
+    "context_recall": 0.4
+  },
+  "ragas_per_question": [
+    {
+      "question": "KODEX 200 ETF의 오늘 종가는 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 247,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 200, 티커: 069500\n2. **시세 정보**: 종가: 82,770원, 등락률: +1.25%, NAV: 82,931원\n3. **수익률**: \n   - 1일: +2.72%\n   - 1주: +5.20%\n   - 1개월: -0.95%\n   - 3개월: +25.01%\n   - 1년: +147.41%\n\n📎 **참고**: [E",
+      "faithfulness": 0.818,
+      "answer_relevancy": 0.475,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 반도체 ETF 수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 408,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: KODEX 반도체\n   - 티커: 091160\n\n2. **시세 정보**: \n   - 종가: 94,930원\n   - 등락률: +1.71%\n   - NAV: 95,137.96원\n   - 거래량: 3,290,316주\n\n3. **수익률**: \n   - 1일: +1.90%\n   - 1주: +3.82%\n   - 1개월: -7",
+      "faithfulness": 0.889,
+      "answer_relevancy": 0.781,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 200의 주요 보유종목이 뭐야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 285,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "죄송하지만, KODEX 200의 주요 보유종목 정보를 찾을 수 없었습니다. 일반적으로 KODEX 200은 한국의 주요 200개 상장 기업의 주식으로 구성된 ETF입니다. 이 ETF는 코스피 200 지수를 추종하며, 대형주 중심으로 포트폴리오가 구성되어 있습니다.\n\n보다 구체적인 보유종목 정보가 필요하시다면, KODEX 200의 공식 웹사이트나 관련 금융 정",
+      "faithfulness": 0.375,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 200 ETF의 NAV는 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 398,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 200, 티커: 069500\n2. **시세 정보**: \n   - 종가: 82,770원\n   - NAV: 82,931.14원\n   - 등락률: +1.25%\n   - 거래량: 19,643,636주\n3. **수익률**: \n   - 1일: +2.72%\n   - 1주: +5.20%\n   - 1개월: -0.95%\n   - 3개월: ",
+      "faithfulness": 0.882,
+      "answer_relevancy": 0.724,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 200 등락률이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 247,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 200, 티커: 069500\n2. **시세 정보**: 종가: 82,770원, 등락률: +1.25%, NAV: 82,931원\n3. **수익률**: \n   - 1일: +2.72%\n   - 1주: +5.20%\n   - 1개월: -0.95%\n   - 3개월: +25.01%\n   - 1년: +147.41%\n\n📎 **참고**: [E",
+      "faithfulness": 0.818,
+      "answer_relevancy": 0.657,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 200선물인버스2X 수익률은?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 323,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 200선물인버스2X, 티커: 252670\n2. **시세 정보**: \n   - 종가: 257원\n   - 등락률: -2.28%\n   - NAV: 256.52원\n   - 거래량: 5,329,611,887주\n3. **수익률**: \n   - 1일: -5.17%\n   - 1주: -12.88%\n   - 1개월: -7.89%\n   - ",
+      "faithfulness": 0.846,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 미국나스닥100 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 351,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: TIGER 미국나스닥100\n   - 티커: 133690\n\n2. **시세 정보**: \n   - 종가: 160,515원\n   - NAV: 161,341.14원\n   - 등락률: -0.06%\n   - 거래량: 709,072주\n\n3. **수익률**: \n   - 1일: +0.22%\n   - 1주: +3.07%\n   - 1개",
+      "faithfulness": 0.923,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 차이나전기차 ETF 최근 성과가 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 357,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: TIGER 차이나전기차SOLACTIVE \n   - 티커: 371460\n\n2. **시세 정보**: \n   - 종가: 12,960원\n   - NAV: 13,037.85원\n   - 등락률: -0.58%\n   - 거래량: 217,492주\n\n3. **수익률**: \n   - 1일: -1.03%\n   - 1주: -5.92%\n ",
+      "faithfulness": 0.923,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 레버리지 종가 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 262,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 레버리지, 티커: 122630\n2. **시세 정보**: \n   - 종가: 79,400원\n   - 등락률: +2.74%\n   - NAV: 79,710원\n3. **수익률**: \n   - 1일: +5.53%\n   - 1주: +8.92%\n   - 1개월: -5.48%\n   - 3개월: +40.84%\n   - 1년: +432.89",
+      "faithfulness": 0.818,
+      "answer_relevancy": 0.59,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 인버스 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 790,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **현재 데이터**:  \n   - **종가**: 1,650원\n   - **수익률**: \n     - 1일: -2.65%\n     - 1주: -6.04%\n     - 1개월: -2.60%\n     - 3개월: -26.17%\n     - 1년: -64.17%\n   - **등락률**: -1.26%\n   - **거래량**: 355,874,069주\n   - *",
+      "faithfulness": 0.583,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 반도체TOP10 보유종목 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 174,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "현재 'TIGER 반도체TOP10' ETF의 보유종목 정보를 찾을 수 없습니다. ETF의 보유종목은 주기적으로 변경될 수 있으므로, 최신 정보를 제공하는 금융기관의 공식 웹사이트나 투자 관련 플랫폼에서 확인하시는 것을 추천드립니다.\n\n📎 **참고**: 본 정보는 참고용이며, 최종 투자 판단은 본인의 책임입니다.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 코스닥150 수익률은?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 418,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: KODEX 코스닥150\n   - 티커: 229200\n\n2. **시세 정보**: \n   - 종가: 17,745원\n   - 등락률: -0.39%\n   - NAV: 17,786.71원\n   - 거래량: 17,109,428주\n\n3. **수익률**: \n   - 1일: -1.85%\n   - 1주: -7.67%\n   - 1개월",
+      "faithfulness": 0.889,
+      "answer_relevancy": 0.617,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 미국S&P500 ETF 정보 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 353,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: TIGER 미국S&P500 \n   - 티커: 360750\n\n2. **시세 정보**: \n   - 종가: 24,610원\n   - NAV: 24,700.09원\n   - 등락률: +0.02%\n   - 거래량: 12,620,349주\n\n3. **수익률**: \n   - 1일: +0.16%\n   - 1주: +2.50%\n   - ",
+      "faithfulness": 0.923,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 미국S&P500 수익률 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 328,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 미국S&P500, 티커: 379800\n2. **시세 정보**: \n   - 종가: 22,490원\n   - NAV: 22,575.35원\n   - 등락률: +0.00%\n   - 거래량: 13,263,192주\n3. **수익률**: \n   - 1일: +0.16%\n   - 1주: +2.48%\n   - 1개월: -1.73%\n   - ",
+      "faithfulness": 0.846,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "KODEX 2차전지산업 종가가 얼마야?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 249,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 2차전지산업, 티커: 305720\n2. **시세 정보**: 종가: 17,535원, 등락률: +0.49%, NAV: 17,535원\n3. **수익률**: \n   - 1일: +3.09%\n   - 1주: +2.78%\n   - 1개월: +1.86%\n   - 3개월: +24.98%\n   - 1년: +56.98%\n\n📎 **참고**: ",
+      "faithfulness": 0.727,
+      "answer_relevancy": 0.715,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 미국나스닥100 수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 350,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: KODEX 미국나스닥100\n   - 티커: 379810\n\n2. **시세 정보**: \n   - 종가: 24,055원\n   - 등락률: -0.04%\n   - NAV: 24,177.8원\n   - 거래량: 5,565,131주\n\n3. **수익률**: \n   - 1일: +0.25%\n   - 1주: +3.09%\n   - 1개월",
+      "faithfulness": 0.923,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "ACE 200 ETF 거래량이 어때?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 423,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: ACE 200 \n   - 티커: 105190\n\n2. **시세 정보**: \n   - 종가: 83,215원 \n   - 등락률: +1.43% \n   - NAV: 83,367.03원 \n   - 거래량: 844,994주 \n\n3. **수익률**: \n   - 1일: +2.79% \n   - 1주: +5.08% \n   - 1개월:",
+      "faithfulness": 0.889,
+      "answer_relevancy": 0.537,
+      "context_recall": 0.0
+    },
+    {
+      "question": "069500 종가 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 261,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: KODEX 200, 티커: 069500\n2. **시세 정보**: \n   - 종가: 82,770원\n   - 등락률: +1.25%\n   - NAV: 82,931원\n3. **수익률**: \n   - 1일: +2.72%\n   - 1주: +5.20%\n   - 1개월: -0.95%\n   - 3개월: +25.01%\n   - 1년: +147.41%",
+      "faithfulness": 0.818,
+      "answer_relevancy": 0.185,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 200이랑 KODEX 200 비교해줘",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1108,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **TIGER 200**: 한국의 대표적인 주가지수인 KOSPI 200을 추종하는 ETF로, 삼성전자와 SK하이닉스 등의 대형주에 투자합니다.\n   - **KODEX 200**: 마찬가지로 KOSPI 200을 추종하는 ETF로, 비슷한 종목 구성과 투자 전략을 가지고 있습니다.\n\n2. **항목별 비교표**:\n   | 항목",
+      "faithfulness": 0.714,
+      "answer_relevancy": 0.672,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 반도체와 KODEX 200 중에 수익률이 더 좋은 건?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1041,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **KODEX 반도체**: 반도체 관련 기업에 투자하는 ETF로, SK하이닉스와 삼성전자를 주요 보유 종목으로 하고 있습니다.\n   - **KODEX 200**: 한국의 대표적인 주가지수인 KOSPI 200을 추종하는 ETF로, 삼성전자와 SK하이닉스를 주요 보유 종목으로 하고 있습니다.\n\n2. **항목별 비교표**:\n ",
+      "faithfulness": 0.655,
+      "answer_relevancy": 0.746,
+      "context_recall": 0.0
+    },
+    {
+      "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1390,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **나스닥 ETF**: 대표적으로 ACE 미국나스닥100 (367380), KODEX 미국나스닥AI테크액티브 (411420), KODEX 미국나스닥100선물(H) (304940) 등이 있습니다.\n   - **반도체 ETF**: 대표적으로 SOL 반도체후공정 (475310), TIGER 반도체TOP10 (396500) 등이",
+      "faithfulness": 0.25,
+      "answer_relevancy": 0.41,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 레버리지와 KODEX 인버스 비교해줘",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1105,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **KODEX 레버리지**: 코스피200 지수의 일간 변동률을 2배로 추종하는 ETF입니다. 주가 상승 시 더 큰 수익을 기대할 수 있지만, 하락 시 손실도 그만큼 커집니다.\n   - **KODEX 인버스**: 코스피200 지수의 일간 변동률을 반대로 추종하는 ETF입니다. 주가 하락 시 수익을 낼 수 있는 구조입니다.\n",
+      "faithfulness": 0.632,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "TIGER 미국S&P500이랑 KODEX 미국S&P500 차이가 뭐야?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1252,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **TIGER 미국S&P500**: S&P 500 지수를 추종하는 ETF로, 미국 주식 시장의 주요 대형주에 투자합니다.\n   - **KODEX 미국S&P500**: 마찬가지로 S&P 500 지수를 추종하는 ETF로, 미국 주식 시장의 주요 대형주에 투자합니다.\n\n2. **항목별 비교표**:\n\n   | 항목        ",
+      "faithfulness": 0.75,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 200이랑 RISE 200 중에 뭐가 나아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1196,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**:  \n   - **KODEX 200**: 한국의 대표적인 ETF로, KOSPI 200 지수를 추종합니다. 삼성전자, SK하이닉스 등 대형주에 주로 투자합니다.\n   - **RISE 200**: KOSPI 200 지수를 추종하는 또 다른 ETF로, 비슷한 대형주에 투자합니다.\n\n2. **항목별 비교표**:\n\n   | 항목       |",
+      "faithfulness": 0.771,
+      "answer_relevancy": 0.688,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 코스닥150레버리지와 KODEX 코스닥150 비교",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1221,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **KODEX 코스닥150레버리지**: 코스닥150 지수를 2배로 추종하는 레버리지 ETF입니다. 변동성이 크며, 단기 투자에 적합합니다.\n   - **KODEX 코스닥150**: 코스닥150 지수를 그대로 추종하는 ETF로, 비교적 안정적인 장기 투자에 적합합니다.\n\n2. **항목별 비교표**:\n\n   | 항목 | KO",
+      "faithfulness": 0.514,
+      "answer_relevancy": 0.792,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 반도체레버리지와 TIGER 반도체TOP10레버리지 어떤 게 좋아?",
+      "question_type": "compare",
+      "asset_type": "etf",
+      "answer_length": 1487,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: \n   - **KODEX 반도체레버리지**: 반도체 업종에 투자하는 레버리지 ETF로, 주로 SK하이닉스와 삼성전자를 포함하고 있습니다.\n   - **TIGER 반도체TOP10레버리지**: 반도체 업종의 상위 10개 종목에 투자하는 레버리지 ETF로, SK하이닉스와 삼성전자를 주로 포함하고 있습니다.\n\n2. **항목별 비교표**:\n",
+      "faithfulness": 0.868,
+      "answer_relevancy": 0.818,
+      "context_recall": 1.0
+    },
+    {
+      "question": "수익률 높은 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 753,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 사용자가 원하는 조건은 수익률이 높은 ETF입니다.\n\n2. **추천 상품**:\n   - [385510] **KODEX 신재생에너지액티브**: 1년 수익률 +179.80%, 3개월 수익률 +42.69%\n   - [367770] **RISE 수소경제테마**: 1년 수익률 +138.28%, 3개월 수익률 +30.27%\n   - [00",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "안정적인 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 723,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "**요구사항 파악**: 안정적인 ETF를 찾고 계시며, 대형주, 채권, 고배당 ETF를 고려하셨습니다.\n\n**추천 상품**:\n1. **TIGER 코스피대형주 (277640)**: 대형주 중심으로 구성되어 있으며, 1년 수익률이 +136.22%로 안정적인 성과를 보이고 있습니다. [ETF-277640]\n2. **KODEX 단기채권PLUS (214980)**:",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "삼성전자 비중이 높은 ETF가 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 547,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 삼성전자 비중이 높은 ETF를 찾고 계시는군요.\n\n2. **추천 상품**: 삼성전자 비중이 높은 ETF는 다음과 같습니다:\n   - **KODEX 코스피100**: 삼성전자 비중 35.21%\n   - **KODEX 삼성그룹**: 삼성전자 비중 34.05%\n   - **RISE 200**: 삼성전자 비중 33.57%\n   - **",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.694,
+      "context_recall": 0.0
+    },
+    {
+      "question": "해외 ETF 중에 수익률 좋은 거 알려줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 668,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 해외 ETF 중에서 수익률이 좋은 상품을 찾고 계십니다.\n\n2. **추천 상품**:\n   - **[298770] KODEX 한국대만IT프리미어**: 1년 수익률 +138.27%, 3개월 수익률 +22.43%\n   - **[415920] PLUS 글로벌희토류&전략자원생산기업**: 1년 수익률 +141.74%, 3개월 수익률 +13",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "배당 수익률 높은 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 890,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "배당 수익률이 높은 ETF를 추천해드리겠습니다. 다음은 검색된 배당 관련 ETF 목록입니다.\n\n1. **RISE 대형고배당10TR (315960)**\n   - 1년 수익률: +210.40%\n   - 주요 보유종목: SK하이닉스 (34.76%), 삼성전자 (31.33%)\n   - 거래대금: 28,572,476,236원\n\n2. **RISE 고배당 (266160",
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "거래량 많은 ETF가 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 379,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "가장 거래량이 많은 ETF는 다음과 같습니다:\n\n1. **상품 개요**: KODEX 2차전지산업레버리지, 티커: 462330\n2. **시세 정보**: \n   - 종가: 1,800원\n   - NAV: 1,812.58원\n   - 등락률: +0.95%\n   - 거래량: 98,292,493주\n3. **수익률**: \n   - 1일: +5.94%\n   - 1주: +4",
+      "faithfulness": 0.083,
+      "answer_relevancy": 0.602,
+      "context_recall": 0.0
+    },
+    {
+      "question": "방산 관련 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 691,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 방산 관련 ETF를 찾고 계시는군요.\n\n2. **추천 상품**:\n   - **[SOL K방산 (490480)]**: \n     - 종가: 38,575원\n     - 1년 수익률: +139.89%\n     - 거래량: 122,225주\n     - 거래대금: 4,699,695,201원\n   - **[KODEX 방산TOP10 (008",
+      "faithfulness": 0.526,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "2차전지 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 875,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 2차전지 관련 ETF를 추천해달라는 요청입니다.\n\n2. **추천 상품**:\n   - **[461950] KODEX 2차전지핵심소재10**\n     - 1년 수익률: +82.57%\n     - 3개월 수익률: +30.46%\n     - 주요 보유종목: 에코프로비엠, POSCO홀딩스, LG화학 등\n   - **[364980] TIG",
+      "faithfulness": 0.667,
+      "answer_relevancy": 0.541,
+      "context_recall": 0.0
+    },
+    {
+      "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "answer_length": 977,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "인버스 ETF는 특정 지수나 자산의 가격이 하락할 때 수익을 내도록 설계된 금융 상품입니다. 일반적으로 주식 시장이 하락할 때 이익을 얻고자 하는 투자자들이 사용합니다. 인버스 ETF 투자 시 주의해야 할 몇 가지 위험 요소를 설명드리겠습니다.\n\n1. **변동성**: 인버스 ETF는 지수의 일일 변동을 반대로 추종하기 때문에, 시장 변동성이 클 경우 가격 ",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "레버리지 ETF 위험성에 대해 알려줘",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "answer_length": 878,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "레버리지 ETF는 기초 자산의 변동성을 두 배 또는 세 배로 확대하여 추종하는 상품입니다. 이러한 특성 때문에 레버리지 ETF는 높은 수익을 기대할 수 있지만, 그만큼 높은 위험을 감수해야 합니다. 아래에 레버리지 ETF의 위험성을 데이터 기반으로 설명드리겠습니다.\n\n1. **현재 데이터**: 레버리지 ETF는 일반적으로 일일 수익률을 기준으로 기초 자산의",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 코스닥150레버리지 투자해도 되나?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "answer_length": 727,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 사용자는 \"KODEX 코스닥150레버리지\" ETF에 대한 투자 가능성을 문의하셨습니다.\n\n2. **추천 상품**: \n   - [233740] KODEX 코스닥150레버리지\n     - 종가: 13,325원\n     - 1년 수익률: +100.68%\n     - 1개월 수익률: -26.87%\n     - 3개월 수익률: +7.98",
+      "faithfulness": 0.35,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KODEX 200선물인버스2X 장기 보유하면 어떻게 돼?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "answer_length": 821,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "**현재 데이터**:\n- **종가**: 257원\n- **수익률**: 1일 -5.17%, 1주 -12.88%, 1개월 -7.89%, 3개월 -50.29%, 1년 -89.04%\n- **등락률**: -2.28%\n- **거래량**: 5,329,611,887주\n- **거래대금**: 1,365,605,491,710원\n- **NAV**: 256.52원\n- **괴리율**",
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "2차전지 ETF 지금 투자해도 괜찮을까?",
+      "question_type": "risk",
+      "asset_type": "etf",
+      "answer_length": 1005,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "2차전지 관련 ETF에 대한 투자 판단을 돕기 위해 몇 가지 주요 ETF의 데이터를 분석해보겠습니다.\n\n1. **현재 데이터**:\n   - **BNK 2차전지양극재 (466810)**: 종가 7,480원, 1년 수익률 +71.36%\n   - **TIGER 2차전지TOP10 (364980)**: 종가 10,855원, 1년 수익률 +43.58%\n   - **K",
+      "faithfulness": 0.4,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "ETF란 무엇인가요?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "answer_length": 472,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: ETF(상장지수펀드)는 주식처럼 거래소에 상장되어 거래되는 투자 펀드입니다. 주식이나 채권, 원자재 등 다양한 자산에 투자할 수 있는 상품입니다.\n\n2. **상세 설명**: ETF는 여러 자산을 묶어 하나의 상품으로 만들어 투자자에게 제공합니다. 예를 들어, 특정 지수(예: KOSPI 200)를 추종하는 ETF는 그 지수에 포함된 ",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.309,
+      "context_recall": 0.0
+    },
+    {
+      "question": "NAV가 뭔가요?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "answer_length": 518,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: NAV는 \"순자산가치(Net Asset Value)\"의 약자로, 투자신탁이나 펀드의 자산에서 부채를 뺀 후, 발행된 주식 수로 나눈 값을 의미합니다. 이는 펀드의 가치를 나타내는 중요한 지표입니다.\n\n2. **상세 설명**: 예를 들어, 어떤 펀드가 1억 원의 자산을 가지고 있고, 5천만 원의 부채가 있다면, 순자산은 1억 원 - ",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.576,
+      "context_recall": 0.0
+    },
+    {
+      "question": "괴리율이 뭐야?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "answer_length": 668,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "**핵심 개념**: 괴리율은 ETF(상장지수펀드)의 시장 가격과 순자산가치(NAV, Net Asset Value) 간의 차이를 비율로 나타낸 것입니다.\n\n**상세 설명**: \n- **순자산가치(NAV)**는 ETF가 보유하고 있는 자산의 총 가치에서 부채를 뺀 후, 이를 발행된 ETF의 총 수량으로 나눈 값입니다. 쉽게 말해, ETF가 실제로 보유하고 있는",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.222,
+      "context_recall": 0.0
+    },
+    {
+      "question": "추적오차율이 무슨 뜻이야?",
+      "question_type": "general",
+      "asset_type": "etf",
+      "answer_length": 455,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: 추적오차율(Tracking Error)은 특정 ETF나 펀드의 수익률이 기준 지수(벤치마크)와 얼마나 차이가 나는지를 나타내는 지표입니다.\n\n2. **상세 설명**: 예를 들어, 어떤 ETF가 KOSPI 200 지수를 추적한다고 가정해봅시다. 이 ETF의 수익률이 KOSPI 200 지수의 수익률과 일치하면 추적오차율은 0%입니다. ",
+      "faithfulness": 0.429,
+      "answer_relevancy": 0.272,
+      "context_recall": 0.0
+    },
+    {
+      "question": "비트코인 ETF 있어?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 376,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "현재 비트코인 ETF에 대한 정보는 검색되지 않았습니다. 대신, 다른 ETF 상품들이 검색되었지만, 이들은 비트코인과 직접적인 관련이 없습니다. \n\n비트코인 ETF는 비트코인의 가격을 추적하는 상장지수펀드로, 투자자들이 비트코인에 직접 투자하지 않고도 비트코인의 가격 변동에 투자할 수 있는 방법입니다. 이러한 ETF는 비트코인 가격에 따라 수익을 얻을 수 ",
+      "faithfulness": 0.273,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "테슬라 주가 알려줘",
+      "question_type": "general",
+      "asset_type": "etf",
+      "answer_length": 278,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: 테슬라 (Tesla)\n2. **시세 정보**: 종가: 9,250원, 등락률: -0.80%, NAV: 9,230원\n3. **수익률**: \n   - 1일: -1.39%\n   - 1주: +0.11%\n   - 1개월: -3.65%\n   - 3개월: -6.09%\n   - 1년: -1.54%\n4. **보유종목**: 해당 정보 없음\n5. 📎 *",
+      "faithfulness": 0.083,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "미국 국채 ETF 있어?",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 696,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 미국 국채에 투자할 수 있는 ETF를 찾고 계십니다.\n\n2. **추천 상품**:\n   - **[461600] SOL 미국30년국채액티브(H)**: 최근 종가 8,685원, 1년 수익률 -7.70%, 거래량 21,416주 [ETF-461600]\n   - **[308620] KODEX 미국10년국채선물**: 최근 종가 12,685원",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "금 ETF 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 740,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "금과 관련된 ETF를 찾으시는군요. 다음은 금 관련 ETF 목록입니다.\n\n1. **ACE KRX금현물 (411060)**\n   - **종가**: 31,340원\n   - **1년 수익률**: +54.31%\n   - **거래량**: 1,281,524주\n   - **거래대금**: 40,339,155,422원\n   - **괴리율**: -0.04%\n   - **추적",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "반도체 ETF 보유종목 알려줘",
+      "question_type": "simple",
+      "asset_type": "etf",
+      "answer_length": 666,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "**요구사항 파악**: 반도체 관련 ETF의 보유종목을 알고 싶으신 것 같습니다.\n\n**추천 상품**: 반도체 관련 종목을 보유한 ETF 목록입니다.\n\n1. **한미반도체**를 보유한 ETF:\n   - [471990] KODEX AI반도체핵심장비 (비중: 28.45%)\n   - [469150] ACE AI반도체TOP3+ (비중: 20.96%)\n   - [4",
+      "faithfulness": 0.286,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "코스닥 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 784,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "코스닥 관련 ETF 목록을 다음과 같이 찾아보았습니다:\n\n1. **SOL 코스닥150 (450910)**\n   - 종가: 17,390원\n   - 1년 수익률: +56.10%\n   - 거래량: 59,136주\n   - 거래대금: 1,042,425,009원\n\n2. **KODEX 코스닥150레버리지 (233740)**\n   - 종가: 13,325원\n   - 1년 ",
+      "faithfulness": 0.677,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "S&P500 추종하는 ETF 알려줘",
+      "question_type": "recommend",
+      "asset_type": "etf",
+      "answer_length": 1119,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "S&P500 지수를 추종하는 ETF를 찾으셨군요. 아래는 S&P500을 추종하는 주요 ETF 목록입니다.\n\n1. **[360750] TIGER 미국S&P500**\n   - **종가**: 24,610원\n   - **1년 수익률**: +28.04%\n   - **거래량**: 12,620,349주\n   - **거래대금**: 311,245,689,257원\n   - ",
+      "faithfulness": 0.854,
+      "answer_relevancy": 0.676,
+      "context_recall": 0.0
+    },
+    {
+      "question": "삼성전자 오늘 종가 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 233,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: 삼성전자, 티커: 005930\n2. **시세 정보**: 종가: 210,000원, 등락률: +6.87%\n3. **수익률**: \n   - 1일: +8.75%\n   - 1주: +25.60%\n   - 1개월: +11.58%\n   - 3개월: +48.94%\n   - 1년: +295.68%\n\n📎 **참고**: [종목코드: 005930]\n\n※ ",
+      "faithfulness": 0.818,
+      "answer_relevancy": 0.524,
+      "context_recall": 0.0
+    },
+    {
+      "question": "SK하이닉스 주가 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 247,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: SK하이닉스, 티커: 000660\n2. **시세 정보**: \n   - 종가: 1,004,000원\n   - 등락률: +9.61%\n3. **수익률**: \n   - 1일: +13.21%\n   - 1주: +24.41%\n   - 1개월: +8.55%\n   - 3개월: +35.18%\n   - 1년: +508.62%\n\n📎 **참고**: [종목코",
+      "faithfulness": 0.8,
+      "answer_relevancy": 0.274,
+      "context_recall": 0.0
+    },
+    {
+      "question": "현대차 PER이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 343,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: 현대차의 PER(주가수익비율)은 10.58배입니다.\n\n2. **상세 설명**: PER은 주가를 주당순이익(EPS)으로 나눈 값으로, 기업의 수익성에 대한 평가 지표입니다. 예를 들어, PER이 10.58배라는 것은 현대차의 주가가 주당순이익의 약 10.58배에 거래되고 있다는 의미입니다. 일반적으로 PER이 낮을수록 주식이 저평가되",
+      "faithfulness": 0.444,
+      "answer_relevancy": 0.77,
+      "context_recall": 0.0
+    },
+    {
+      "question": "삼성전자 시가총액이 얼마야?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 305,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: 삼성전자, 005930\n2. **시세 정보**: \n   - 종가: 210,000원\n   - 등락률: +6.87%\n   - 거래량: 19,778,443주\n   - 시가총액: 1243.1조원\n3. **수익률**: \n   - 1일: +8.75%\n   - 1주: +25.60%\n   - 1개월: +11.58%\n   - 3개월: +48.94%",
+      "faithfulness": 0.769,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "삼성전자 배당수익률 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 359,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "삼성전자의 배당수익률에 대한 정보는 다음과 같습니다.\n\n1. **상품 개요**: \n   - 이름: 삼성전자\n   - 티커: 005930\n\n2. **시세 정보**: \n   - 종가: 210,000원\n   - 등락률: +6.87%\n   - 거래량: 19,778,443주\n\n3. **수익률**: \n   - 1일: +8.75%\n   - 1주: +25.60%\n   -",
+      "faithfulness": 0.867,
+      "answer_relevancy": 0.562,
+      "context_recall": 0.0
+    },
+    {
+      "question": "현대건설 수익률이 어때?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 290,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: 현대건설, 티커: 000720\n2. **시세 정보**: \n   - 종가: 186,300원\n   - 등락률: +19.50%\n   - 거래량: 2,422,485주\n3. **수익률**: \n   - 1일: +22.19%\n   - 1주: +31.10%\n   - 1개월: +19.13%\n   - 3개월: +150.07%\n   - 1년: +440",
+      "faithfulness": 0.75,
+      "answer_relevancy": 0.581,
+      "context_recall": 0.0
+    },
+    {
+      "question": "KB금융 주가 정보 알려줘",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 348,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: KB금융 \n   - 티커: 105560\n\n2. **시세 정보**: \n   - 종가: 157,000원 \n   - 등락률: +7.02% \n   - 거래량: 763,523주 \n\n3. **수익률**: \n   - 1일: +6.15% \n   - 1주: +10.64% \n   - 1개월: +6.51% \n   - 3개월: +25.",
+      "faithfulness": 0.786,
+      "answer_relevancy": 0.536,
+      "context_recall": 1.0
+    },
+    {
+      "question": "삼성전자랑 SK하이닉스 비교해줘",
+      "question_type": "compare",
+      "asset_type": "stock",
+      "answer_length": 1068,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: 삼성전자와 SK하이닉스는 한국의 대표적인 반도체 기업으로, 각각 메모리 반도체와 시스템 반도체 분야에서 강점을 가지고 있습니다.\n\n2. **항목별 비교표**:\n\n   | 항목 | 삼성전자 | SK하이닉스 |\n   |------|----------|------------|\n   | 종가 | 210,000원 | 1,004,000원 |\n",
+      "faithfulness": 0.744,
+      "answer_relevancy": 0.484,
+      "context_recall": 1.0
+    },
+    {
+      "question": "현대차와 삼성SDI 중에 PER이 낮은 건?",
+      "question_type": "compare",
+      "asset_type": "stock",
+      "answer_length": 694,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **비교 대상**: 현대차와 삼성SDI는 각각 자동차 제조업과 배터리 제조업 분야에서 주요한 역할을 하고 있는 기업입니다.\n\n2. **항목별 비교표**:\n   | 항목 | 현대차 | 삼성SDI |\n   |------|--------|---------|\n   | 종가 | 504,500원 | 464,000원 |\n   | PER (주가수익비율) | 10.5",
+      "faithfulness": 0.353,
+      "answer_relevancy": 0.639,
+      "context_recall": 1.0
+    },
+    {
+      "question": "거래대금 많은 주식이 뭐야?",
+      "question_type": "recommend",
+      "asset_type": "stock",
+      "answer_length": 574,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: 거래대금이 많은 주식은 해당 주식이 활발하게 거래되고 있다는 것을 의미합니다. 거래대금은 주식의 거래량과 가격을 곱한 값으로, 주식의 유동성을 나타내는 중요한 지표입니다.\n\n2. **상세 설명**: 예를 들어, 거래대금이 높은 주식은 투자자들이 많이 관심을 가지고 거래를 하고 있다는 뜻입니다. 이는 주식의 가격 변동성이 클 수 있음",
+      "faithfulness": 0.647,
+      "answer_relevancy": 0.341,
+      "context_recall": 0.0
+    },
+    {
+      "question": "배당수익률 높은 주식 추천해줘",
+      "question_type": "recommend",
+      "asset_type": "stock",
+      "answer_length": 568,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 배당 수익률이 높은 주식을 추천해 달라는 요청입니다.\n\n2. **추천 주식**:\n   - **CJ제일제당 우 (097955)**: 배당수익률 4.49%, 주당배당금 6,050원\n   - **DB증권 (016610)**: 배당수익률 3.09%, 주당배당금 400원\n\n3. **추천 이유**:\n   - **CJ제일제당 우**는 배당수",
+      "faithfulness": 0.182,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "PBR이 뭔가요?",
+      "question_type": "general",
+      "asset_type": "stock",
+      "answer_length": 510,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: PBR(Price to Book Ratio)은 주가를 주당 장부가치로 나눈 비율로, 기업의 시장가치가 장부가치에 비해 얼마나 높은지를 나타내는 지표입니다.\n\n2. **상세 설명**: PBR은 기업의 자산 가치를 평가하는 데 사용됩니다. 예를 들어, 어떤 회사의 주가가 100원이고, 주당 장부가치가 50원이라면 PBR은 2.0이 됩니",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.622,
+      "context_recall": 0.0
+    },
+    {
+      "question": "삼성전자 ETF에 많이 들어가 있어?",
+      "question_type": "simple",
+      "asset_type": "mixed",
+      "answer_length": 531,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **핵심 개념**: 삼성전자는 여러 ETF에 포함되어 있으며, 특히 KODEX 코스피100 ETF에 가장 높은 비중으로 포함되어 있습니다.\n\n2. **상세 설명**: 삼성전자는 한국 주식 시장에서 가장 큰 기업 중 하나로, 많은 ETF가 삼성전자의 주식을 포함하고 있습니다. 예를 들어, KODEX 코스피100 ETF는 삼성전자의 비중이 35.21%로 ",
+      "faithfulness": 0.231,
+      "answer_relevancy": 0.685,
+      "context_recall": 1.0
+    },
+    {
+      "question": "반도체 관련 주식이랑 ETF 뭐가 있어?",
+      "question_type": "recommend",
+      "asset_type": "mixed",
+      "answer_length": 987,
+      "model": "gpt-4o",
+      "has_context": true,
+      "answer_preview": "1. **요구사항 파악**: 반도체 관련 주식과 ETF를 알고 싶으신 것 같습니다.\n\n2. **추천 상품**:\n   - **반도체 관련 주식**:\n     - **한미반도체**: 12개 ETF에 편입되어 있으며, KODEX AI반도체핵심장비에서 28.45%의 비중을 차지합니다.\n     - **제주반도체**: 3개 ETF에 편입되어 있으며, ACE AI반도",
+      "faithfulness": 0.333,
+      "answer_relevancy": 0.0,
+      "context_recall": 0.0
+    },
+    {
+      "question": "한화에어로스페이스 주가 어때?",
+      "question_type": "simple",
+      "asset_type": "stock",
+      "answer_length": 329,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "1. **상품 개요**: \n   - 이름: 한화에어로스페이스 \n   - 티커: 012450\n\n2. **시세 정보**: \n   - 종가: 1,461,000원 \n   - 등락률: -4.94% \n   - 거래량: 173,655주 \n\n3. **수익률**: \n   - 1일: +0.76% \n   - 1주: +16.89% \n   - 1개월: -1.42% \n   - 3개",
+      "faithfulness": 0.769,
+      "answer_relevancy": 0.249,
+      "context_recall": 1.0
+    }
+  ]
+}

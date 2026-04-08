@@ -3,14 +3,15 @@ RAGAS 평가 파이프라인
 
 사용법:
     cd ETF_RAG
-    .venv/bin/python eval/run_eval.py              # 전체 평가
+    .venv/bin/python eval/run_eval.py              # 전체 평가 (검색 + RAGAS)
     .venv/bin/python eval/run_eval.py --no-llm     # 검색만 평가 (API 비용 없음)
+    .venv/bin/python eval/run_eval.py --sample 10  # 샘플 N개만 RAGAS 평가 (비용 절감)
 
 평가 지표:
-    - Context Precision: 검색된 문서 중 관련 문서 비율
-    - Context Recall: 정답에 필요한 정보가 검색되었는지
+    - Hit Rate / Precision / Recall: 검색 품질 (API 비용 없음)
     - Faithfulness: LLM 답변이 검색 결과에 근거하는지 (할루시네이션 방어)
     - Answer Relevancy: LLM 답변이 질문에 적절한지
+    - Context Recall: 정답에 필요한 정보가 검색되었는지
 """
 
 import json
@@ -139,77 +140,173 @@ def evaluate_retrieval(etf_retriever, stock_retriever, dataset):
     return results
 
 
-def evaluate_with_ragas(etf_retriever, dataset):
-    """RAGAS 전체 평가 (LLM API 사용, ETF만 대상)"""
+def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=None):
+    """
+    RAGAS 전체 평가 — 에이전트 기반 답변 생성 + Faithfulness/Answer Relevancy 측정
+
+    Args:
+        etf_retriever: ETF HybridRetriever
+        stock_retriever: 주식 HybridRetriever (없으면 None)
+        dataset: 평가 데이터셋 리스트
+        sample_size: 평가할 질문 수 (None이면 전체)
+
+    Returns:
+        {"scores": {...}, "per_question": [...]}
+    """
     try:
-        from ragas import evaluate
-        from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
-        from datasets import Dataset
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="ragas")
+        from ragas import evaluate, EvaluationDataset, SingleTurnSample
+        from ragas.metrics import Faithfulness, AnswerRelevancy, LLMContextRecall
+        from ragas.llms import LangchainLLMWrapper
+        from ragas.embeddings import LangchainEmbeddingsWrapper
+        from langchain_openai import ChatOpenAI, OpenAIEmbeddings as LCOpenAIEmbeddings
     except ImportError:
-        logger.error("ragas 또는 datasets 패키지 미설치. pip install ragas datasets")
+        logger.error("ragas 패키지 미설치. pip install ragas")
         return None
 
-    from src.llm.client import get_api_key, create_client, call_llm_streaming
-    from src.llm.classifier import classify_question_type
+    from src.llm.agent import run_agent
 
-    questions = []
-    answers = []
-    contexts = []
-    ground_truths = []
+    # 샘플링
+    eval_items = dataset[:sample_size] if sample_size else dataset
 
-    for item in dataset:
+    samples = []
+    per_question_details = []
+
+    for i, item in enumerate(eval_items):
         question = item["question"]
+        ground_truth = item["ground_truth"]
+        asset_type = item.get("asset_type", "etf")
 
-        # 검색
-        context, sources = retrieve_relevant_docs(etf_retriever, question)
+        logger.info(f"  [{i+1}/{len(eval_items)}] {question[:50]}...")
 
-        # LLM 답변 생성 (비스트리밍)
-        api_key = get_api_key()
-        client = create_client(api_key)
-        question_type = classify_question_type(question)
+        # 1. 에이전트로 답변 생성 (실제 서비스와 동일 경로)
+        try:
+            result = run_agent(question)
+            answer = result["answer"]
+            question_type = result["question_type"]
+            model_used = result["model"]
+        except Exception as e:
+            logger.error(f"  에이전트 오류: {e}")
+            answer = f"오류: {e}"
+            question_type = "unknown"
+            model_used = "error"
 
-        from openai import OpenAI
-        from src.llm.prompts import build_system_prompt
-        from config import LLM_MODEL, LLM_TEMPERATURE
-
-        system_prompt = build_system_prompt(question_type)
-        if context:
-            user_msg = f"[검색된 ETF 문서]\n{context}\n\n[사용자 질문]\n{question}\n\n위 문서를 참고하여 답변해줘."
+        # 2. 검색 컨텍스트 추출 (RAGAS Faithfulness 평가용)
+        if asset_type == "stock" and stock_retriever:
+            context, sources = retrieve_relevant_docs(stock_retriever, question)
+        elif asset_type == "mixed":
+            ctx_etf, src_etf = retrieve_relevant_docs(etf_retriever, question)
+            ctx_stock, src_stock = (
+                retrieve_relevant_docs(stock_retriever, question)
+                if stock_retriever else (None, [])
+            )
+            parts = [c for c in [ctx_etf, ctx_stock] if c]
+            context = "\n\n".join(parts) if parts else None
+            sources = (src_etf or []) + (src_stock or [])
         else:
-            user_msg = f"[시스템 알림] 관련 ETF 문서를 찾지 못했습니다.\n\n[사용자 질문]\n{question}"
+            context, sources = retrieve_relevant_docs(etf_retriever, question)
 
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=LLM_TEMPERATURE,
+        retrieved_contexts = [context] if context else ["관련 문서 없음"]
+
+        # 3. RAGAS SingleTurnSample 생성
+        sample = SingleTurnSample(
+            user_input=question,
+            response=answer,
+            retrieved_contexts=retrieved_contexts,
+            reference=ground_truth,
         )
-        answer = response.choices[0].message.content
+        samples.append(sample)
 
-        questions.append(question)
-        answers.append(answer)
-        contexts.append([context] if context else ["관련 문서 없음"])
-        ground_truths.append(item["ground_truth"])
+        per_question_details.append({
+            "question": question,
+            "question_type": item["question_type"],
+            "asset_type": asset_type,
+            "answer_length": len(answer),
+            "model": model_used,
+            "has_context": context is not None,
+            "answer_preview": answer[:200],
+        })
 
-        logger.info(f"  Q: {question[:40]}... → 답변 {len(answer)}자")
+        logger.info(f"    → {model_used}, 답변 {len(answer)}자")
 
-    # RAGAS Dataset 구성
-    eval_data = Dataset.from_dict({
-        "question": questions,
-        "answer": answers,
-        "contexts": contexts,
-        "ground_truth": ground_truths,
-    })
+    # 4. RAGAS 평가 실행 — 명시적으로 LLM/Embeddings 전달 (호환성)
+    logger.info(f"\nRAGAS 평가 실행 중 ({len(samples)}개 샘플)...")
+    eval_dataset = EvaluationDataset(samples=samples)
 
-    # RAGAS 평가 실행
-    result = evaluate(
-        eval_data,
-        metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
-    )
+    ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0))
+    ragas_emb = LangchainEmbeddingsWrapper(LCOpenAIEmbeddings(model="text-embedding-3-small"))
 
-    return result
+    metrics = [
+        Faithfulness(llm=ragas_llm),
+        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb),
+        LLMContextRecall(llm=ragas_llm),
+    ]
+
+    try:
+        ragas_result = evaluate(
+            dataset=eval_dataset,
+            metrics=metrics,
+            llm=ragas_llm,
+            embeddings=ragas_emb,
+            raise_exceptions=False,
+        )
+    except Exception as e:
+        logger.error(f"RAGAS 평가 실패: {e}")
+        return None
+
+    # 5. 결과 정리 — DataFrame에서 점수 추출
+    scores = {}
+    try:
+        df = ragas_result.to_pandas()
+        metric_cols = [c for c in df.columns
+                       if c not in ("user_input", "response", "retrieved_contexts", "reference")]
+
+        # 전체 평균 점수
+        for col in metric_cols:
+            vals = df[col].dropna()
+            if len(vals) > 0:
+                scores[col] = round(float(vals.mean()), 3)
+
+        # 질문별 점수 추출
+        for i, row in df.iterrows():
+            if i < len(per_question_details):
+                for col in metric_cols:
+                    val = row[col]
+                    if val is not None and not (isinstance(val, float) and val != val):
+                        per_question_details[i][col] = round(float(val), 3)
+    except Exception as e:
+        logger.warning(f"결과 추출 실패: {e}")
+
+    # 비용 정보
+    try:
+        tokens = ragas_result.total_tokens()
+        if tokens:
+            scores["total_tokens"] = int(tokens)
+        cost = ragas_result.total_cost()
+        if cost:
+            scores["total_cost_usd"] = round(float(cost), 4)
+    except Exception:
+        pass
+
+    return {
+        "scores": scores,
+        "per_question": per_question_details,
+    }
+
+
+def _json_safe(obj):
+    """numpy/pandas 타입을 JSON 호환 타입으로 변환"""
+    import numbers
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, numbers.Number) and not isinstance(obj, (int, float, bool)):
+        return float(obj)
+    if hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    return obj
 
 
 def save_results(retrieval_results, ragas_results=None):
@@ -266,11 +363,15 @@ def save_results(retrieval_results, ragas_results=None):
                 for k, v in asset_stats.items()
             },
         },
-        "details": retrieval_results,
+        "retrieval_details": retrieval_results,
     }
 
     if ragas_results:
-        summary["ragas"] = {str(k): float(v) for k, v in ragas_results.items()}
+        summary["ragas"] = ragas_results.get("scores", {})
+        summary["ragas_per_question"] = ragas_results.get("per_question", [])
+
+    # numpy/pandas 타입 변환
+    summary = _json_safe(summary)
 
     output_path = RESULTS_DIR / f"eval_{timestamp}.json"
     with open(output_path, "w", encoding="utf-8") as f:
@@ -283,7 +384,7 @@ def print_summary(summary):
     """평가 결과 요약 출력"""
     r = summary["retrieval"]
     print("\n" + "=" * 60)
-    print("📊 ETF RAG 검색 평가 결과")
+    print("  ETF RAG 평가 결과")
     print("=" * 60)
     print(f"  총 질문: {summary['total_questions']}개")
     print(f"  Hit Rate: {r['hit_rate']:.1%}")
@@ -302,15 +403,31 @@ def print_summary(summary):
 
     if "ragas" in summary:
         print()
-        print("  RAGAS 지표:")
+        print("  RAGAS 답변 품질 지표:")
         for metric, score in summary["ragas"].items():
             print(f"    {metric:25s}: {score:.3f}")
+
+        # 낮은 점수 질문 하이라이트
+        per_q = summary.get("ragas_per_question", [])
+        low_faith = [q for q in per_q if q.get("faithfulness", 1.0) < 0.5]
+        if low_faith:
+            print()
+            print(f"  Faithfulness 낮은 질문 ({len(low_faith)}개):")
+            for q in low_faith[:5]:
+                score = q.get("faithfulness", "N/A")
+                print(f"    [{score}] {q['question'][:50]}...")
 
     print("=" * 60)
 
 
 def main():
     no_llm = "--no-llm" in sys.argv
+
+    # --sample N 옵션: RAGAS 평가 시 샘플 수 제한 (비용 절감)
+    sample_size = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--sample" and i + 1 < len(sys.argv):
+            sample_size = int(sys.argv[i + 1])
 
     logger.info("평가 데이터셋 로드...")
     dataset = load_eval_dataset()
@@ -322,15 +439,34 @@ def main():
     init_time = time.time() - start
     logger.info(f"  초기화 시간: {init_time:.1f}초")
 
+    # 에이전트 도구에 retriever 주입 (run_agent가 도구를 사용할 수 있도록)
+    from src.llm.tools import set_retriever
+    from src.data.loader import load_etf_data as _load_etf, load_stock_data as _load_stock
+
+    etf_data = _load_etf()
+    stock_data = _load_stock()
+    set_retriever(
+        etf_retriever, None,
+        stock_retriever=stock_retriever,
+        etf_data=etf_data,
+        stock_data=stock_data,
+    )
+    logger.info("에이전트 도구 초기화 완료")
+
     # 1. 검색 평가 (무료)
     logger.info("\n검색 품질 평가 시작...")
     retrieval_results = evaluate_retrieval(etf_retriever, stock_retriever, dataset)
 
-    # 2. RAGAS 전체 평가 (유료)
+    # 2. RAGAS 전체 평가 — 에이전트 기반 (유료)
     ragas_results = None
     if not no_llm:
-        logger.info("\nRAGAS 전체 평가 시작 (LLM API 사용)...")
-        ragas_results = evaluate_with_ragas(etf_retriever, dataset)
+        if sample_size:
+            logger.info(f"\nRAGAS 평가 시작 (에이전트 기반, 샘플 {sample_size}개)...")
+        else:
+            logger.info(f"\nRAGAS 평가 시작 (에이전트 기반, 전체 {len(dataset)}개)...")
+        ragas_results = evaluate_with_ragas(
+            etf_retriever, stock_retriever, dataset, sample_size=sample_size,
+        )
 
     # 결과 저장
     output_path, summary = save_results(retrieval_results, ragas_results)
