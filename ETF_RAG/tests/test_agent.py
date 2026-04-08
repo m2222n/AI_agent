@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage, ToolMessage
 
-from src.llm.tools import search_etf, compare_etfs, get_etf_list, set_retriever, ALL_TOOLS
+from src.llm.tools import (
+    search_etf, compare_etfs, get_etf_list, set_retriever, ALL_TOOLS,
+    _find_structured_data, _extract_comparison_fields,
+)
 from src.llm.agent import (
     AgentState,
     should_call_tools,
@@ -249,3 +252,128 @@ def test_stream_agent_skips_tool_call_chunks():
         token_events = [e for e in events if e["event"] == "token"]
         assert len(token_events) == 1
         assert token_events[0]["data"] == "답변입니다"
+
+
+# ── 구조화 비교 데이터 테스트 ────────────────────────────
+
+SAMPLE_ETF_DATA = [
+    {
+        "ticker": "069500", "name": "KODEX 200", "date": "20260408",
+        "close": 80800, "nav": 80647, "change_pct": 2.91,
+        "volume": 14703488, "trade_value": 1184866376189,
+        "deviation": -0.17, "tracking_error": 0.05,
+        "returns": {"1d": 2.91, "1w": 5.12, "1m": -1.23, "3m": 3.45, "1y": 12.34},
+        "holdings": [
+            {"stock_ticker": "005930", "stock_name": "삼성전자", "weight": 31.77},
+            {"stock_ticker": "000660", "stock_name": "SK하이닉스", "weight": 8.12},
+        ],
+    },
+    {
+        "ticker": "091160", "name": "TIGER 반도체", "date": "20260408",
+        "close": 15200, "nav": 15180, "change_pct": 4.12,
+        "volume": 5000000, "trade_value": 76000000000,
+        "deviation": -0.13, "tracking_error": 0.08,
+        "returns": {"1d": 4.12, "1w": 7.50, "1m": 2.10, "3m": -0.50, "1y": 20.00},
+        "holdings": [
+            {"stock_ticker": "005930", "stock_name": "삼성전자", "weight": 25.0},
+        ],
+    },
+]
+
+
+@pytest.fixture
+def mock_retriever_with_data():
+    """구조화 데이터 인덱스를 포함한 mock retriever"""
+    retriever = MagicMock()
+    retriever.documents = SAMPLE_DOCS
+    set_retriever(retriever, SAMPLE_DOCS, etf_data=SAMPLE_ETF_DATA)
+    return retriever
+
+
+def test_find_structured_data_by_name(mock_retriever_with_data):
+    """이름으로 구조화 데이터 조회"""
+    result = _find_structured_data("KODEX 200")
+    assert result is not None
+    assert result["ticker"] == "069500"
+
+
+def test_find_structured_data_by_ticker(mock_retriever_with_data):
+    """티커로 구조화 데이터 조회"""
+    result = _find_structured_data("091160")
+    assert result is not None
+    assert result["name"] == "TIGER 반도체"
+
+
+def test_find_structured_data_not_found(mock_retriever_with_data):
+    """존재하지 않는 종목 조회"""
+    result = _find_structured_data("존재하지않는ETF")
+    assert result is None
+
+
+def test_extract_comparison_fields_etf(mock_retriever_with_data):
+    """ETF 비교 필드 추출"""
+    fields = _extract_comparison_fields(SAMPLE_ETF_DATA[0])
+    assert fields["name"] == "KODEX 200"
+    assert fields["close"] == 80800
+    assert fields["nav"] == 80647
+    assert fields["return_1d"] == 2.91
+    assert fields["return_1y"] == 12.34
+    assert fields["asset_type"] == "etf"
+    assert len(fields["top_holdings"]) == 2
+    assert fields["top_holdings"][0]["name"] == "삼성전자"
+
+
+def test_compare_etfs_structured(mock_retriever_with_data):
+    """구조화 데이터로 비교 시 JSON 반환"""
+    result = compare_etfs.invoke({"etf_name_1": "KODEX 200", "etf_name_2": "TIGER 반도체"})
+    assert '"__type__": "comparison_table"' in result
+    assert "KODEX 200" in result
+    assert "TIGER 반도체" in result
+
+    import json
+    json_part = result.split("\n\n---\n\n")[0]
+    data = json.loads(json_part)
+    assert data["__type__"] == "comparison_table"
+    assert len(data["items"]) == 2
+
+
+def test_compare_etfs_fallback_when_no_index():
+    """인덱스 없으면 기존 텍스트 검색 fallback"""
+    retriever = MagicMock()
+    retriever.documents = SAMPLE_DOCS
+    set_retriever(retriever, SAMPLE_DOCS, etf_data=[], stock_data=[])  # 빈 인덱스
+
+    with patch("src.rag.retriever.retrieve_relevant_docs") as mock_search:
+        mock_search.side_effect = [
+            ("KODEX 200 정보...", [{"ticker": "069500", "name": "KODEX 200", "relevance_score": 100.0}]),
+            ("TIGER 반도체 정보...", [{"ticker": "091160", "name": "TIGER 반도체", "relevance_score": 95.0}]),
+        ]
+        result = compare_etfs.invoke({"etf_name_1": "KODEX 200", "etf_name_2": "TIGER 반도체"})
+        assert "ETF 1" in result
+        assert "ETF 2" in result
+
+
+def test_stream_agent_structured_data_event():
+    """structured_data 이벤트가 전달되는지 확인"""
+    import json
+    comparison_json = json.dumps({
+        "__type__": "comparison_table",
+        "items": [{"name": "A"}, {"name": "B"}],
+    })
+    tool_result_msg = ToolMessage(
+        content=f'{comparison_json}\n\n---\n\nA vs B',
+        tool_call_id="tc1",
+    )
+
+    mock_events = [
+        ("updates", {"tools": {"messages": [tool_result_msg]}}),
+    ]
+
+    with patch("src.llm.agent.classify_with_llm", return_value="compare"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.return_value = iter(mock_events)
+
+        events = list(stream_agent("A vs B"))
+        structured_events = [e for e in events if e["event"] == "structured_data"]
+        assert len(structured_events) == 1
+        assert '"__type__"' in structured_events[0]["data"]

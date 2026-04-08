@@ -5,6 +5,7 @@ ETF/주식 RAG 도구 정의 — LangGraph Function Calling용
 retriever와 documents는 모듈 레벨에서 set_retriever()로 주입.
 """
 
+import json
 import logging
 from typing import Optional
 
@@ -17,13 +18,36 @@ _retriever = None          # ETF용 (또는 ETF+주식 통합)
 _stock_retriever = None    # 주식 전용
 _documents = None
 
+# 구조화 데이터 인덱스 — 이름/티커로 원본 dict 직접 조회
+_etf_data_index = {}       # {name_lower: dict, ticker: dict}
+_stock_data_index = {}     # {name_lower: dict, ticker: dict}
 
-def set_retriever(retriever, documents=None, stock_retriever=None):
+
+def _build_data_index(data_list):
+    """데이터 리스트에서 이름/티커 → dict 인덱스 구축"""
+    index = {}
+    for item in data_list:
+        name = item.get("name", "")
+        ticker = item.get("ticker", "")
+        if name:
+            index[name.lower()] = item
+        if ticker:
+            index[ticker] = item
+    return index
+
+
+def set_retriever(retriever, documents=None, stock_retriever=None,
+                  etf_data=None, stock_data=None):
     """앱 초기화 시 retriever와 documents를 주입"""
     global _retriever, _documents, _stock_retriever
+    global _etf_data_index, _stock_data_index
     _retriever = retriever
     _documents = documents or (retriever.documents if hasattr(retriever, "documents") else [])
     _stock_retriever = stock_retriever
+    if etf_data is not None:
+        _etf_data_index = _build_data_index(etf_data)
+    if stock_data is not None:
+        _stock_data_index = _build_data_index(stock_data)
 
 
 @tool
@@ -52,20 +76,106 @@ def search_etf(query: str) -> str:
     return f"{context}\n\n[검색된 ETF]\n{source_info}"
 
 
+def _find_structured_data(name_or_ticker: str) -> Optional[dict]:
+    """이름 또는 티커로 구조화 데이터 조회 (ETF → 주식 순)"""
+    key = name_or_ticker.lower().strip()
+
+    # ETF 인덱스에서 정확 매칭
+    if key in _etf_data_index:
+        return _etf_data_index[key]
+
+    # 주식 인덱스에서 정확 매칭
+    if key in _stock_data_index:
+        return _stock_data_index[key]
+
+    # 부분 매칭 (이름에 포함)
+    for index in (_etf_data_index, _stock_data_index):
+        for idx_key, data in index.items():
+            if key in idx_key or idx_key in key:
+                return data
+
+    return None
+
+
+def _extract_comparison_fields(data: dict) -> dict:
+    """비교용 핵심 필드 추출 (ETF/주식 공통 + 개별)"""
+    fields = {
+        "name": data.get("name", ""),
+        "ticker": data.get("ticker", ""),
+        "close": data.get("close", 0),
+        "change_pct": data.get("change_pct", 0),
+        "volume": data.get("volume", 0),
+        "trade_value": data.get("trade_value", 0),
+    }
+
+    # 수익률
+    returns = data.get("returns", {})
+    for period in ("1d", "1w", "1m", "3m", "1y"):
+        fields[f"return_{period}"] = returns.get(period)
+
+    # ETF 전용
+    if "nav" in data:
+        fields["nav"] = data.get("nav", 0)
+        fields["deviation"] = data.get("deviation")
+        fields["tracking_error"] = data.get("tracking_error")
+        fields["asset_type"] = "etf"
+        # 보유종목 상위 3개
+        holdings = data.get("holdings", [])[:3]
+        fields["top_holdings"] = [
+            {"name": h.get("stock_name", ""), "weight": h.get("weight", 0)}
+            for h in holdings
+        ]
+
+    # 주식 전용
+    if "per" in data or "pbr" in data:
+        fields["per"] = data.get("per", 0)
+        fields["pbr"] = data.get("pbr", 0)
+        fields["eps"] = data.get("eps", 0)
+        fields["market_cap"] = data.get("market_cap", 0)
+        fields["div"] = data.get("div", 0)
+        fields["asset_type"] = "stock"
+
+    if "asset_type" not in fields:
+        fields["asset_type"] = "unknown"
+
+    return fields
+
+
 @tool
 def compare_etfs(etf_name_1: str, etf_name_2: str) -> str:
-    """두 ETF를 비교 분석합니다. 각 ETF의 가격, 수익률, 보유종목 등을 나란히 비교합니다.
+    """두 ETF 또는 주식을 비교 분석합니다. 각 종목의 가격, 수익률, 보유종목 등을 나란히 비교합니다.
 
     Args:
-        etf_name_1: 첫 번째 ETF 이름 또는 티커 (예: "KODEX 200", "069500")
-        etf_name_2: 두 번째 ETF 이름 또는 티커 (예: "TIGER 200", "102110")
+        etf_name_1: 첫 번째 ETF/주식 이름 또는 티커 (예: "KODEX 200", "069500")
+        etf_name_2: 두 번째 ETF/주식 이름 또는 티커 (예: "TIGER 200", "102110")
     """
     if _retriever is None:
         return "검색기가 초기화되지 않았습니다."
 
+    # 구조화 데이터 직접 조회 시도
+    d1 = _find_structured_data(etf_name_1)
+    d2 = _find_structured_data(etf_name_2)
+
+    if d1 and d2:
+        comparison = {
+            "__type__": "comparison_table",
+            "items": [
+                _extract_comparison_fields(d1),
+                _extract_comparison_fields(d2),
+            ],
+        }
+        # 구조화 JSON + 텍스트 컨텍스트 모두 반환
+        # (LLM이 텍스트를 참조해서 자연어 답변 생성)
+        text_parts = []
+        for name, data in [(etf_name_1, d1), (etf_name_2, d2)]:
+            text_parts.append(f"[{data['name']}] 종가: {data.get('close', 0):,}원, "
+                              f"등락률: {data.get('change_pct', 0):+.2f}%")
+        structured_json = json.dumps(comparison, ensure_ascii=False)
+        return f"{structured_json}\n\n---\n\n" + "\n".join(text_parts)
+
+    # 구조화 데이터 없으면 기존 텍스트 검색 fallback
     from src.rag.retriever import retrieve_relevant_docs
 
-    # 각 ETF 개별 검색
     ctx1, src1 = retrieve_relevant_docs(_retriever, etf_name_1, k=1)
     ctx2, src2 = retrieve_relevant_docs(_retriever, etf_name_2, k=1)
 

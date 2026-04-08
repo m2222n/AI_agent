@@ -3,6 +3,7 @@ import time
 import streamlit as st
 
 from src.llm.agent import stream_agent
+from src.ui.charts import try_parse_comparison, render_comparison
 from src.utils.logging import log_interaction
 
 QUESTION_TYPE_LABELS = {
@@ -37,6 +38,10 @@ def render_chat_history():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+            # 저장된 비교 데이터가 있으면 차트도 렌더링
+            comparison = message.get("comparison_data")
+            if comparison:
+                render_comparison(comparison)
 
 
 def process_question(question: str, client=None, retriever=None):
@@ -56,10 +61,12 @@ def process_question(question: str, client=None, retriever=None):
     with st.chat_message("assistant"):
         answer_placeholder = st.empty()
         status_placeholder = st.empty()
+        chart_placeholder = st.container()
 
         question_type = None
         model_used = None
         full_response = ""
+        comparison_data = None
 
         try:
             for event in stream_agent(question, st.session_state.messages[:-1]):
@@ -72,6 +79,11 @@ def process_question(question: str, client=None, retriever=None):
                 elif event["event"] == "tool_call":
                     tool_name = event["data"]["name"]
                     status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
+
+                elif event["event"] == "structured_data":
+                    parsed = try_parse_comparison(event["data"])
+                    if parsed:
+                        comparison_data = parsed
 
                 elif event["event"] == "token":
                     full_response = event["data"]
@@ -91,10 +103,16 @@ def process_question(question: str, client=None, retriever=None):
         answer_placeholder.markdown(full_response)
         st.session_state.last_answer = full_response
 
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": full_response
-        })
+        # 비교 차트 렌더링
+        if comparison_data:
+            with chart_placeholder:
+                render_comparison(comparison_data)
+
+        # 메시지 저장 (비교 데이터 포함)
+        msg = {"role": "assistant", "content": full_response}
+        if comparison_data:
+            msg["comparison_data"] = comparison_data
+        st.session_state.messages.append(msg)
 
         # 성능 지표 표시
         model_label = MODEL_LABELS.get(model_used, model_used or "")

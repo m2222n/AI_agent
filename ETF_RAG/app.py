@@ -51,8 +51,9 @@ def init_retriever():
         stock_vectorstore = _create_vectorstore(stock_documents)
         stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
 
-    # LangGraph 도구에 retriever 주입
-    set_retriever(etf_retriever, documents, stock_retriever=stock_retriever)
+    # LangGraph 도구에 retriever + 원본 데이터 주입 (구조화 비교용)
+    set_retriever(etf_retriever, documents, stock_retriever=stock_retriever,
+                  etf_data=etf_data, stock_data=stock_data)
 
     return etf_retriever
 

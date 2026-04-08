@@ -333,6 +333,9 @@ def stream_agent(question: str, chat_history: list = None):
                     for msg in node_output.get("messages", []):
                         if isinstance(msg, ToolMessage):
                             yield {"event": "tool_result", "data": msg.content[:100]}
+                            # 구조화 비교 데이터 감지
+                            if '"__type__"' in msg.content:
+                                yield {"event": "structured_data", "data": msg.content}
                 elif node_name == "agent":
                     for msg in node_output.get("messages", []):
                         if isinstance(msg, AIMessage) and msg.tool_calls:
