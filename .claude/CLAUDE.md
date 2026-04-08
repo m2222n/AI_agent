@@ -21,7 +21,7 @@
 |------|----------------|--------------|
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
-| 데이터 | **pykrx** (일배치 1084종목) | + **한국투자증권 OpenAPI** (실시간) |
+| 데이터 | **pykrx** (ETF 1084 + 주식 KOSPI/KOSDAQ 전종목) | + **한국투자증권 OpenAPI** (실시간) |
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
@@ -29,7 +29,7 @@
 | 분류 | ~~키워드 매칭 classifier.py~~ → **LLM 분류** | **LangGraph** 기반 LLM 라우팅 + Function Calling |
 | 평가 | 수동 17건 + pytest 51개 | **RAGAS** 자동 평가 (Faithfulness, Relevancy, Context Recall) |
 | 한국어 | **Kiwi** 형태소 분석 (BM25 토크나이저) | ✅ 적용 완료 |
-| 모니터링 | 로컬 JSONL 로그 | **LangSmith** (free tier, 파이프라인 트레이싱) |
+| 모니터링 | **LangSmith** (free tier, 환경변수로 활성화) | **LangSmith** (free tier, 파이프라인 트레이싱) |
 | 배포 | Streamlit Cloud | Streamlit Cloud (→ 추후 Railway + 커스텀 도메인) |
 
 **예상 월 비용:** $5~17 (개인 프로젝트)
@@ -67,7 +67,9 @@
 - [x] retriever.py: 수집 데이터 metadata 호환성 수정 (id/ticker fallback)
 - [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
 - [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
-- [ ] 메타데이터(정적) vs 시세데이터(동적) 분리 설계
+- [x] **SQLite 데이터베이스** — 3년 보존, WAL 모드, 5테이블 (instruments, daily_prices, returns, holdings, collection_log)
+- [x] loader.py 3-tier 우선순위: SQLite DB → collected/ JSON → 하드코딩 fallback
+- [x] collector.py 듀얼 라이트: JSON + SQLite 동시 저장
 - [x] 데이터 정합성 검증 로직 — validate_result() 구현 완료
 
 **1-3. 한국투자증권 OpenAPI 연동**
@@ -112,9 +114,11 @@
 
 **2-5. 평가 체계** ✅ 기본 구축 완료
 - [x] RAGAS 평가 파이프라인 구축 (`eval/run_eval.py` — retrieval-only + full RAGAS 모드)
-- [x] 평가 데이터셋 구축 (`eval/eval_dataset.json` — 20개 질문)
-- [x] 변경 전후 정량 비교 기록 (`eval/results/` — JSON)
-- [ ] 평가 데이터셋 확장 (50개+)
+- [x] 평가 데이터셋 구축 (`eval/eval_dataset.json` — 50개 질문)
+- [x] 변경 전후 정량 비교 기록 (`eval/results/` — JSON, 5회 평가)
+- [x] 에이전트 전환 후 재평가: Hit Rate 88% 유지 (검색 품질 변화 없음)
+- [x] 주식 질문 15개 추가 (총 65개), 주식 검색 평가 파이프라인 확장
+- [x] 주식 확장 후 재평가: 전체 90.8%, ETF 88%, 주식 100%, 혼합 100%
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
@@ -132,11 +136,12 @@
   - `get_etf_list`: 카테고리별 ETF 목록 검색
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
+- [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
 
 **3-2. 모델 라우팅** ✅ 구현 완료
 - [x] 단순 질문 (simple/general) → GPT-4o-mini, 복잡한 비교/분석 (compare/recommend/risk) → GPT-4o
 - [x] 라우팅 기준: LLM 분류 결과 기반 자동 선택
-- [ ] 비용 모니터링 (LangSmith 연동 시 추가)
+- [x] 비용 모니터링: LangSmith 트레이싱 연동 (환경변수 설정 시 자동 활성화)
 
 **3-3. 응답 품질**
 - [ ] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답
@@ -153,12 +158,27 @@
 ### Phase 4: 서비스 마감 + 포트폴리오
 > "친구한테 URL 보내서 쓰라고 할 수 있나?" 에 부끄럽지 않아야 한다.
 
-- [ ] UI/UX 전면 개편 (커스텀 CSS, 반응형, 차트 라이브러리)
-- [ ] LangSmith 모니터링 연동
+**4-1. 즉시 (커밋/배포/문서화)**
+- [ ] Git 커밋 + 푸시 (주식 확장 전체 미커밋 상태)
+- [ ] README + 아키텍처 다이어그램 (Mermaid + GIF 데모, 포트폴리오용)
+- [ ] 비용 분석 문서 ("월 $X로 서비스 운영 가능" — 상용화 근거)
+
+**4-2. UI/UX 개편**
+- [ ] 비교 질문 시 표/차트 자동 생성 (st.dataframe, st.bar_chart로 PER/PBR/시가총액 시각화)
+- [ ] UI/UX 전면 개편 (커스텀 CSS, 반응형)
 - [ ] 에러 핸들링 완성 (API 장애, 데이터 누락 등 모든 엣지 케이스)
 - [ ] 사용자 피드백 루프 (thumbs up/down → 검색 품질 개선)
-- [ ] README + 아키텍처 다이어그램 (포트폴리오용)
-- [ ] 비용 분석 문서 ("월 $X로 서비스 운영 가능" — 상용화 근거)
+- [x] LangSmith 모니터링 연동 (환경변수 설정 시 자동 트레이싱)
+
+**4-3. 데이터/분석 확장**
+- [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요)
+- [ ] 종목 간 상관관계/섹터 분석 (ETF 보유종목 역활용, 섹터별 집계)
+- [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
+
+**4-4. 아키텍처 고도화 (추후)**
+- [ ] Multi-Agent 구조 (리서치 → 분석 → 답변 에이전트 분리)
+- [ ] Pinecone + Cohere Rerank (문서 수 증가 시)
+- [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small A/B 테스트)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
 **자기 검증:** "친구한테 URL 보내서 쓰라고 할 수 있나?" → 부끄러우면 실패
@@ -176,9 +196,12 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
+│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
-│   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF)
+│   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
+│   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
+│   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (etf_data_YYYYMMDD.json)
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
@@ -186,7 +209,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list)
+│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock)
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -197,12 +220,13 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (20개 질문)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (65개 질문: ETF 50 + 주식 15)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 68개 (agent 11 + classifier 10 + loader 12 + prompts 7 + retriever 28)
+├── tests/                  # pytest 128개 (agent 16 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + retriever 28 + stock 22)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
+│   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
 │   └── README_cron.md                 # 자동화 설정 안내
 └── docs/
@@ -248,4 +272,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (Phase 3-1 LangGraph 에이전트 + 3-2 모델 라우팅 구현 완료, 테스트 68개 통과)_
+_Last Updated: 2026-04-08 (Phase 3 + SQLite + 주식 확장 + 평가 65개 완료, 테스트 128개 통과)_

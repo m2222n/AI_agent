@@ -546,12 +546,173 @@
 ### 테스트: 68개 전체 통과
 - 기존 57개 + 신규 11개 (test_agent.py)
 
+---
+
+## 토큰 단위 스트리밍 구현 (2026-04-08)
+
+### 문제
+- `stream_agent()`가 `stream_mode="updates"`를 사용 → 노드 완료 후 전체 답변을 한꺼번에 반환
+- Streamlit UI에서 타이핑 효과 없이 답변이 한 번에 나타남
+
+### 해결
+- `stream_mode=["messages", "updates"]` 듀얼 모드로 전환
+  - `messages` 모드: `AIMessageChunk` 토큰을 개별적으로 yield → 타이핑 효과
+  - `updates` 모드: 도구 호출/결과 이벤트 감지 (tool_call, tool_result)
+- 이벤트 포맷: `(mode, data)` 튜플로 반환됨
+  - `("messages", (AIMessageChunk, metadata))` — 토큰
+  - `("updates", {"node_name": {...}})` — 노드 상태
+- `tool_call_chunks`가 있는 AIMessageChunk는 건너뜀 (도구 호출은 updates에서 처리)
+- `AIMessageChunk.content`를 누적하여 `{"event": "token", "data": 누적텍스트}` yield
+
+### 수정 파일
+- **`agent.py`**: `stream_agent()` 전면 수정, `AIMessageChunk` import 추가
+- **`test_agent.py`**: 스트리밍 테스트 5개 추가
+  - 토큰 누적, 도구 호출/결과, 모델 라우팅, tool_call_chunks 필터링
+
+### chat.py 변경 불필요
+- 기존 `{"event": "token", "data": full_response}` 인터페이스 유지 → UI 코드 수정 없음
+
+### 테스트: 73개 전체 통과
+- 기존 68개 + 스트리밍 5개
+
+### RAGAS 재평가 결과 (에이전트 전환 후)
+- **결론: 검색 품질 변화 없음** — Hit Rate 88%, Precision 0.567, Recall 0.880
+- 에이전트 전환 전(eval_20260408_102500) vs 후(eval_20260408_112127): 완전 동일
+- 이유: retriever 코드 변경 없음 — 에이전트는 도구 선택 레이어만 추가, 검색 로직은 동일
+- 유형별: simple 90.5%, compare 87.5%, recommend 90.9%, risk 80%, general 80%
+- 실패 6건: 모호한 질문(Q21), 보유종목 매칭(Q29, Q48), 범위 외(Q44, Q45), 개념(Q35)
+
+---
+
+## LangSmith 비용 모니터링 연동 (2026-04-08)
+
+### 구현 방식
+- LangChain/LangGraph는 환경변수만 설정하면 **자동 트레이싱** (코드 변경 최소화)
+- `langsmith` 패키지 이미 설치됨 (`plugins: langsmith-0.4.37`)
+- 무료 tier: 5,000 traces/월
+
+### 수정 파일
+- **`.env.example`**: `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT` 추가
+- **`config.py`**: `is_langsmith_enabled()` 함수 추가 (환경변수 검증)
+- **`app.py`**: `from config import is_langsmith_enabled` import 추가
+- **`src/ui/sidebar.py`**: LangSmith 활성화 시 사이드바에 상태 표시
+- **`tests/test_config.py`**: 4개 테스트 (활성/비활성 조건)
+
+### 사용법
+1. https://smith.langchain.com 가입 (GitHub 로그인)
+2. API Key 발급 → `.env`에 설정:
+   ```
+   LANGCHAIN_TRACING_V2=true
+   LANGCHAIN_API_KEY=lsv2_pt_xxxxx
+   LANGCHAIN_PROJECT=etf-rag-chatbot
+   ```
+3. 앱 실행 시 자동으로 모든 LLM 호출/도구 실행이 트레이싱됨
+4. LangSmith 대시보드에서 비용/레이턴시/에러율 확인
+
+### Streamlit Cloud 배포
+- Streamlit Cloud: Settings → Secrets에 동일 환경변수 추가
+- 미설정 시 트레이싱 비활성화 (앱 동작에 영향 없음)
+
+### 테스트: 77개 전체 통과
+- 기존 73개 + config 4개
+
 ### 다음 작업
-- Streamlit 로컬 테스트 (실제 LLM 호출 확인)
-- 스트리밍 응답 개선 (현재 LangGraph stream은 노드 단위, 토큰 단위 스트리밍은 추가 작업 필요)
-- RAGAS 재평가 (에이전트 전환 후 품질 비교)
+- ~~데이터 저장소 설계 (SQLite 전환, 과거 3년 보존)~~ → ✅ 완료
+- 주식 데이터 수집기 추가
+
+---
+
+## SQLite 데이터 저장소 구현 (2026-04-08)
+
+### 신규 파일
+- **`src/data/database.py`** — SQLite CRUD 모듈
+  - 5 테이블: instruments, daily_prices, returns, holdings, collection_log
+  - WAL 모드 (Streamlit 읽기 + 수집 쓰기 동시 가능)
+  - Composite PK (ticker, date) → INSERT OR REPLACE로 자연 upsert
+  - `init_db()`, `upsert_daily_data()`, `get_latest_data()`, `get_historical_prices()`
+  - `search_instruments()`, `prune_old_data(days=1095)`, `import_json_file()`, `get_db_stats()`
+  - holdings.amount 오버플로 방어: pykrx가 uint64 값(~1.8×10^19) 반환 → `abs(amount) > 2^63-1` 시 None
+- **`scripts/migrate_json_to_db.py`** — JSON → SQLite 일회성 마이그레이션
+  - collected/*.json 전체 import → 1088 instruments, 1098 daily_prices, 5203 returns, 1600 holdings
+- **`tests/test_database.py`** — 22개 테스트
+  - init 2개, write 8개 (upsert/replace/empty), read 7개 (latest/historical/search), maintenance 3개, import 1개, stats 1개
+
+### 수정된 기존 파일
+- **`loader.py`**: 3-tier 우선순위 — SQLite DB → collected/ JSON → 하드코딩 fallback
+- **`collector.py`**: 듀얼 라이트 — JSON 저장 후 SQLite에도 upsert (실패해도 JSON은 정상)
+- **`config.py`**: `DB_PATH = DATA_DIR / "etf_rag.db"` 추가
+- **`.gitignore`**: `*.db`, `*.db-wal`, `*.db-shm` 패턴 추가
+- **`tests/conftest.py`**: `etf_data` fixture에 `DB_PATH` mock 추가
+- **`tests/test_data_loader.py`**: 전체 12개 테스트에 `DB_PATH` mock 추가
+
+### 테스트: 99개 전체 통과
+- 기존 77개 + database 22개
+
+### 다음 작업
+- 주식 데이터 수집기 추가 (pykrx stock API)
+
+---
+
+## 주식 데이터 확장 (2026-04-08)
+
+### 신규 파일
+- **`src/data/stock_collector.py`** — pykrx 기반 주식 일배치 수집
+  - KOSPI + KOSDAQ 전종목 (market="ALL" → 두 시장 반복)
+  - 4-step 수집: OHLCV → 시가총액/발행주식수 → 펀더멘털(PER/PBR/EPS/BPS/DIV/DPS) → 수익률
+  - 듀얼 라이트: `stock_data_YYYYMMDD.json` + SQLite `upsert_stock_data()`
+  - CLI: `python -m src.data.stock_collector [--date YYYYMMDD] [--market KOSPI|KOSDAQ|ALL] [--max N] [--test]`
+  - `collect_bulk_ohlcv()`, `collect_bulk_market_cap()`, `collect_bulk_fundamental()`, `collect_bulk_returns()`
+- **`tests/test_stock_collector.py`** — 22개 테스트
+  - DB write 8개, DB read 6개, ETF/stock 분리 1개, stats 1개, collector mock 3개, validation 2개, save 1개
+
+### 수정된 기존 파일
+- **`src/data/database.py`**:
+  - `stock_fundamentals` 테이블 추가 (ticker, date, market_cap, shares_outstanding, bps, per, pbr, eps, div, dps)
+  - `upsert_stock_data(conn, data)` — instruments(type='stock') + daily_prices + returns + stock_fundamentals + collection_log
+  - `get_latest_stock_data(conn, date)` — stock + fundamentals JOIN, instruments.type='stock' 필터
+  - `prune_old_data()` / `get_db_stats()` — stock_fundamentals 포함
+- **`src/data/loader.py`**:
+  - `load_stock_data()` — SQLite DB에서만 로드 (fallback 없음)
+  - `_filter_stocks()` — ETF와 동일 기준 (거래대금 1억+, 종가 0 제외)
+  - `create_stock_documents()` / `_create_doc_from_stock()` — 주식 Document 변환 (PER/PBR/EPS/시가총액/배당)
+  - `_format_market_cap()` — 조원/억원 단위 변환
+  - ETF/주식 모두 `asset_type` 메타데이터 추가 ("etf" / "stock")
+- **`src/llm/tools.py`**:
+  - `search_stock(query)` 도구 추가 — 주식 검색용 Function Calling 도구
+  - `set_retriever()` — stock_retriever 파라미터 추가
+  - `ALL_TOOLS` 4개 (search_etf, compare_etfs, get_etf_list, search_stock)
+- **`src/llm/prompts.py`**: 역할을 "투자 전문 어드바이저" (ETF+주식)로 확장
+- **`scripts/daily_collect.sh`**: ETF + 주식 순차 수집, 개별 성공/실패 추적, stock_data_*.json 정리 추가
+- **`tests/test_data_loader.py`**: 7개 주식 테스트 추가 (19개 total)
+- **`tests/test_agent.py`**: ALL_TOOLS 4개 assertion 업데이트
+- **`tests/test_prompts.py`**: "투자 전문 어드바이저" assertion 업데이트
+
+### 테스트: 128개 전체 통과
+
+### 평가 데이터셋 확장 (2026-04-08)
+- **eval_dataset.json**: 50개 → 65개 (주식 13개 + 혼합 2개 추가)
+  - 주식 simple 7개 (삼성전자, SK하이닉스, 현대차, 현대건설, KB금융, 한화에어로스페이스)
+  - 주식 compare 2개 (삼성전자 vs SK하이닉스, 현대차 vs 삼성SDI)
+  - 주식 recommend 2개 (거래대금, 배당수익률)
+  - 주식 general 1개 (PBR 개념)
+  - 혼합 2개 (삼성전자 ETF 편입, 반도체 관련 주식+ETF)
+  - `asset_type` 필드 추가 ("etf" / "stock" / "mixed")
+- **run_eval.py**: ETF + 주식 듀얼 retriever 초기화, asset_type별 적절한 retriever 선택
+- **stock_collector.py**: `--max` 옵션이 거래대금 상위 기준으로 정렬 후 자르도록 수정
+
+### 평가 결과 (주식 확장 후)
+- 전체 Hit Rate: **90.8%** (59/65)
+- ETF: 88.0% (44/50) — 기존과 동일
+- 주식: **100%** (13/13) — 이름 매칭 완벽 동작
+- 혼합: **100%** (2/2)
+- 유형별: simple 93.3%, compare 90.0%, recommend 92.9%, risk 80.0%, general 83.3%
+- 결과 파일: `eval/results/eval_20260408_122613.json`
+
+### 다음 작업
+1. UI 확장 (사이드바 ETF/주식 탭 분리)
+2. Phase 4: UI/UX + 포트폴리오
 
 ---
 
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3-1 LangGraph 에이전트 + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + 부트캠프/Semiconductor AI 교안_
