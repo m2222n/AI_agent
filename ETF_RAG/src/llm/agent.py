@@ -62,6 +62,7 @@ def _get_model(question_type: str) -> ChatOpenAI:
             model=model_name,
             temperature=0.3,
             timeout=60,
+            streaming=True,
         ).bind_tools(ALL_TOOLS)
         logger.info(f"모델 초기화: {model_name}")
 
