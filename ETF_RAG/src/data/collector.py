@@ -492,8 +492,20 @@ def main():
         for issue in issues:
             logger.warning(f"  - {issue}")
 
-    # 저장
+    # JSON 저장 (하위 호환)
     filepath = save_result(data)
+
+    # SQLite 저장
+    try:
+        from src.data.database import init_db, upsert_daily_data, prune_old_data
+        conn = init_db()
+        upsert_daily_data(conn, data)
+        prune_old_data(conn)
+        conn.close()
+        logger.info("SQLite 저장 완료")
+    except Exception as e:
+        logger.warning(f"SQLite 저장 실패 (JSON은 정상): {e}")
+
     logger.info(f"완료! {data['metadata']['total_etfs']}개 ETF, 저장: {filepath}")
 
 

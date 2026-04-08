@@ -25,6 +25,11 @@ logs/
 # Collected data (regenerated daily by collector.py)
 ETF_RAG/src/data/collected/
 
+# SQLite database (regenerated from collector)
+ETF_RAG/src/data/*.db
+ETF_RAG/src/data/*.db-wal
+ETF_RAG/src/data/*.db-shm
+
 # Old assignments (exclude from git)
 2week_assignment_taemin/
 3week_assignment_taemin/

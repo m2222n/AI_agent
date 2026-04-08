@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -5,10 +6,19 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).parent
 load_dotenv(PROJECT_ROOT / ".env")
 
+
+def is_langsmith_enabled() -> bool:
+    """LangSmith 트레이싱이 활성화되어 있는지 확인"""
+    return (
+        os.getenv("LANGCHAIN_TRACING_V2", "").lower() == "true"
+        and bool(os.getenv("LANGCHAIN_API_KEY"))
+    )
+
 # Data paths
 DATA_DIR = PROJECT_ROOT / "src" / "data"
 ETF_DATA_PATH = DATA_DIR / "etf_data.json"  # 하드코딩 샘플 (fallback)
 COLLECTED_DIR = DATA_DIR / "collected"       # 수집 데이터 디렉토리
+DB_PATH = DATA_DIR / "etf_rag.db"           # SQLite 데이터베이스
 LOG_DIR = PROJECT_ROOT / "logs"
 
 

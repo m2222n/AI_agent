@@ -1,5 +1,5 @@
 #!/bin/bash
-# ETF 일배치 수집 스크립트
+# ETF + 주식 일배치 수집 스크립트
 # 매일 장마감 후(18:00) 실행 — launchd 또는 cron으로 등록
 #
 # 사용법:
@@ -11,7 +11,8 @@ set -euo pipefail
 # ── 경로 설정 ─────────────────────────────────────────────────
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="/Users/m2222n/Work/.venv/bin/python3"
-COLLECTOR="$PROJECT_DIR/src/data/collector.py"
+ETF_COLLECTOR="$PROJECT_DIR/src/data/collector.py"
+STOCK_COLLECTOR="$PROJECT_DIR/src/data/stock_collector.py"
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"
 
@@ -19,7 +20,7 @@ mkdir -p "$LOG_DIR"
 DATE_LABEL=$(date +%Y%m%d)
 LOG_FILE="$LOG_DIR/collect_${DATE_LABEL}.log"
 
-# ── 수집 실행 ─────────────────────────────────────────────────
+# ── ETF 수집 ─────────────────────────────────────────────────
 echo "=== ETF 일배치 수집 시작: $(date) ===" >> "$LOG_FILE"
 
 # 기준일 인자 (없으면 자동 감지)
@@ -30,26 +31,49 @@ fi
 
 cd "$PROJECT_DIR"
 
-if $PYTHON "$COLLECTOR" $DATE_ARG --holdings 100 >> "$LOG_FILE" 2>&1; then
-    echo "=== 수집 완료: $(date) ===" >> "$LOG_FILE"
-
-    # 수집 결과 요약 (마지막 줄에 종목 수 표시)
-    SUMMARY=$(tail -3 "$LOG_FILE" | grep "완료" || echo "완료 메시지 없음")
-    echo "$SUMMARY"
+ETF_OK=true
+if $PYTHON "$ETF_COLLECTOR" $DATE_ARG --holdings 100 >> "$LOG_FILE" 2>&1; then
+    echo "=== ETF 수집 완료: $(date) ===" >> "$LOG_FILE"
 else
     EXIT_CODE=$?
-    echo "=== 수집 실패 (exit code: $EXIT_CODE): $(date) ===" >> "$LOG_FILE"
+    echo "=== ETF 수집 실패 (exit code: $EXIT_CODE): $(date) ===" >> "$LOG_FILE"
+    ETF_OK=false
+fi
 
-    # 실패 알림 (macOS 알림)
-    osascript -e "display notification \"ETF 수집 실패 (exit $EXIT_CODE). 로그: $LOG_FILE\" with title \"ETF RAG 수집 오류\"" 2>/dev/null || true
+# ── 주식 수집 ────────────────────────────────────────────────
+echo "=== 주식 일배치 수집 시작: $(date) ===" >> "$LOG_FILE"
 
-    exit $EXIT_CODE
+STOCK_OK=true
+if $PYTHON "$STOCK_COLLECTOR" $DATE_ARG >> "$LOG_FILE" 2>&1; then
+    echo "=== 주식 수집 완료: $(date) ===" >> "$LOG_FILE"
+else
+    EXIT_CODE=$?
+    echo "=== 주식 수집 실패 (exit code: $EXIT_CODE): $(date) ===" >> "$LOG_FILE"
+    STOCK_OK=false
+fi
+
+# ── 결과 요약 ────────────────────────────────────────────────
+if $ETF_OK && $STOCK_OK; then
+    SUMMARY=$(tail -5 "$LOG_FILE" | grep "완료" || echo "수집 완료")
+    echo "$SUMMARY"
+elif ! $ETF_OK || ! $STOCK_OK; then
+    # 하나라도 실패 시 알림
+    FAIL_MSG=""
+    $ETF_OK || FAIL_MSG="ETF "
+    $STOCK_OK || FAIL_MSG="${FAIL_MSG}주식 "
+    osascript -e "display notification \"${FAIL_MSG}수집 실패. 로그: $LOG_FILE\" with title \"ETF RAG 수집 오류\"" 2>/dev/null || true
+
+    # 둘 다 실패한 경우만 exit 1
+    if ! $ETF_OK && ! $STOCK_OK; then
+        exit 1
+    fi
 fi
 
 # ── 오래된 수집 파일 정리 (30일 이상) ─────────────────────────
 COLLECTED_DIR="$PROJECT_DIR/src/data/collected"
 if [ -d "$COLLECTED_DIR" ]; then
     find "$COLLECTED_DIR" -name "etf_data_*.json" -mtime +30 -delete 2>/dev/null || true
+    find "$COLLECTED_DIR" -name "stock_data_*.json" -mtime +30 -delete 2>/dev/null || true
 fi
 
 # ── 오래된 로그 정리 (30일 이상) ──────────────────────────────
