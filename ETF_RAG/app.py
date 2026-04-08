@@ -47,9 +47,15 @@ def main():
     etf_data = load_etf_data()
     render_sidebar(etf_data)
 
-    # OpenAI API 키 확인 (에이전트에서 OPENAI_API_KEY 환경변수 사용)
+    # OpenAI API 키 확인 (Streamlit Cloud: st.secrets, 로컬: .env)
     try:
-        get_api_key(st.secrets)
+        secrets = None
+        try:
+            if len(st.secrets) > 0:
+                secrets = st.secrets
+        except Exception:
+            pass
+        get_api_key(secrets)
     except APIKeyMissingError:
         st.error("OPENAI_API_KEY가 설정되어 있지 않습니다.")
         st.info("Streamlit Cloud: Settings → Secrets에서 설정하세요.")
