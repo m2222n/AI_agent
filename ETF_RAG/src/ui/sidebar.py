@@ -1,42 +1,60 @@
 import streamlit as st
 
+from config import is_langsmith_enabled
 from src.utils.logging import get_performance_stats
 
 
-def render_sidebar(etf_data: list):
+def render_sidebar(etf_data: list, stock_data: list = None):
     """사이드바 전체 렌더링"""
     with st.sidebar:
-        _render_service_info()
+        _render_service_info(has_stocks=bool(stock_data))
         st.divider()
-        _render_etf_list(etf_data)
+        _render_market_data(etf_data, stock_data or [])
         st.divider()
         _render_investment_warning()
         st.divider()
         _render_performance_dashboard()
+        if is_langsmith_enabled():
+            st.divider()
+            st.caption("LangSmith 트레이싱 활성화됨")
 
 
-def _render_service_info():
+def _render_service_info(has_stocks: bool = False):
     st.header("ℹ️ 서비스 안내")
-    st.markdown("""
-        이 챗봇은 **ETF 투자 정보**를 제공합니다.
+    stock_info = """
+        - 개별 주식 정보 검색
+        - 주식 펀더멘털 (PER/PBR/배당)
+    """ if has_stocks else ""
+
+    st.markdown(f"""
+        이 챗봇은 **ETF/주식 투자 정보**를 제공합니다.
 
         **주요 기능:**
         - ETF 상품 정보 검색
-        - 투자 전략 설명
-        - 위험도/수수료 비교
-        - 배당 정책 안내
+        - ETF 비교 분석
+        - 투자 전략/위험 분석{stock_info}
 
         **지원 ETF:**
         - 국내 주식형 (KODEX 200 등)
         - 해외 주식형 (S&P500, 나스닥100)
-        - 섹터/테마형 (2차전지, 전기차)
-        - 채권형 (단기채권)
-        - 배당형, 인버스형
+        - 섹터/테마형 (2차전지, 반도체)
+        - 채권형, 배당형, 인버스형
         """)
 
 
+def _render_market_data(etf_data: list, stock_data: list):
+    """ETF/주식 탭 분리 표시"""
+    if stock_data:
+        tab_etf, tab_stock = st.tabs(["📊 ETF", "📈 주식"])
+        with tab_etf:
+            _render_etf_list(etf_data)
+        with tab_stock:
+            _render_stock_list(stock_data)
+    else:
+        _render_etf_list(etf_data)
+
+
 def _render_etf_list(etf_data: list):
-    st.header("📊 ETF 목록")
     # 수집 데이터: 거래대금 상위 20개만 표시
     display_data = etf_data
     if len(etf_data) > 20 and "trade_value" in etf_data[0]:
@@ -55,6 +73,29 @@ def _render_etf_list(etf_data: list):
                 st.write(f"**종가:** {etf.get('close', 0):,}원")
                 st.write(f"**등락률:** {etf.get('change_pct', 0):+.2f}%")
                 st.write(f"**거래대금:** {etf.get('trade_value', 0):,}원")
+
+
+def _render_stock_list(stock_data: list):
+    # 거래대금 상위 20개
+    display_data = sorted(stock_data, key=lambda s: s.get("trade_value", 0), reverse=True)[:20]
+    st.caption(f"거래대금 상위 20개 (전체 {len(stock_data)}종목)")
+
+    for s in display_data:
+        with st.expander(f"{s['name']} ({s['ticker']})"):
+            st.write(f"**종가:** {s.get('close', 0):,}원")
+            change = s.get("change_pct", 0)
+            st.write(f"**등락률:** {change:+.2f}%")
+            # 펀더멘털
+            per = s.get("per", 0)
+            pbr = s.get("pbr", 0)
+            if per:
+                st.write(f"**PER:** {per:.1f}배 | **PBR:** {pbr:.2f}배")
+            # 시가총액
+            market_cap = s.get("market_cap", 0)
+            if market_cap >= 1_000_000_000_000:
+                st.write(f"**시가총액:** {market_cap / 1_000_000_000_000:.1f}조원")
+            elif market_cap >= 100_000_000:
+                st.write(f"**시가총액:** {market_cap / 100_000_000:.0f}억원")
 
 
 def _render_investment_warning():

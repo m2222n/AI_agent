@@ -4,9 +4,9 @@ from src.utils.logging import log_feedback
 
 EXAMPLE_QUESTIONS = [
     "KODEX 200 ETF에 대해 알려줘",
-    "미국 주식에 투자하는 ETF 추천해줘",
-    "2차전지 관련 ETF의 위험도는?",
-    "배당 수익률이 높은 ETF는?"
+    "삼성전자 주가 정보 알려줘",
+    "반도체 관련 ETF 추천해줘",
+    "삼성전자랑 SK하이닉스 비교해줘",
 ]
 
 
