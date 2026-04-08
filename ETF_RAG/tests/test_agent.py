@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage, ToolMessage
 
 from src.llm.tools import search_etf, compare_etfs, get_etf_list, set_retriever, ALL_TOOLS
 from src.llm.agent import (
@@ -11,6 +11,7 @@ from src.llm.agent import (
     should_call_tools,
     COMPLEX_TYPES,
     build_graph,
+    stream_agent,
 )
 
 
@@ -146,3 +147,105 @@ def test_build_graph():
     """그래프가 정상적으로 컴파일되는지 확인"""
     graph = build_graph()
     assert graph is not None
+
+
+# ── 스트리밍 테스트 ──────────────────────────────────────
+
+def test_stream_agent_yields_question_type():
+    """stream_agent가 첫 이벤트로 question_type을 반환하는지 확인"""
+    with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        # agent.stream()이 빈 이터레이터 반환
+        mock_agent.return_value.stream.return_value = iter([])
+
+        events = list(stream_agent("KODEX 200 수익률"))
+        assert events[0] == {"event": "question_type", "data": "simple"}
+        assert events[-1]["event"] == "done"
+
+
+def test_stream_agent_token_accumulation():
+    """stream_mode='messages' 토큰이 누적되어 전달되는지 확인"""
+    chunk1 = AIMessageChunk(content="안녕")
+    chunk2 = AIMessageChunk(content="하세요")
+    meta = {"langgraph_node": "agent"}
+
+    mock_events = [
+        ("messages", (chunk1, meta)),
+        ("messages", (chunk2, meta)),
+    ]
+
+    with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.return_value = iter(mock_events)
+
+        events = list(stream_agent("테스트 질문"))
+        token_events = [e for e in events if e["event"] == "token"]
+        assert len(token_events) == 2
+        assert token_events[0]["data"] == "안녕"
+        assert token_events[1]["data"] == "안녕하세요"  # 누적
+
+        done_event = events[-1]
+        assert done_event["event"] == "done"
+        assert done_event["data"]["answer"] == "안녕하세요"
+
+
+def test_stream_agent_tool_call_events():
+    """updates 모드에서 도구 호출 이벤트가 전달되는지 확인"""
+    tool_call_msg = AIMessage(
+        content="",
+        tool_calls=[{"id": "tc1", "name": "search_etf", "args": {"query": "KODEX 200"}}],
+    )
+    tool_result_msg = ToolMessage(content="KODEX 200 ETF 정보...", tool_call_id="tc1")
+
+    mock_events = [
+        ("updates", {"agent": {"messages": [tool_call_msg]}}),
+        ("updates", {"tools": {"messages": [tool_result_msg]}}),
+    ]
+
+    with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.return_value = iter(mock_events)
+
+        events = list(stream_agent("KODEX 200 수익률"))
+        tool_calls = [e for e in events if e["event"] == "tool_call"]
+        tool_results = [e for e in events if e["event"] == "tool_result"]
+
+        assert len(tool_calls) == 1
+        assert tool_calls[0]["data"]["name"] == "search_etf"
+        assert len(tool_results) == 1
+
+
+def test_stream_agent_model_routing():
+    """복잡한 질문 유형에서 GPT-4o 모델이 선택되는지 확인"""
+    with patch("src.llm.agent.classify_with_llm", return_value="compare"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.return_value = iter([])
+
+        events = list(stream_agent("KODEX 200 vs TIGER 반도체"))
+        done_event = events[-1]
+        assert done_event["data"]["model"] == "gpt-4o"
+        assert done_event["data"]["question_type"] == "compare"
+
+
+def test_stream_agent_skips_tool_call_chunks():
+    """도구 호출 청크(tool_call_chunks)는 token 이벤트로 전달되지 않아야 함"""
+    tool_chunk = AIMessageChunk(
+        content="",
+        tool_call_chunks=[{"name": "search_etf", "args": '{"query": "test"}', "id": "tc1", "index": 0}],
+    )
+    text_chunk = AIMessageChunk(content="답변입니다")
+    meta = {"langgraph_node": "agent"}
+
+    mock_events = [
+        ("messages", (tool_chunk, meta)),
+        ("messages", (text_chunk, meta)),
+    ]
+
+    with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.return_value = iter(mock_events)
+
+        events = list(stream_agent("테스트"))
+        token_events = [e for e in events if e["event"] == "token"]
+        assert len(token_events) == 1
+        assert token_events[0]["data"] == "답변입니다"

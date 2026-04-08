@@ -18,6 +18,7 @@ from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
     AIMessage,
+    AIMessageChunk,
     BaseMessage,
     HumanMessage,
     SystemMessage,
@@ -265,12 +266,13 @@ def run_agent(question: str, chat_history: list = None) -> dict:
 
 def stream_agent(question: str, chat_history: list = None):
     """
-    에이전트 스트리밍 실행 — LangGraph의 stream() 사용
+    에이전트 토큰 스트리밍 실행 — stream_mode=["messages", "updates"] 사용
 
     Yields: {"event": str, "data": ...}
         - {"event": "question_type", "data": "simple"}
         - {"event": "tool_call", "data": {"name": ..., "args": ...}}
-        - {"event": "token", "data": "답변 토큰"}
+        - {"event": "tool_result", "data": "검색 결과 요약"}
+        - {"event": "token", "data": "누적된 답변 텍스트"}
         - {"event": "done", "data": {"answer": ..., "model": ...}}
     """
     agent = get_agent()
@@ -296,27 +298,44 @@ def stream_agent(question: str, chat_history: list = None):
         "tool_call_count": 0,
     }
 
-    # LangGraph stream — 노드별 상태 변화를 순차 반환
     final_answer = ""
     model_used = "gpt-4o" if question_type in COMPLEX_TYPES else "gpt-4o-mini"
 
-    for event in agent.stream(initial_state, stream_mode="updates"):
-        for node_name, node_output in event.items():
-            if node_name == "tools":
-                # 도구 호출 이벤트
-                for msg in node_output.get("messages", []):
-                    if isinstance(msg, ToolMessage):
-                        yield {"event": "tool_result", "data": msg.content[:100]}
+    # 두 모드 동시 사용: messages(토큰 스트리밍) + updates(도구 호출 감지)
+    for event in agent.stream(initial_state, stream_mode=["messages", "updates"]):
+        # stream_mode가 리스트이면 (mode, data) 튜플로 반환됨
+        if not isinstance(event, tuple) or len(event) != 2:
+            continue
 
-            elif node_name == "agent":
-                # LLM 응답
-                for msg in node_output.get("messages", []):
-                    if isinstance(msg, AIMessage):
-                        if msg.tool_calls:
+        mode, data = event
+
+        if mode == "messages":
+            # (AIMessageChunk, metadata) 튜플
+            msg_chunk, metadata = data
+            node = metadata.get("langgraph_node", "")
+
+            if isinstance(msg_chunk, AIMessageChunk):
+                # 도구 호출 청크는 건너뜀 (updates 모드에서 처리)
+                if msg_chunk.tool_call_chunks:
+                    continue
+                # 텍스트 토큰 누적
+                if msg_chunk.content:
+                    final_answer += msg_chunk.content
+                    yield {"event": "token", "data": final_answer}
+
+        elif mode == "updates":
+            # 노드별 상태 업데이트 (도구 호출/결과 감지용)
+            if not isinstance(data, dict):
+                continue
+            for node_name, node_output in data.items():
+                if node_name == "tools":
+                    for msg in node_output.get("messages", []):
+                        if isinstance(msg, ToolMessage):
+                            yield {"event": "tool_result", "data": msg.content[:100]}
+                elif node_name == "agent":
+                    for msg in node_output.get("messages", []):
+                        if isinstance(msg, AIMessage) and msg.tool_calls:
                             for tc in msg.tool_calls:
                                 yield {"event": "tool_call", "data": {"name": tc["name"], "args": tc["args"]}}
-                        elif msg.content:
-                            final_answer = msg.content
-                            yield {"event": "token", "data": msg.content}
 
     yield {"event": "done", "data": {"answer": final_answer, "model": model_used, "question_type": question_type}}
