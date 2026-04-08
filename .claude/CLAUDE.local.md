@@ -710,9 +710,108 @@
 
 ### 다음 작업
 1. UI 확장 (사이드바 ETF/주식 탭 분리)
-2. Phase 4: UI/UX + 포트폴리오
+2. Phase 4: UI/UX 개편
+
+---
+
+## Phase 4-1 README 리라이트 + 비교 차트 구현 (2026-04-08)
+
+### README.md 전면 리라이트
+- 기존 "2주차 프로토타입" 수준 → 포트폴리오/면접용 완전 새 작성
+- Mermaid 아키텍처 플로차트 추가
+- ChatGPT 대비 차별점 비교 테이블
+- RAGAS 평가 결과 (Hit Rate 90.8%), 비용 분석 ($5~17/월)
+- 프로젝트 구조, 기술 스택, 설치/실행 안내 포함
+
+### 개인 GitHub 프로필 (m2222n/m2222n) 업데이트
+- AI_agent 섹션: 제목/통계/기술 상세/Demo URL 업데이트
+- Streamlit Cloud URL 변경 반영 (구 URL → 신 URL)
+
+### 비교 차트 자동 생성 (structured_data 파이프라인)
+- **`src/llm/tools.py`**:
+  - 구조화 데이터 인덱스 (`_etf_data_index`, `_stock_data_index`) — `_build_data_index()`로 구축
+  - `_find_structured_data(name_or_ticker)`: 정확 매칭 → 부분 매칭
+  - `_extract_comparison_fields(data)`: ETF(nav, deviation, holdings) / 주식(per, pbr, market_cap) 분기
+  - `compare_etfs`: 구조화 JSON 반환 (`{"__type__": "comparison_table", "items": [...]}`) + 텍스트 fallback
+  - `set_retriever(etf_data=, stock_data=)`: `if etf_data is not None:` 조건으로 인덱스 클리어 가능
+- **`src/llm/agent.py`**: `structured_data` 이벤트 yield (`'"__type__"' in msg.content`)
+- **`src/ui/charts.py`** (신규):
+  - `try_parse_comparison()`: comparison_table JSON 추출
+  - `render_comparison()`: 마크다운 테이블 + `st.bar_chart` 수익률 비교
+  - ETF 전용 행 (NAV, 괴리율) / 주식 전용 행 (PER, PBR, 시가총액, 배당) 자동 분기
+- **`src/ui/chat.py`**: `structured_data` 이벤트 캡처, `comparison_data` 히스토리 저장, `chart_placeholder` 렌더링
+- **`app.py`**: `set_retriever(etf_data=etf_data, stock_data=stock_data)` 호출
+
+### 테스트: 148개 전체 통과
+- 신규 20개: test_agent.py 8개 (구조화 데이터 조회/필드추출/비교/스트리밍) + test_charts.py 12개 (파싱/포맷)
+- 주요 수정: `set_retriever(etf_data=[], stock_data=[])` + `if etf_data is not None:` 조건으로 테스트 격리 문제 해결
+
+### 다음 작업
+1. ~~UI/UX 전면 개편~~ → ✅ Phase 4-2에서 완료
+2. ~~에러 핸들링 완성~~ → ✅ Phase 4-2에서 완료
+3. ~~사용자 피드백 루프~~ → ✅ Phase 4-2에서 완료
+
+---
+
+## Phase 4-2 UI/UX + 에러 핸들링 + 피드백 + 통합 응답 (2026-04-08)
+
+### 에러 핸들링 완성
+- **`src/llm/agent.py`**:
+  - `_make_error_message(e)`: 예외 유형별 사용자 친화적 한국어 메시지 (Rate Limit/Timeout/Connection/Auth/Generic)
+  - `call_model()`: LLM 호출 실패 시 try-except → 에러 AIMessage 반환
+  - `call_tools()`: 도구 실행 실패 시 try-except → 에러 ToolMessage 반환
+  - `stream_agent()`: 전체 스트리밍 try-except → `error` 이벤트 yield
+- **`src/ui/chat.py`**:
+  - `_get_user_error_message(e)`: UI용 에러 분류 (agent.py와 동일 패턴)
+  - `error` 이벤트 핸들링 (st.warning)
+  - Exception 시 `return` 대신 에러 메시지를 응답으로 표시
+  - `last_question` 세션 저장 누락 수정
+- **`app.py`**:
+  - `load_stock_data()`: try-except로 주식 로드 실패 시 빈 리스트 반환 (ETF만 동작)
+  - `init_retriever()`: try-except + 에러 상세 표시 + st.stop()
+- **`src/utils/logging.py`**: `log_interaction()`, `log_feedback()`에 OSError try-except 추가
+
+### 사용자 피드백 루프 개선
+- **`src/ui/components.py`**:
+  - 부정 피드백 시 사유 선택 (radio: 4가지 사유 + 기타 텍스트 입력)
+  - 피드백 중복 방지 (`feedback_submitted` 세션 상태)
+  - `st.toast`로 피드백 확인 (기존 st.success 대체)
+  - 초기화 시 피드백 상태도 리셋
+- **`src/utils/logging.py`**: `get_feedback_stats()` 함수 추가
+  - 긍정/부정 카운트, 만족도%, 부정 사유별 집계
+- **`src/ui/sidebar.py`**: 성능 모니터링에 만족도 메트릭 추가
+
+### UI/UX 전면 개편
+- **`src/ui/styles.py`** (신규): 커스텀 CSS
+  - 채팅 메시지 배경색 (사용자: 파란 계열, 어시스턴트: 회색 계열)
+  - 둥근 모서리, hover 애니메이션, 메트릭 카드 스타일
+  - 비교 테이블 헤더 강조, 일관된 border-radius
+  - 모바일 반응형 (`@media max-width: 768px`)
+  - max-width: 900px로 가독성 개선
+- **`src/ui/sidebar.py`** 개편:
+  - 데이터 현황 메트릭 (ETF/주식 종목수 + 기준일)
+  - 등락률 색상 표시 (🔴 상승 / 🔵 하락 / ⚪ 보합)
+  - 거래대금 읽기 쉬운 포맷 (조/억/만 단위)
+  - 2컬럼 레이아웃 (종가 + 거래대금)
+  - 서비스 안내 텍스트 정리
+
+### 구조화+비구조화 통합 응답
+- **`src/llm/tools.py`**: `_enrich_with_structured_data(sources, index)` 함수 추가
+  - 텍스트 검색 결과(RAG)에 구조화 데이터(실시간 가격/수익률) 자동 보강
+  - `search_etf`: ETF 인덱스에서 종가/NAV/수익률 보강
+  - `search_stock`: 주식 인덱스에서 종가/PER/수익률 보강
+  - LLM이 정확한 수치를 참조할 수 있도록 `[실시간 데이터 요약]` 섹션 추가
+
+### 테스트: 168개 전체 통과
+- 신규 20개:
+  - test_agent.py +10개: 에러 메시지 5개, call_model/call_tools 예외 2개, 스트리밍 에러 1개, 구조화 보강 1개, 도구 예외 1개
+  - test_ui_features.py 12개 (신규): 에러 메시지 5개, 피드백 통계 4개, CSS 2개, 피드백 사유 1개
+
+### 다음 작업
+1. Phase 4-3: KIS OpenAPI 실시간 시세
+2. Phase 4-4: Multi-Agent, Pinecone, 한국어 임베딩
 
 ---
 
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + 부트캠프/Semiconductor AI 교안_

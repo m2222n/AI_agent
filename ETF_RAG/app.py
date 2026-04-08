@@ -7,6 +7,7 @@ LLM 기반 ETF 질의응답 시스템
 - UI: Streamlit
 """
 
+import logging
 import streamlit as st
 
 from config import is_langsmith_enabled
@@ -23,6 +24,9 @@ from src.llm.tools import set_retriever
 from src.ui.sidebar import render_sidebar
 from src.ui.chat import init_session_state, render_chat_history, process_question
 from src.ui.components import render_example_questions, render_feedback_buttons, render_reset_button
+from src.ui.styles import inject_custom_css
+
+logger = logging.getLogger(__name__)
 
 
 @st.cache_resource
@@ -32,7 +36,11 @@ def load_etf_data():
 
 @st.cache_resource
 def load_stock_data():
-    return _load_stock_data()
+    try:
+        return _load_stock_data()
+    except Exception as e:
+        logger.warning(f"주식 데이터 로드 실패: {e}")
+        return []
 
 
 @st.cache_resource
@@ -60,6 +68,7 @@ def init_retriever():
 
 def main():
     st.set_page_config(page_title="투자 질의응답 챗봇", page_icon="📈", layout="wide")
+    inject_custom_css()
     st.title("📈 투자 질의응답 챗봇")
     st.caption("LangGraph 에이전트 기반 ETF/주식 투자 정보 검색 시스템")
 
@@ -83,8 +92,14 @@ def main():
         st.stop()
 
     # 하이브리드 검색기 + 에이전트 초기화
-    with st.spinner("데이터베이스 로딩 중..."):
-        init_retriever()
+    try:
+        with st.spinner("데이터베이스 로딩 중..."):
+            init_retriever()
+    except Exception as e:
+        logger.error(f"검색기 초기화 실패: {e}")
+        st.error("데이터베이스 초기화에 실패했습니다. 페이지를 새로고침해주세요.")
+        st.caption(f"오류 상세: {type(e).__name__}: {e}")
+        st.stop()
 
     # 세션 상태
     init_session_state()

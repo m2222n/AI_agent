@@ -109,6 +109,25 @@ def classify_with_llm(question: str) -> str:
         return classify_question_type(question)
 
 
+# ── 에러 메시지 ───────────────────────────────────────────
+
+def _make_error_message(error: Exception) -> str:
+    """예외 유형에 따라 사용자 친화적 에러 메시지 생성"""
+    error_type = type(error).__name__
+    error_str = str(error).lower()
+
+    if "rate" in error_str or "429" in error_str or "RateLimit" in error_type:
+        return "⚠️ API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+    if "timeout" in error_str or "timed out" in error_str:
+        return "⚠️ 응답 시간이 초과되었습니다. 다시 시도해주세요."
+    if "connection" in error_str or "network" in error_str:
+        return "⚠️ 네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요."
+    if "auth" in error_str or "api key" in error_str or "401" in error_str:
+        return "⚠️ API 인증에 실패했습니다. API 키를 확인해주세요."
+
+    return f"⚠️ 일시적인 오류가 발생했습니다. 다시 시도해주세요. ({error_type})"
+
+
 # ── 그래프 노드 ───────────────────────────────────────────
 
 def call_model(state: AgentState) -> dict:
@@ -117,7 +136,12 @@ def call_model(state: AgentState) -> dict:
     model = _get_model(question_type)
 
     messages = list(state["messages"])
-    response = model.invoke(messages)
+    try:
+        response = model.invoke(messages)
+    except Exception as e:
+        logger.error(f"LLM 호출 실패: {e}")
+        error_msg = _make_error_message(e)
+        return {"messages": [AIMessage(content=error_msg)]}
 
     return {"messages": [response]}
 
@@ -135,10 +159,14 @@ def call_tools(state: AgentState) -> dict:
 
         logger.info(f"도구 호출: {tool_name}({tool_args})")
 
-        if tool_name in tool_map:
-            result = tool_map[tool_name].invoke(tool_args)
-        else:
-            result = f"알 수 없는 도구: {tool_name}"
+        try:
+            if tool_name in tool_map:
+                result = tool_map[tool_name].invoke(tool_args)
+            else:
+                result = f"알 수 없는 도구: {tool_name}"
+        except Exception as e:
+            logger.error(f"도구 실행 실패 ({tool_name}): {e}")
+            result = f"검색 중 오류가 발생했습니다: {type(e).__name__}"
 
         tool_messages.append(
             ToolMessage(content=str(result), tool_call_id=tool_call["id"])
@@ -302,44 +330,52 @@ def stream_agent(question: str, chat_history: list = None):
     final_answer = ""
     model_used = "gpt-4o" if question_type in COMPLEX_TYPES else "gpt-4o-mini"
 
-    # 두 모드 동시 사용: messages(토큰 스트리밍) + updates(도구 호출 감지)
-    for event in agent.stream(initial_state, stream_mode=["messages", "updates"]):
-        # stream_mode가 리스트이면 (mode, data) 튜플로 반환됨
-        if not isinstance(event, tuple) or len(event) != 2:
-            continue
-
-        mode, data = event
-
-        if mode == "messages":
-            # (AIMessageChunk, metadata) 튜플
-            msg_chunk, metadata = data
-            node = metadata.get("langgraph_node", "")
-
-            if isinstance(msg_chunk, AIMessageChunk):
-                # 도구 호출 청크는 건너뜀 (updates 모드에서 처리)
-                if msg_chunk.tool_call_chunks:
-                    continue
-                # 텍스트 토큰 누적
-                if msg_chunk.content:
-                    final_answer += msg_chunk.content
-                    yield {"event": "token", "data": final_answer}
-
-        elif mode == "updates":
-            # 노드별 상태 업데이트 (도구 호출/결과 감지용)
-            if not isinstance(data, dict):
+    try:
+        # 두 모드 동시 사용: messages(토큰 스트리밍) + updates(도구 호출 감지)
+        for event in agent.stream(initial_state, stream_mode=["messages", "updates"]):
+            # stream_mode가 리스트이면 (mode, data) 튜플로 반환됨
+            if not isinstance(event, tuple) or len(event) != 2:
                 continue
-            for node_name, node_output in data.items():
-                if node_name == "tools":
-                    for msg in node_output.get("messages", []):
-                        if isinstance(msg, ToolMessage):
-                            yield {"event": "tool_result", "data": msg.content[:100]}
-                            # 구조화 비교 데이터 감지
-                            if '"__type__"' in msg.content:
-                                yield {"event": "structured_data", "data": msg.content}
-                elif node_name == "agent":
-                    for msg in node_output.get("messages", []):
-                        if isinstance(msg, AIMessage) and msg.tool_calls:
-                            for tc in msg.tool_calls:
-                                yield {"event": "tool_call", "data": {"name": tc["name"], "args": tc["args"]}}
+
+            mode, data = event
+
+            if mode == "messages":
+                # (AIMessageChunk, metadata) 튜플
+                msg_chunk, metadata = data
+                node = metadata.get("langgraph_node", "")
+
+                if isinstance(msg_chunk, AIMessageChunk):
+                    # 도구 호출 청크는 건너뜀 (updates 모드에서 처리)
+                    if msg_chunk.tool_call_chunks:
+                        continue
+                    # 텍스트 토큰 누적
+                    if msg_chunk.content:
+                        final_answer += msg_chunk.content
+                        yield {"event": "token", "data": final_answer}
+
+            elif mode == "updates":
+                # 노드별 상태 업데이트 (도구 호출/결과 감지용)
+                if not isinstance(data, dict):
+                    continue
+                for node_name, node_output in data.items():
+                    if node_name == "tools":
+                        for msg in node_output.get("messages", []):
+                            if isinstance(msg, ToolMessage):
+                                yield {"event": "tool_result", "data": msg.content[:100]}
+                                # 구조화 비교 데이터 감지
+                                if '"__type__"' in msg.content:
+                                    yield {"event": "structured_data", "data": msg.content}
+                    elif node_name == "agent":
+                        for msg in node_output.get("messages", []):
+                            if isinstance(msg, AIMessage) and msg.tool_calls:
+                                for tc in msg.tool_calls:
+                                    yield {"event": "tool_call", "data": {"name": tc["name"], "args": tc["args"]}}
+
+    except Exception as e:
+        logger.error(f"에이전트 스트리밍 오류: {e}")
+        error_msg = _make_error_message(e)
+        if not final_answer:
+            final_answer = error_msg
+        yield {"event": "error", "data": error_msg}
 
     yield {"event": "done", "data": {"answer": final_answer, "model": model_used, "question_type": question_type}}

@@ -20,6 +20,20 @@ MODEL_LABELS = {
 }
 
 
+def _get_user_error_message(error: Exception) -> str:
+    """예외 유형에 따라 사용자 친화적 메시지 반환"""
+    error_str = str(error).lower()
+    if "rate" in error_str or "429" in error_str:
+        return "⚠️ API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+    if "timeout" in error_str or "timed out" in error_str:
+        return "⚠️ 응답 시간이 초과되었습니다. 질문을 다시 시도해주세요."
+    if "connection" in error_str or "network" in error_str:
+        return "⚠️ 네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요."
+    if "api key" in error_str or "auth" in error_str:
+        return "⚠️ API 인증에 실패했습니다. 설정을 확인해주세요."
+    return "⚠️ 일시적인 오류가 발생했습니다. 다시 시도해주세요."
+
+
 def init_session_state():
     """세션 상태 초기화"""
     defaults = {
@@ -55,6 +69,7 @@ def process_question(question: str, client=None, retriever=None):
     total_start_time = time.time()
 
     st.session_state.messages.append({"role": "user", "content": question})
+    st.session_state.last_question = question
     with st.chat_message("user"):
         st.markdown(question)
 
@@ -89,18 +104,23 @@ def process_question(question: str, client=None, retriever=None):
                     full_response = event["data"]
                     answer_placeholder.markdown(full_response)
 
+                elif event["event"] == "error":
+                    st.warning(event["data"])
+
                 elif event["event"] == "done":
                     full_response = event["data"]["answer"]
                     model_used = event["data"]["model"]
                     question_type = event["data"].get("question_type", question_type)
 
         except Exception as e:
-            st.error(f"⚠️ 오류 발생: {e}")
-            return
+            error_msg = _get_user_error_message(e)
+            st.error(error_msg)
+            full_response = error_msg
 
         total_time = time.time() - total_start_time
 
-        answer_placeholder.markdown(full_response)
+        if full_response:
+            answer_placeholder.markdown(full_response)
         st.session_state.last_answer = full_response
 
         # 비교 차트 렌더링

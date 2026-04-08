@@ -15,6 +15,9 @@ from src.llm.agent import (
     COMPLEX_TYPES,
     build_graph,
     stream_agent,
+    _make_error_message,
+    call_model,
+    call_tools,
 )
 
 
@@ -377,3 +380,99 @@ def test_stream_agent_structured_data_event():
         structured_events = [e for e in events if e["event"] == "structured_data"]
         assert len(structured_events) == 1
         assert '"__type__"' in structured_events[0]["data"]
+
+
+# ── 에러 핸들링 테스트 ──────────────────────────────────
+
+def test_make_error_message_rate_limit():
+    """Rate limit 에러 메시지"""
+    msg = _make_error_message(Exception("Rate limit exceeded (429)"))
+    assert "호출 한도" in msg
+
+
+def test_make_error_message_timeout():
+    """Timeout 에러 메시지"""
+    msg = _make_error_message(Exception("Request timed out"))
+    assert "시간이 초과" in msg
+
+
+def test_make_error_message_connection():
+    """Connection 에러 메시지"""
+    msg = _make_error_message(Exception("Connection error"))
+    assert "네트워크" in msg
+
+
+def test_make_error_message_auth():
+    """인증 에러 메시지"""
+    msg = _make_error_message(Exception("Invalid API key"))
+    assert "인증" in msg
+
+
+def test_make_error_message_generic():
+    """알 수 없는 에러 메시지"""
+    msg = _make_error_message(ValueError("something weird"))
+    assert "일시적인 오류" in msg
+    assert "ValueError" in msg
+
+
+def test_call_model_handles_exception():
+    """call_model이 LLM 예외 발생 시 에러 메시지를 반환"""
+    state: AgentState = {
+        "messages": [HumanMessage(content="test")],
+        "question_type": "simple",
+        "tool_call_count": 0,
+    }
+    with patch("src.llm.agent._get_model") as mock_get_model:
+        mock_get_model.return_value.invoke.side_effect = Exception("API timeout")
+        result = call_model(state)
+        assert len(result["messages"]) == 1
+        assert "시간이 초과" in result["messages"][0].content or "오류" in result["messages"][0].content
+
+
+def test_call_tools_handles_exception():
+    """call_tools가 도구 실행 예외 시 에러 메시지를 반환"""
+    tool_call_msg = AIMessage(
+        content="",
+        tool_calls=[{"id": "tc1", "name": "search_etf", "args": {"query": "test"}}],
+    )
+    state: AgentState = {
+        "messages": [tool_call_msg],
+        "question_type": "simple",
+        "tool_call_count": 0,
+    }
+    mock_tool = MagicMock()
+    mock_tool.name = "search_etf"
+    mock_tool.invoke.side_effect = RuntimeError("DB connection failed")
+    with patch("src.llm.agent.ALL_TOOLS", [mock_tool]):
+        result = call_tools(state)
+        assert len(result["messages"]) == 1
+        assert "오류가 발생" in result["messages"][0].content
+
+
+def test_stream_agent_error_event():
+    """스트리밍 중 에러 발생 시 error 이벤트가 전달되는지 확인"""
+    with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
+         patch("src.llm.agent.get_agent") as mock_agent:
+        mock_agent.return_value.stream.side_effect = Exception("Connection timeout")
+
+        events = list(stream_agent("테스트 질문"))
+        error_events = [e for e in events if e["event"] == "error"]
+        assert len(error_events) == 1
+
+        done_event = events[-1]
+        assert done_event["event"] == "done"
+
+
+# ── 구조화 데이터 보강 테스트 ────────────────────────────
+
+def test_search_etf_enrichment(mock_retriever_with_data):
+    """search_etf가 구조화 데이터 보강을 포함하는지 확인"""
+    with patch("src.rag.retriever.retrieve_relevant_docs") as mock_search:
+        mock_search.return_value = (
+            "KODEX 200 ETF 정보...",
+            [{"ticker": "069500", "name": "KODEX 200", "relevance_score": 100.0}],
+        )
+        result = search_etf.invoke({"query": "KODEX 200 수익률"})
+        assert "실시간 데이터 요약" in result
+        assert "80,800" in result
+        assert "NAV" in result

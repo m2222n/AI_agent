@@ -144,11 +144,11 @@
 - [x] 비용 모니터링: LangSmith 트레이싱 연동 (환경변수 설정 시 자동 활성화)
 
 **3-3. 응답 품질**
-- [ ] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답
+- [x] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답 (_enrich_with_structured_data)
 - [x] Hallucination 방어: 검색 결과 없으면 "모른다" (프롬프트 모순 수정 + min_rrf_score 필터)
 - [ ] Hallucination 방어: CoV 검증 (추후)
 - [x] 대화 히스토리 토큰 관리 (tiktoken 카운팅, _trim_history)
-- [ ] 비교 질문 시 표/차트 자동 생성
+- [x] 비교 질문 시 표/차트 자동 생성 (structured_data 이벤트 + charts.py)
 - [x] 검색 결과 캐싱 (@st.cache_data, ttl=1h)
 
 **자기 검증:** "ChatGPT보다 나은 점이 있나?" → 없으면 실패
@@ -158,16 +158,16 @@
 ### Phase 4: 서비스 마감 + 포트폴리오
 > "친구한테 URL 보내서 쓰라고 할 수 있나?" 에 부끄럽지 않아야 한다.
 
-**4-1. 즉시 (커밋/배포/문서화)**
-- [ ] Git 커밋 + 푸시 (주식 확장 전체 미커밋 상태)
-- [ ] README + 아키텍처 다이어그램 (Mermaid + GIF 데모, 포트폴리오용)
-- [ ] 비용 분석 문서 ("월 $X로 서비스 운영 가능" — 상용화 근거)
+**4-1. 즉시 (커밋/배포/문서화)** ✅ 완료
+- [x] Git 커밋 + 푸시 (주식 확장 전체)
+- [x] README + 아키텍처 다이어그램 (Mermaid 플로차트, 포트폴리오용)
+- [x] 비용 분석 문서 (README에 월 $5~17 비용 분석 포함)
 
 **4-2. UI/UX 개편**
-- [ ] 비교 질문 시 표/차트 자동 생성 (st.dataframe, st.bar_chart로 PER/PBR/시가총액 시각화)
-- [ ] UI/UX 전면 개편 (커스텀 CSS, 반응형)
-- [ ] 에러 핸들링 완성 (API 장애, 데이터 누락 등 모든 엣지 케이스)
-- [ ] 사용자 피드백 루프 (thumbs up/down → 검색 품질 개선)
+- [x] 비교 질문 시 표/차트 자동 생성 (st.bar_chart + 마크다운 테이블, ETF+주식 모두 지원)
+- [x] UI/UX 전면 개편 (커스텀 CSS, 반응형, styles.py)
+- [x] 에러 핸들링 완성 (API 타임아웃/인증/네트워크/Rate Limit 분류, graceful degradation)
+- [x] 사용자 피드백 루프 (부정 피드백 사유 수집, 만족도 통계, sidebar 표시)
 - [x] LangSmith 모니터링 연동 (환경변수 설정 시 자동 트레이싱)
 
 **4-3. 데이터/분석 확장**
@@ -209,21 +209,23 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock)
+│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock) + 구조화 데이터 인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
 │   ├── ui/
 │   │   ├── sidebar.py      # render_sidebar()
-│   │   ├── chat.py         # process_question()
-│   │   └── components.py   # render_example_questions(), render_feedback_buttons()
+│   │   ├── chat.py         # process_question() (structured_data 이벤트 처리 포함)
+│   │   ├── charts.py       # 비교 차트/테이블 렌더링 (try_parse_comparison, render_comparison)
+│   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응)
+│   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (65개 질문: ETF 50 + 주식 15)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 128개 (agent 16 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + retriever 28 + stock 22)
+├── tests/                  # pytest 168개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + retriever 28 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
@@ -272,4 +274,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (Phase 3 + SQLite + 주식 확장 + 평가 65개 완료, 테스트 128개 통과)_
+_Last Updated: 2026-04-08 (Phase 3 + Phase 4 UI/UX+에러핸들링+피드백+통합응답 완료, 테스트 168개 통과)_

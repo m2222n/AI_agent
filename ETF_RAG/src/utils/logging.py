@@ -27,8 +27,11 @@ def log_interaction(question: str, answer: str, sources: list,
         "feedback": feedback
     }
 
-    with open(log_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 def log_feedback(question: str, answer: str, feedback: str):
@@ -43,8 +46,11 @@ def log_feedback(question: str, answer: str, feedback: str):
         "feedback": feedback
     }
 
-    with open(feedback_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    try:
+        with open(feedback_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 def get_performance_stats() -> dict:
@@ -81,6 +87,45 @@ def get_performance_stats() -> dict:
             "avg_search_time_ms": round(sum(search_times) / len(search_times), 2),
             "avg_llm_time_ms": round(sum(llm_times) / len(llm_times), 2),
             "question_types": question_types
+        }
+    except Exception:
+        return None
+
+
+def get_feedback_stats() -> dict:
+    """피드백 로그에서 통계 계산"""
+    feedback_file = LOG_DIR / "feedback_log.jsonl"
+
+    if not os.path.exists(feedback_file):
+        return None
+
+    positive = 0
+    negative = 0
+    reasons = {}
+
+    try:
+        with open(feedback_file, "r", encoding="utf-8") as f:
+            for line in f:
+                entry = json.loads(line)
+                fb = entry.get("feedback", "")
+                if fb == "positive":
+                    positive += 1
+                elif fb.startswith("negative"):
+                    negative += 1
+                    if ":" in fb:
+                        reason = fb.split(":", 1)[1].split(" - ")[0].strip()
+                        reasons[reason] = reasons.get(reason, 0) + 1
+
+        total = positive + negative
+        if total == 0:
+            return None
+
+        return {
+            "total": total,
+            "positive": positive,
+            "negative": negative,
+            "satisfaction_rate": round(positive / total * 100, 1),
+            "negative_reasons": reasons,
         }
     except Exception:
         return None

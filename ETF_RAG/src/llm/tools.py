@@ -50,6 +50,42 @@ def set_retriever(retriever, documents=None, stock_retriever=None,
         _stock_data_index = _build_data_index(stock_data)
 
 
+def _enrich_with_structured_data(sources: list, index: dict) -> str:
+    """검색 출처의 종목에 대해 구조화 데이터를 보강 텍스트로 반환"""
+    enriched = []
+    for s in sources:
+        ticker = s.get("ticker", "")
+        name = s.get("name", "")
+        data = index.get(ticker) or index.get(name.lower()) if index else None
+        if not data:
+            continue
+
+        returns = data.get("returns", {})
+        returns_parts = []
+        labels = {"1d": "1일", "1w": "1주", "1m": "1개월", "3m": "3개월", "1y": "1년"}
+        for k, label in labels.items():
+            v = returns.get(k)
+            if v is not None:
+                returns_parts.append(f"{label}: {v:+.2f}%")
+
+        line = f"[{data['name']}] 종가: {data.get('close', 0):,}원, 등락률: {data.get('change_pct', 0):+.2f}%"
+        if returns_parts:
+            line += f", 수익률({', '.join(returns_parts)})"
+
+        # ETF 전용
+        if "nav" in data:
+            line += f", NAV: {data.get('nav', 0):,.0f}원"
+        # 주식 전용
+        if "per" in data:
+            line += f", PER: {data.get('per', 0):.2f}배"
+
+        enriched.append(line)
+
+    if not enriched:
+        return ""
+    return "\n\n[실시간 데이터 요약]\n" + "\n".join(enriched)
+
+
 @tool
 def search_etf(query: str) -> str:
     """ETF 관련 질문에 대해 데이터베이스를 검색합니다.
@@ -73,7 +109,14 @@ def search_etf(query: str) -> str:
         f"- [{s['ticker']}] {s['name']} (관련도: {s['relevance_score']:.0f}%)"
         for s in sources
     )
-    return f"{context}\n\n[검색된 ETF]\n{source_info}"
+    result = f"{context}\n\n[검색된 ETF]\n{source_info}"
+
+    # 구조화 데이터 보강
+    enrichment = _enrich_with_structured_data(sources, _etf_data_index)
+    if enrichment:
+        result += enrichment
+
+    return result
 
 
 def _find_structured_data(name_or_ticker: str) -> Optional[dict]:
@@ -241,7 +284,14 @@ def search_stock(query: str) -> str:
         f"- [{s['ticker']}] {s['name']} (관련도: {s['relevance_score']:.0f}%)"
         for s in sources
     )
-    return f"{context}\n\n[검색된 종목]\n{source_info}"
+    result = f"{context}\n\n[검색된 종목]\n{source_info}"
+
+    # 구조화 데이터 보강
+    enrichment = _enrich_with_structured_data(sources, _stock_data_index)
+    if enrichment:
+        result += enrichment
+
+    return result
 
 
 # 에이전트에 바인딩할 도구 목록
