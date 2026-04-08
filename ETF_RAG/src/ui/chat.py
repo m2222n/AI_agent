@@ -2,11 +2,7 @@ import time
 
 import streamlit as st
 
-from src.rag.retriever import retrieve_relevant_docs, HybridRetriever
-from src.llm.classifier import classify_question_type
-from src.llm.client import (
-    call_llm_streaming, LLMError, RateLimitExceededError, ConnectionFailedError
-)
+from src.llm.agent import stream_agent
 from src.utils.logging import log_interaction
 
 QUESTION_TYPE_LABELS = {
@@ -17,11 +13,10 @@ QUESTION_TYPE_LABELS = {
     "general": "📚 일반 질문"
 }
 
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def _cached_search(_retriever, query: str):
-    """검색 결과 캐싱 (동일 쿼리 1시간 내 재사용)"""
-    return retrieve_relevant_docs(_retriever, query)
+MODEL_LABELS = {
+    "gpt-4o-mini": "⚡ GPT-4o-mini",
+    "gpt-4o": "🧠 GPT-4o",
+}
 
 
 def init_session_state():
@@ -44,8 +39,14 @@ def render_chat_history():
             st.markdown(message["content"])
 
 
-def process_question(question: str, client, retriever):
-    """질문 처리: 분류 → 검색 → LLM 스트리밍 → 로깅"""
+def process_question(question: str, client=None, retriever=None):
+    """LangGraph 에이전트를 통한 질문 처리
+
+    Args:
+        question: 사용자 질문
+        client: OpenAI 클라이언트 (하위 호환, 에이전트에서는 미사용)
+        retriever: HybridRetriever (하위 호환, tools.py에서 주입)
+    """
     total_start_time = time.time()
 
     st.session_state.messages.append({"role": "user", "content": question})
@@ -53,46 +54,38 @@ def process_question(question: str, client, retriever):
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        # 질문 유형 분류
-        question_type = classify_question_type(question)
-        st.session_state.last_question_type = question_type
+        answer_placeholder = st.empty()
+        status_placeholder = st.empty()
 
-        # 관련 문서 검색 (캐싱 적용)
-        search_start_time = time.time()
-        context, sources = _cached_search(retriever, question)
-        search_time = time.time() - search_start_time
+        question_type = None
+        model_used = None
+        full_response = ""
 
-        st.session_state.last_sources = sources
-        st.session_state.last_question = question
-
-        st.caption(f"질문 유형: {QUESTION_TYPE_LABELS.get(question_type, question_type)}")
-
-        # LLM 스트리밍 호출
-        llm_start_time = time.time()
         try:
-            response_stream = call_llm_streaming(
-                client, context, question, st.session_state.messages, question_type
-            )
-        except RateLimitExceededError:
-            st.error("⚠️ API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
-            return
-        except ConnectionFailedError:
-            st.error("⚠️ 네트워크 연결 오류가 발생했습니다. 인터넷 연결을 확인해주세요.")
-            return
-        except LLMError as e:
+            for event in stream_agent(question, st.session_state.messages[:-1]):
+                if event["event"] == "question_type":
+                    question_type = event["data"]
+                    st.session_state.last_question_type = question_type
+                    type_label = QUESTION_TYPE_LABELS.get(question_type, question_type)
+                    status_placeholder.caption(f"질문 유형: {type_label}")
+
+                elif event["event"] == "tool_call":
+                    tool_name = event["data"]["name"]
+                    status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
+
+                elif event["event"] == "token":
+                    full_response = event["data"]
+                    answer_placeholder.markdown(full_response)
+
+                elif event["event"] == "done":
+                    full_response = event["data"]["answer"]
+                    model_used = event["data"]["model"]
+                    question_type = event["data"].get("question_type", question_type)
+
+        except Exception as e:
             st.error(f"⚠️ 오류 발생: {e}")
             return
 
-        # 스트리밍 응답 표시
-        answer_placeholder = st.empty()
-        full_response = ""
-
-        for chunk in response_stream:
-            if chunk.choices[0].delta.content:
-                full_response += chunk.choices[0].delta.content
-                answer_placeholder.markdown(full_response + "▌")
-
-        llm_time = time.time() - llm_start_time
         total_time = time.time() - total_start_time
 
         answer_placeholder.markdown(full_response)
@@ -103,29 +96,21 @@ def process_question(question: str, client, retriever):
             "content": full_response
         })
 
-        # 참고 ETF 표시
-        if sources:
-            st.divider()
-            st.markdown("**🔍 검색된 ETF 정보:**")
-            for src in sources:
-                st.write(
-                    f"- **{src['id']}** {src['name']} ({src['ticker']}) "
-                    f"- 관련도: {src['relevance_score']:.0%}"
-                )
-
         # 성능 지표 표시
-        st.caption(
-            f"⏱️ 응답시간: {total_time*1000:.0f}ms "
-            f"(검색: {search_time*1000:.0f}ms, LLM: {llm_time*1000:.0f}ms)"
+        model_label = MODEL_LABELS.get(model_used, model_used or "")
+        type_label = QUESTION_TYPE_LABELS.get(question_type, question_type or "")
+        status_placeholder.caption(
+            f"질문 유형: {type_label} | 모델: {model_label} | "
+            f"⏱️ {total_time:.1f}s"
         )
 
         # 로그 저장
         log_interaction(
             question=question,
             answer=full_response,
-            sources=sources,
-            question_type=question_type,
-            search_time=search_time,
-            llm_time=llm_time,
+            sources=[],
+            question_type=question_type or "general",
+            search_time=0,
+            llm_time=total_time,
             total_time=total_time
         )

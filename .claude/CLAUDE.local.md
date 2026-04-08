@@ -479,5 +479,79 @@
 
 ---
 
-_Last Updated: 2026-04-07_
-_Phase 1 + Phase 2-1(하이브리드+MMR) + Phase 2-2(PDF 파이프라인) + 품질 안정화 스프린트 + 부트캠프/Semiconductor AI 교안_
+## 검색 정확도 개선 (2026-04-08)
+
+### RAGAS 평가 첫 실행 + ETF 이름 매칭 도입
+- **문제**: 하이브리드 검색(FAISS+BM25)만으로는 714개 ETF 중 정확한 문서를 못 찾음 (Hit Rate 45%)
+  - "KODEX 200 수익률" 질문에 다른 ETF가 상위에 올라옴
+  - 원인: ETF 문서가 구조적으로 유사하여 임베딩이 구분 못함
+- **해결**: ETF 이름/티커 직접 매칭 (pre-filter)
+  - `_name_index` / `_ticker_index`: 문서 이름→인덱스 매핑 (HybridRetriever 초기화 시 구축)
+  - `_match_etf_by_name()`: 질문 텍스트에 실제 ETF 이름이 포함되어 있으면 직접 매칭
+  - 긴 이름부터 greedy matching (예: "KODEX 200선물인버스2X" > "KODEX 200")
+  - 매칭 결과를 하이브리드 검색보다 우선 배치 (score=1.0)
+- **결과**: Hit Rate 45% → **75%** (+30%p), simple 유형 30% → **80%**
+- **남은 한계**: 브랜드명 없는 질문 ("반도체 ETF", "나스닥이랑 반도체") → 하이브리드 검색 의존
+  - LangGraph 에이전트의 재검색 로직으로 추가 개선 예정
+
+### 평가 결과 파일
+- `eval/results/eval_20260408_101035.json` — 개선 전 (Hit Rate 45%)
+- `eval/results/eval_20260408_101709.json` — 개선 후 (Hit Rate 75%)
+
+---
+
+## Phase 3-1 LangGraph 에이전트 전환 (2026-04-08)
+
+### 아키텍처 변경
+- 기존: `classifier.py`(키워드) → `retriever.py`(검색) → `client.py`(OpenAI 직접 호출) → 스트리밍 응답
+- 신규: `agent.py`(LangGraph 그래프) → LLM이 도구 자동 선택 → 검색 → 최종 답변
+
+### 신규 파일
+- **`src/llm/agent.py`** — LangGraph 에이전트 코어
+  - `AgentState`: messages + question_type + tool_call_count
+  - `classify_with_llm()`: LLM 기반 질문 분류 (키워드 classifier fallback)
+  - `call_model()` / `call_tools()`: 그래프 노드
+  - `should_call_tools()`: 조건부 엣지 (tool_calls 있으면 도구 실행, 최대 2회)
+  - `build_graph()`: StateGraph 컴파일
+  - `run_agent()`: 비스트리밍 실행
+  - `stream_agent()`: 스트리밍 실행 (stream_mode="updates")
+- **`src/llm/tools.py`** — Function Calling 도구 3개
+  - `search_etf(query)`: 하이브리드 검색 (retrieve_relevant_docs 호출)
+  - `compare_etfs(etf_name_1, etf_name_2)`: 두 ETF 개별 검색 비교
+  - `get_etf_list(category)`: 카테고리별 ETF 목록 (k=5)
+  - `set_retriever()`: 앱 초기화 시 retriever 주입 (모듈 레벨 글로벌)
+- **`tests/test_agent.py`** — 에이전트 테스트 11개
+  - 도구 5개: search 결과/빈결과, compare, list 결과/빈결과
+  - 라우팅 3개: tool_calls 있을때/없을때/횟수초과
+  - 모델 라우팅 1개: COMPLEX_TYPES 정의 확인
+  - 그래프 1개: build_graph 컴파일
+
+### 모델 라우팅
+- **단순 질문** (simple, general) → `GPT-4o-mini` (비용 절감)
+- **복잡 질문** (compare, recommend, risk) → `GPT-4o`
+- `_get_model()`: 캐싱된 ChatOpenAI 인스턴스 반환
+
+### 수정된 기존 파일
+- **`app.py`**: `create_client()` 제거, `set_retriever()` 호출 추가, `process_question(question)` 시그니처 변경
+- **`src/ui/chat.py`**: 전면 리팩토링 — `stream_agent()` 사용, 기존 `_cached_search()` + `call_llm_streaming()` 제거
+  - 이벤트 기반 UI 업데이트: question_type → tool_call → token → done
+  - 모델명 표시 추가
+- **`requirements.txt`**: `langgraph>=0.6.0` 추가
+
+### 기존 코드 유지 (하위 호환)
+- `classifier.py`: LLM 분류 실패 시 fallback으로 사용
+- `client.py`: 삭제하지 않음 (import 의존성 + API 키 조회 함수 여전히 사용)
+- `retriever.py`: 변경 없음 — tools.py에서 `retrieve_relevant_docs()` 호출
+
+### 테스트: 68개 전체 통과
+- 기존 57개 + 신규 11개 (test_agent.py)
+
+### 다음 작업
+- Streamlit 로컬 테스트 (실제 LLM 호출 확인)
+- 스트리밍 응답 개선 (현재 LangGraph stream은 노드 단위, 토큰 단위 스트리밍은 추가 작업 필요)
+- RAGAS 재평가 (에이전트 전환 후 품질 비교)
+
+---
+
+_Last Updated: 2026-04-08_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3-1 LangGraph 에이전트 + 부트캠프/Semiconductor AI 교안_

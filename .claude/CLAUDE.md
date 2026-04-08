@@ -25,7 +25,8 @@
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
-| 분류 | 키워드 매칭 classifier.py | **LangGraph** 기반 LLM 라우팅 + Function Calling |
+| 에이전트 | **LangGraph** + Function Calling + 모델 라우팅 | ✅ 구현 완료 |
+| 분류 | ~~키워드 매칭 classifier.py~~ → **LLM 분류** | **LangGraph** 기반 LLM 라우팅 + Function Calling |
 | 평가 | 수동 17건 + pytest 51개 | **RAGAS** 자동 평가 (Faithfulness, Relevancy, Context Recall) |
 | 한국어 | **Kiwi** 형태소 분석 (BM25 토크나이저) | ✅ 적용 완료 |
 | 모니터링 | 로컬 JSONL 로그 | **LangSmith** (free tier, 파이프라인 트레이싱) |
@@ -84,7 +85,7 @@
 
 ---
 
-### Phase 2: RAG 파이프라인 재구축 ← 현재 단계
+### Phase 2: RAG 파이프라인 재구축 ✅ 핵심 완료 (2-3~2-4 보류)
 > RAG를 "제대로" 하는 단계. 면접에서 "왜 이 구조인가?" 에 답할 수 있어야 한다.
 
 **2-1. 하이브리드 검색 (FAISS + Kiwi BM25)** ✅ 완료
@@ -94,6 +95,7 @@
 - [x] **MMR (Maximal Marginal Relevance)** — Jaccard 유사도 기반 다양성 확보 (λ=0.7)
 - [x] 임베딩: **OpenAI text-embedding-3-small** 명시 적용
 - [x] FAISS 단독 검색 하위 호환 유지 (retriever.py)
+- [x] **ETF 이름/티커 직접 매칭** — 질문에서 ETF 이름을 찾아 문서 직접 매핑 (Hit Rate 45%→75%)
 
 **2-2. PDF 문서 처리 파이프라인** ✅ 완료 (파이프라인 구축, PDF 미적용)
 - [x] `pdf_loader.py` — PyPDFLoader + RecursiveCharacterTextSplitter (chunk_size=1000, overlap=100)
@@ -108,30 +110,33 @@
 **2-4. Re-ranking (추후)**
 - [ ] **Cohere Rerank v3** 적용 (1차 검색 → 재정렬)
 
-**2-5. 평가 체계**
-- [ ] RAGAS 평가 파이프라인 구축 (Faithfulness, Relevancy, Context Recall)
-- [ ] 평가 데이터셋 구축 (질문-정답-컨텍스트 쌍 50개+)
-- [ ] 변경 전후 정량 비교 기록 (스프레드시트 or JSON)
+**2-5. 평가 체계** ✅ 기본 구축 완료
+- [x] RAGAS 평가 파이프라인 구축 (`eval/run_eval.py` — retrieval-only + full RAGAS 모드)
+- [x] 평가 데이터셋 구축 (`eval/eval_dataset.json` — 20개 질문)
+- [x] 변경 전후 정량 비교 기록 (`eval/results/` — JSON)
+- [ ] 평가 데이터셋 확장 (50개+)
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
 ---
 
-### Phase 3: 에이전트 + LLM 응답 품질
+### Phase 3: 에이전트 + LLM 응답 품질 ← 현재 단계
 > "ChatGPT보다 나은 점이 있나?" 에 답할 수 있어야 한다.
 
-**3-1. LangGraph 기반 에이전트**
-- [ ] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프
-- [ ] Function Calling 도구 정의:
-  - `search_etf_documents`: Pinecone RAG 검색
-  - `get_etf_price`: 실시간 시세 조회 (KIS API)
-  - `compare_etfs`: ETF 비교 분석 + 표/차트 생성
-  - `search_holdings`: 보유종목/섹터 비중 조회
-- [ ] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge)
+**3-1. LangGraph 기반 에이전트** ✅ 구현 완료
+- [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
+- [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
+- [x] Function Calling 도구 정의 (`tools.py`):
+  - `search_etf`: 하이브리드 RAG 검색
+  - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
+  - `get_etf_list`: 카테고리별 ETF 목록 검색
+- [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
+- [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 
-**3-2. 모델 라우팅**
-- [ ] 단순 질문 → GPT-4o-mini, 복잡한 비교/분석 → GPT-4o
-- [ ] 라우팅 기준 정의 + 비용 모니터링
+**3-2. 모델 라우팅** ✅ 구현 완료
+- [x] 단순 질문 (simple/general) → GPT-4o-mini, 복잡한 비교/분석 (compare/recommend/risk) → GPT-4o
+- [x] 라우팅 기준: LLM 분류 결과 기반 자동 선택
+- [ ] 비용 모니터링 (LangSmith 연동 시 추가)
 
 **3-3. 응답 품질**
 - [ ] 구조화 데이터(가격/수익률) + 비구조화 데이터(투자설명서) 통합 응답
@@ -180,16 +185,22 @@ ETF_RAG/
 │   │   ├── vectorstore.py  # create_vectorstore(), get_embeddings() — text-embedding-3-small
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
+│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
+│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list)
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
-│   │   └── classifier.py   # classify_question_type() → Phase 3에서 LangGraph
+│   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
 │   ├── ui/
 │   │   ├── sidebar.py      # render_sidebar()
 │   │   ├── chat.py         # process_question()
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons()
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
-├── tests/                  # pytest 61개 (classifier 10 + loader 12 + prompts 7 + retriever 22 + PDF 4 + 기타 6)
+├── eval/
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (20개 질문)
+│   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
+│   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
+├── tests/                  # pytest 68개 (agent 11 + classifier 10 + loader 12 + prompts 7 + retriever 28)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
@@ -237,4 +248,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-07 (Phase 1 완료(1-3 보류), Phase 2-1 하이브리드+MMR 완료, Phase 2-2 PDF 파이프라인 완료, 품질 안정화 스프린트 완료)_
+_Last Updated: 2026-04-08 (Phase 3-1 LangGraph 에이전트 + 3-2 모델 라우팅 구현 완료, 테스트 68개 통과)_
