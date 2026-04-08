@@ -1,5 +1,5 @@
 """
-ETF RAG 도구 정의 — LangGraph Function Calling용
+ETF/주식 RAG 도구 정의 — LangGraph Function Calling용
 
 각 도구는 에이전트가 자동으로 호출할 수 있는 함수.
 retriever와 documents는 모듈 레벨에서 set_retriever()로 주입.
@@ -13,15 +13,17 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 
 # 모듈 레벨 retriever — app.py에서 초기화 후 주입
-_retriever = None
+_retriever = None          # ETF용 (또는 ETF+주식 통합)
+_stock_retriever = None    # 주식 전용
 _documents = None
 
 
-def set_retriever(retriever, documents=None):
+def set_retriever(retriever, documents=None, stock_retriever=None):
     """앱 초기화 시 retriever와 documents를 주입"""
-    global _retriever, _documents
+    global _retriever, _documents, _stock_retriever
     _retriever = retriever
     _documents = documents or (retriever.documents if hasattr(retriever, "documents") else [])
+    _stock_retriever = stock_retriever
 
 
 @tool
@@ -105,5 +107,32 @@ def get_etf_list(category: str = "") -> str:
     return f"{context}\n\n[검색된 ETF 목록]\n{source_info}"
 
 
+@tool
+def search_stock(query: str) -> str:
+    """주식(개별 종목) 관련 질문에 대해 데이터베이스를 검색합니다.
+    주식 가격, PER, PBR, 시가총액, 배당, 수익률 등 주식 정보를 검색할 수 있습니다.
+    ETF가 아닌 일반 주식(삼성전자, SK하이닉스 등)에 대한 질문에 사용합니다.
+    검색 결과가 없으면 빈 문자열을 반환합니다.
+
+    Args:
+        query: 검색할 주식 관련 질문 또는 키워드
+    """
+    retriever = _stock_retriever or _retriever
+    if retriever is None:
+        return "검색기가 초기화되지 않았습니다."
+
+    from src.rag.retriever import retrieve_relevant_docs
+    context, sources = retrieve_relevant_docs(retriever, query)
+
+    if not context:
+        return ""
+
+    source_info = "\n".join(
+        f"- [{s['ticker']}] {s['name']} (관련도: {s['relevance_score']:.0f}%)"
+        for s in sources
+    )
+    return f"{context}\n\n[검색된 종목]\n{source_info}"
+
+
 # 에이전트에 바인딩할 도구 목록
-ALL_TOOLS = [search_etf, compare_etfs, get_etf_list]
+ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock]
