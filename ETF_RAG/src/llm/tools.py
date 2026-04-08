@@ -294,5 +294,83 @@ def search_stock(query: str) -> str:
     return result
 
 
+@tool
+def get_realtime_price(name_or_ticker: str) -> str:
+    """ETF나 주식의 현재 가격을 조회합니다. 장중에는 실시간(15분 지연) 데이터를,
+    장 마감 후에는 가장 최근 종가 데이터를 반환합니다.
+    "현재 가격", "지금 얼마", "실시간 시세" 등의 질문에 사용합니다.
+
+    Args:
+        name_or_ticker: ETF/주식 이름 또는 티커 (예: "KODEX 200", "069500", "삼성전자")
+    """
+    from config import REALTIME_PRICE
+
+    # 종목 조회
+    data = _find_structured_data(name_or_ticker)
+    if not data:
+        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+    asset_type = "etf" if "nav" in data else "stock"
+
+    # 장중 실시간 조회 시도
+    if REALTIME_PRICE.get("enabled", True):
+        try:
+            from src.data.realtime import get_realtime_price as _get_rt
+            rt = _get_rt(ticker, asset_type,
+                         cache_ttl=REALTIME_PRICE.get("cache_ttl", 300))
+            if rt:
+                line = f"[{name} ({ticker})] 현재가: {rt['price']:,}원"
+                if rt["change"] is not None:
+                    line += f", 전일대비: {rt['change']:+,}원 ({rt['change_pct']:+.2f}%)"
+                if rt.get("volume"):
+                    line += f", 거래량: {rt['volume']:,}주"
+                line += f"\n(yfinance 15분 지연 데이터, 조회시각: {rt['timestamp']})"
+                return line
+        except Exception as e:
+            logger.warning(f"실시간 가격 조회 실패: {e}")
+
+    # Fallback: pykrx 구조화 데이터
+    close = data.get("close", 0)
+    change_pct = data.get("change_pct", 0)
+    date = data.get("date", "")
+    if len(date) == 8:
+        date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
+
+    line = f"[{name} ({ticker})] 종가: {close:,}원, 등락률: {change_pct:+.2f}%"
+
+    # 수익률 정보 추가
+    returns = data.get("returns", {})
+    if returns:
+        labels = {"1d": "1일", "1w": "1주", "1m": "1개월", "3m": "3개월", "1y": "1년"}
+        parts = []
+        for k, label in labels.items():
+            v = returns.get(k)
+            if v is not None:
+                parts.append(f"{label}: {v:+.2f}%")
+        if parts:
+            line += f"\n수익률: {', '.join(parts)}"
+
+    # ETF 전용
+    if "nav" in data:
+        line += f"\nNAV: {data.get('nav', 0):,.0f}원"
+
+    # 주식 전용
+    if "per" in data:
+        line += f"\nPER: {data.get('per', 0):.2f}배, PBR: {data.get('pbr', 0):.2f}배"
+
+    try:
+        from src.data.realtime import is_market_open
+        if is_market_open():
+            line += f"\n(실시간 데이터 조회 실패, 최근 수집 데이터 기준일: {date})"
+        else:
+            line += f"\n(장 마감 후 데이터, 기준일: {date})"
+    except ImportError:
+        line += f"\n(수집 데이터, 기준일: {date})"
+
+    return line
+
+
 # 에이전트에 바인딩할 도구 목록
-ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock]
+ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price]

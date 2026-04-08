@@ -808,10 +808,56 @@
   - test_ui_features.py 12개 (신규): 에러 메시지 5개, 피드백 통계 4개, CSS 2개, 피드백 사유 1개
 
 ### 다음 작업
-1. Phase 4-3: KIS OpenAPI 실시간 시세
+1. ~~Phase 4-3: 실시간 시세~~ → ✅ yfinance로 완료
 2. Phase 4-4: Multi-Agent, Pinecone, 한국어 임베딩
 
 ---
 
+## Phase 4-3 yfinance 장중 시세 연동 (2026-04-08)
+
+### 설계 배경
+- KIS OpenAPI는 증권 계좌 개설 필요 (수일 소요) → 개인 포트폴리오 프로젝트에 과도
+- yfinance: 계좌 불필요, pip install만으로 즉시 사용, 한국 종목 지원 (.KS/.KQ)
+- 듀얼 소스 전략: pykrx(메인, 장마감 후 확정) + yfinance(보조, 장중 15분 지연)
+
+### 신규 파일
+- **`src/data/realtime.py`** — yfinance 장중 시세 조회 모듈
+  - `is_market_open(now)`: KST 기준 평일 09:00~15:30 판단
+  - `krx_to_yfinance(ticker, asset_type)`: 6자리 KRX 코드 → `.KS`/`.KQ` 변환
+    - ETF는 항상 `.KS` (KOSPI), 주식은 `.KS` 시도 후 `.KQ` fallback
+    - 결과 캐시 (`_market_suffix_cache`) — 티커당 1회만 resolution
+  - `get_realtime_price(ticker, asset_type, cache_ttl)`: 현재가 조회
+    - 장 외 시간 → None 반환
+    - 5분 인메모리 캐시 (yfinance rate limit 방어)
+    - `yf.Ticker.fast_info` 사용 (최소 API 호출)
+    - 반환: price, prev_close, change, change_pct, volume, timestamp, source
+  - `clear_cache()`: 양쪽 캐시 초기화
+- **`tests/test_realtime.py`** — 22개 테스트
+  - 장 운영 시간 7개 (장중/장전/장후/주말/경계값)
+  - 티커 변환 4개 (ETF/KOSPI/KOSDAQ/캐시)
+  - 실시간 조회 6개 (성공/장외/캐시히트/캐시만료/에러/no_last_price)
+  - 캐시 초기화 1개
+  - 도구 통합 4개 (ALL_TOOLS 카운트/not_found/fallback/realtime_data)
+
+### 수정된 기존 파일
+- **`src/llm/tools.py`**:
+  - `get_realtime_price(name_or_ticker)` 도구 추가 (5번째 LangGraph 도구)
+  - 장중: yfinance 실시간 데이터 반환 (현재가, 전일대비, 거래량)
+  - 장 외/실패: pykrx 구조화 데이터 fallback (종가, 수익률, NAV/PER)
+  - `ALL_TOOLS` 5개로 확장
+- **`src/llm/prompts.py`**: 실시간 가격 도구 사용 안내 추가
+- **`config.py`**: `REALTIME_PRICE` 설정 (cache_ttl, market_open/close, enabled)
+- **`requirements.txt`**: `yfinance>=0.2.0` 추가
+- **`tests/test_agent.py`**: ALL_TOOLS 5개 assertion 업데이트
+
+### 테스트: 190개 전체 통과
+- 기존 168개 + 신규 22개 (test_realtime.py)
+
+### 다음 작업
+1. Phase 4-4: Multi-Agent, Pinecone, 한국어 임베딩
+2. KIS OpenAPI는 계좌 개설 후 추후 추가
+
+---
+
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + 부트캠프/Semiconductor AI 교안_
+_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance 장중 시세 + 부트캠프/Semiconductor AI 교안_

@@ -60,3 +60,11 @@ LLM_MODEL = "gpt-4o"
 LLM_TEMPERATURE = 0.3
 LLM_TIMEOUT = 60
 MAX_HISTORY_MESSAGES = 10
+
+# Realtime price settings (yfinance)
+REALTIME_PRICE = {
+    "cache_ttl": 300,           # 캐시 TTL (초) — 5분
+    "market_open": "09:00",     # 장 시작 (KST)
+    "market_close": "15:30",    # 장 마감 (KST)
+    "enabled": True,            # 기능 활성화 플래그
+}

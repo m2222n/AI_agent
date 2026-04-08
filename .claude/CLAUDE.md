@@ -21,7 +21,7 @@
 |------|----------------|--------------|
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
-| 데이터 | **pykrx** (ETF 1084 + 주식 KOSPI/KOSDAQ 전종목) | + **한국투자증권 OpenAPI** (실시간) |
+| 데이터 | **pykrx** (ETF 1084 + 주식 KOSPI/KOSDAQ 전종목) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
@@ -134,6 +134,7 @@
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
+  - `get_realtime_price`: 장중 실시간 시세 (yfinance, 15분 지연) + 장 외 종가 fallback
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -171,7 +172,8 @@
 - [x] LangSmith 모니터링 연동 (환경변수 설정 시 자동 트레이싱)
 
 **4-3. 데이터/분석 확장**
-- [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요)
+- [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
+- [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요, 추후)
 - [ ] 종목 간 상관관계/섹터 분석 (ETF 보유종목 역활용, 섹터별 집계)
 - [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
 
@@ -198,6 +200,7 @@ ETF_RAG/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
 │   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
+│   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
@@ -209,7 +212,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock) + 구조화 데이터 인덱스
+│   │   ├── tools.py        # Function Calling 도구 (search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price) + 구조화 데이터 인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -225,7 +228,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (65개 질문: ETF 50 + 주식 15)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 168개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + retriever 28 + stock 22 + ui_features 12)
+├── tests/                  # pytest 190개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
@@ -274,4 +277,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (Phase 3 + Phase 4 UI/UX+에러핸들링+피드백+통합응답 완료, 테스트 168개 통과)_
+_Last Updated: 2026-04-08 (Phase 4-3 yfinance 장중 시세 연동, 테스트 190개 통과)_
