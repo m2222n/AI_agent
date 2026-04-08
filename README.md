@@ -6,7 +6,7 @@
 
 KRX 전종목 데이터를 기반으로, 질문에 맞는 ETF 정보를 정확하게 검색하고 답변합니다.
 
-[![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-mrfkacatrcjjpzrmjzsdfc.streamlit.app/)
+[![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
 [![Tests](https://img.shields.io/badge/Tests-57_Passed-2ea44f?style=for-the-badge)](#)
 
