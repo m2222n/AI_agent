@@ -290,6 +290,16 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
                     val = row[col]
                     if val is not None and not (isinstance(val, float) and val != val):
                         per_question_details[i][col] = round(float(val), 3)
+
+        # general 유형 제외 Faithfulness (RAG 전용 — general은 LLM 지식 질문)
+        rag_faith = [
+            per_question_details[i].get("faithfulness")
+            for i in range(len(per_question_details))
+            if per_question_details[i].get("question_type") != "general"
+            and per_question_details[i].get("faithfulness") is not None
+        ]
+        if rag_faith:
+            scores["faithfulness_rag_only"] = round(sum(rag_faith) / len(rag_faith), 3)
     except Exception as e:
         logger.warning(f"결과 추출 실패: {e}")
 
