@@ -3,9 +3,13 @@
 수집 데이터와 하드코딩 데이터 모두 테스트합니다.
 """
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+# DB를 무시하는 공통 패치 (실제 DB가 있으면 테스트가 DB 데이터를 로드하므로)
+_FAKE_DB = Path("/tmp/nonexistent_test.db")
 
 
 # ── 수집 데이터 샘플 ─────────────────────────────────────────
@@ -67,7 +71,8 @@ def collected_file(tmp_path):
 # ── 수집 데이터 로드 테스트 ──────────────────────────────────
 
 def test_load_collected_data(collected_file):
-    with patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -80,7 +85,8 @@ def test_load_collected_data(collected_file):
 
 
 def test_collected_documents(collected_file):
-    with patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -95,7 +101,8 @@ def test_collected_documents(collected_file):
 
 
 def test_collected_doc_without_holdings(collected_file):
-    with patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -105,7 +112,8 @@ def test_collected_doc_without_holdings(collected_file):
 
 
 def test_collected_doc_has_returns(collected_file):
-    with patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -120,7 +128,8 @@ def test_collected_doc_has_returns(collected_file):
 
 
 def test_collected_data_has_required_fields(collected_file):
-    with patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -151,7 +160,8 @@ def test_filter_excludes_zero_close(tmp_path):
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(sample, f, ensure_ascii=False)
 
-    with patch("src.data.loader.get_latest_collected_path", return_value=filepath):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=filepath):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -178,7 +188,8 @@ def test_filter_excludes_low_trade_value(tmp_path):
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(sample, f, ensure_ascii=False)
 
-    with patch("src.data.loader.get_latest_collected_path", return_value=filepath):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=filepath):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -189,7 +200,8 @@ def test_filter_excludes_low_trade_value(tmp_path):
 # ── 하드코딩 fallback 테스트 ─────────────────────────────────
 
 def test_fallback_to_hardcoded():
-    with patch("src.data.loader.get_latest_collected_path", return_value=None):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=None):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -199,7 +211,8 @@ def test_fallback_to_hardcoded():
 
 
 def test_hardcoded_documents():
-    with patch("src.data.loader.get_latest_collected_path", return_value=None):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -212,7 +225,8 @@ def test_hardcoded_documents():
 
 
 def test_hardcoded_documents_have_metadata():
-    with patch("src.data.loader.get_latest_collected_path", return_value=None):
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -249,3 +263,113 @@ def test_get_latest_collected_path_empty(tmp_path):
         result = get_latest_collected_path()
 
     assert result is None
+
+
+# ── 주식 데이터 로드 테스트 ──────────────────────────────────
+
+SAMPLE_STOCK = {
+    "ticker": "005930",
+    "name": "삼성전자",
+    "date": "20260408",
+    "close": 82500,
+    "volume": 15000000,
+    "trade_value": 1237500000000,
+    "change_pct": 1.23,
+    "open": 82000, "high": 83000, "low": 81500,
+    "market_cap": 492_000_000_000_000,
+    "shares_outstanding": 5_969_782_550,
+    "per": 12.5, "pbr": 1.65, "eps": 6600.0,
+    "bps": 50000.0, "div": 2.1, "dps": 1444.0,
+    "returns": {"1d": 1.23, "1w": 3.45, "1m": -2.1},
+}
+
+
+def test_load_stock_data_from_db(tmp_path):
+    """주식 데이터 DB 로드"""
+    from src.data.database import init_db, upsert_stock_data
+    db_path = tmp_path / "test.db"
+    conn = init_db(db_path)
+
+    stock_data = {
+        "metadata": {"collection_date": "20260408", "total_stocks": 1, "market": "ALL"},
+        "stocks": [{
+            "ticker": "005930", "name": "삼성전자", "date": "20260408",
+            "ohlcv": {"open": 82000, "high": 83000, "low": 81500, "close": 82500,
+                      "volume": 15000000, "trade_value": 1237500000000, "change_pct": 1.23},
+            "market_cap": 492_000_000_000_000,
+            "shares_outstanding": 5_969_782_550,
+            "fundamental": {"bps": 50000.0, "per": 12.5, "pbr": 1.65,
+                           "eps": 6600.0, "div": 2.1, "dps": 1444.0},
+            "returns": {"1d": 1.23},
+        }],
+    }
+    upsert_stock_data(conn, stock_data)
+    conn.close()
+
+    with patch("src.data.loader.DB_PATH", db_path):
+        from src.data.loader import load_stock_data
+        data = load_stock_data()
+
+    assert len(data) == 1
+    assert data[0]["ticker"] == "005930"
+    assert data[0]["per"] == 12.5
+
+
+def test_load_stock_data_no_db():
+    """DB 없으면 빈 리스트 반환"""
+    with patch("src.data.loader.DB_PATH", _FAKE_DB):
+        from src.data.loader import load_stock_data
+        data = load_stock_data()
+    assert data == []
+
+
+def test_stock_document_creation():
+    """주식 Document 변환"""
+    from src.data.loader import create_stock_documents
+    docs = create_stock_documents([SAMPLE_STOCK])
+
+    assert len(docs) == 1
+    doc = docs[0]
+    assert doc.metadata["ticker"] == "005930"
+    assert doc.metadata["asset_type"] == "stock"
+    assert doc.metadata["source"] == "krx_collected"
+    assert "삼성전자" in doc.page_content
+    assert "82,500원" in doc.page_content
+    assert "PER:" in doc.page_content
+    assert "시가총액:" in doc.page_content
+
+
+def test_stock_document_has_returns():
+    """주식 Document에 수익률 포함"""
+    from src.data.loader import create_stock_documents
+    docs = create_stock_documents([SAMPLE_STOCK])
+    doc = docs[0]
+    assert "수익률:" in doc.page_content
+    assert "1일:" in doc.page_content
+
+
+def test_stock_document_no_returns():
+    """수익률 없는 주식"""
+    from src.data.loader import create_stock_documents
+    stock_no_returns = {**SAMPLE_STOCK, "returns": {}}
+    docs = create_stock_documents([stock_no_returns])
+    assert "정보 없음" in docs[0].page_content
+
+
+def test_format_market_cap():
+    """시가총액 포맷팅"""
+    from src.data.loader import _format_market_cap
+    assert "조원" in _format_market_cap(492_000_000_000_000)
+    assert "억원" in _format_market_cap(500_000_000_000)
+    assert "원" in _format_market_cap(50_000_000)
+
+
+def test_etf_document_has_asset_type(collected_file):
+    """ETF Document에 asset_type 메타데이터 포함"""
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
+        from src.data.loader import load_etf_data, create_documents
+        data = load_etf_data()
+        docs = create_documents(data)
+
+    assert docs[0].metadata["asset_type"] == "etf"

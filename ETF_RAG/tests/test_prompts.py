@@ -4,7 +4,7 @@ from src.llm.prompts import build_system_prompt
 class TestBuildSystemPrompt:
     def test_contains_role(self):
         prompt = build_system_prompt("simple")
-        assert "ETF 투자 전문 어드바이저" in prompt
+        assert "투자 전문 어드바이저" in prompt
 
     def test_contains_constraints(self):
         prompt = build_system_prompt("simple")

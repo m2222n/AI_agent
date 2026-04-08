@@ -41,10 +41,10 @@ def mock_retriever():
 # ── 도구 테스트 ───────────────────────────────────────────
 
 def test_all_tools_list():
-    """도구 목록에 3개 도구가 있는지 확인"""
-    assert len(ALL_TOOLS) == 3
+    """도구 목록에 4개 도구가 있는지 확인"""
+    assert len(ALL_TOOLS) == 4
     names = {t.name for t in ALL_TOOLS}
-    assert names == {"search_etf", "compare_etfs", "get_etf_list"}
+    assert names == {"search_etf", "compare_etfs", "get_etf_list", "search_stock"}
 
 
 def test_search_etf_with_results(mock_retriever):
