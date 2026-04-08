@@ -25,7 +25,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import TOP_K_RESULTS
-from src.data.loader import load_etf_data, create_documents
+from src.data.loader import load_etf_data, load_stock_data, create_documents, create_stock_documents
 from src.rag.vectorstore import create_vectorstore
 from src.rag.retriever import HybridRetriever, retrieve_relevant_docs
 
@@ -43,17 +43,32 @@ def load_eval_dataset():
 
 
 def init_retriever():
-    """HybridRetriever 초기화"""
+    """HybridRetriever 초기화 (ETF + 주식)"""
     logger.info("데이터 로드 + 벡터스토어 + BM25 인덱스 구축 중...")
+
+    # ETF 문서
     etf_data = load_etf_data()
-    documents = create_documents(etf_data, include_pdfs=False)
-    vectorstore = create_vectorstore(documents)
-    retriever = HybridRetriever(vectorstore, documents)
-    logger.info(f"초기화 완료: {len(documents)}개 문서")
-    return retriever
+    etf_documents = create_documents(etf_data, include_pdfs=False)
+
+    # 주식 문서
+    stock_data = load_stock_data()
+    stock_documents = create_stock_documents(stock_data)
+
+    # ETF retriever
+    etf_vectorstore = create_vectorstore(etf_documents)
+    etf_retriever = HybridRetriever(etf_vectorstore, etf_documents)
+
+    # 주식 retriever (주식 데이터 있을 때만)
+    stock_retriever = None
+    if stock_documents:
+        stock_vectorstore = create_vectorstore(stock_documents)
+        stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
+
+    logger.info(f"초기화 완료: ETF {len(etf_documents)}개 + 주식 {len(stock_documents)}개 문서")
+    return etf_retriever, stock_retriever
 
 
-def evaluate_retrieval(retriever, dataset):
+def evaluate_retrieval(etf_retriever, stock_retriever, dataset):
     """검색 품질 평가 (API 비용 없음)"""
     results = []
 
@@ -61,9 +76,23 @@ def evaluate_retrieval(retriever, dataset):
         question = item["question"]
         expected_ticker = item.get("expected_ticker")
         expect_no_context = item.get("expect_no_context", False)
+        asset_type = item.get("asset_type", "etf")
 
-        # 검색 실행
-        context, sources = retrieve_relevant_docs(retriever, question)
+        # asset_type에 따라 적절한 retriever 선택
+        if asset_type == "stock" and stock_retriever:
+            context, sources = retrieve_relevant_docs(stock_retriever, question)
+        elif asset_type == "mixed":
+            # ETF + 주식 모두 검색, 결과 합산
+            context_etf, sources_etf = retrieve_relevant_docs(etf_retriever, question)
+            context_stock, sources_stock = (
+                retrieve_relevant_docs(stock_retriever, question)
+                if stock_retriever else (None, [])
+            )
+            sources = (sources_etf or []) + (sources_stock or [])
+            parts = [c for c in [context_etf, context_stock] if c]
+            context = "\n\n".join(parts) if parts else None
+        else:
+            context, sources = retrieve_relevant_docs(etf_retriever, question)
 
         # 검색된 티커 목록
         retrieved_tickers = [s["ticker"] for s in sources] if sources else []
@@ -94,6 +123,7 @@ def evaluate_retrieval(retriever, dataset):
         result = {
             "question": question,
             "question_type": item["question_type"],
+            "asset_type": asset_type,
             "expected_ticker": expected_ticker,
             "retrieved_tickers": retrieved_tickers,
             "hit": hit,
@@ -109,8 +139,8 @@ def evaluate_retrieval(retriever, dataset):
     return results
 
 
-def evaluate_with_ragas(retriever, dataset):
-    """RAGAS 전체 평가 (LLM API 사용)"""
+def evaluate_with_ragas(etf_retriever, dataset):
+    """RAGAS 전체 평가 (LLM API 사용, ETF만 대상)"""
     try:
         from ragas import evaluate
         from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
@@ -131,7 +161,7 @@ def evaluate_with_ragas(retriever, dataset):
         question = item["question"]
 
         # 검색
-        context, sources = retrieve_relevant_docs(retriever, question)
+        context, sources = retrieve_relevant_docs(etf_retriever, question)
 
         # LLM 답변 생성 (비스트리밍)
         api_key = get_api_key()
@@ -195,6 +225,7 @@ def save_results(retrieval_results, ragas_results=None):
 
     # 유형별 통계
     type_stats = {}
+    asset_stats = {}
     for r in retrieval_results:
         qt = r["question_type"]
         if qt not in type_stats:
@@ -202,6 +233,14 @@ def save_results(retrieval_results, ragas_results=None):
         type_stats[qt]["total"] += 1
         if r["hit"]:
             type_stats[qt]["hits"] += 1
+
+        # asset_type별 통계
+        at = r.get("asset_type", "etf")
+        if at not in asset_stats:
+            asset_stats[at] = {"total": 0, "hits": 0}
+        asset_stats[at]["total"] += 1
+        if r["hit"]:
+            asset_stats[at]["hits"] += 1
 
     summary = {
         "timestamp": timestamp,
@@ -217,6 +256,14 @@ def save_results(retrieval_results, ragas_results=None):
                     "hits": v["hits"],
                 }
                 for k, v in type_stats.items()
+            },
+            "by_asset": {
+                k: {
+                    "hit_rate": round(v["hits"] / v["total"], 3),
+                    "total": v["total"],
+                    "hits": v["hits"],
+                }
+                for k, v in asset_stats.items()
             },
         },
         "details": retrieval_results,
@@ -247,6 +294,12 @@ def print_summary(summary):
     for qt, stats in r["by_type"].items():
         print(f"    {qt:12s}: {stats['hit_rate']:.1%} ({stats['hits']}/{stats['total']})")
 
+    if "by_asset" in r:
+        print()
+        print("  자산유형별 Hit Rate:")
+        for at, stats in r["by_asset"].items():
+            print(f"    {at:12s}: {stats['hit_rate']:.1%} ({stats['hits']}/{stats['total']})")
+
     if "ragas" in summary:
         print()
         print("  RAGAS 지표:")
@@ -265,19 +318,19 @@ def main():
 
     logger.info("Retriever 초기화...")
     start = time.time()
-    retriever = init_retriever()
+    etf_retriever, stock_retriever = init_retriever()
     init_time = time.time() - start
     logger.info(f"  초기화 시간: {init_time:.1f}초")
 
     # 1. 검색 평가 (무료)
     logger.info("\n검색 품질 평가 시작...")
-    retrieval_results = evaluate_retrieval(retriever, dataset)
+    retrieval_results = evaluate_retrieval(etf_retriever, stock_retriever, dataset)
 
     # 2. RAGAS 전체 평가 (유료)
     ragas_results = None
     if not no_llm:
         logger.info("\nRAGAS 전체 평가 시작 (LLM API 사용)...")
-        ragas_results = evaluate_with_ragas(retriever, dataset)
+        ragas_results = evaluate_with_ragas(etf_retriever, dataset)
 
     # 결과 저장
     output_path, summary = save_results(retrieval_results, ragas_results)

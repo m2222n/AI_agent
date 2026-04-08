@@ -300,5 +300,109 @@
     "ground_truth": "TIGER 미국S&P500, KODEX 미국S&P500 등이 있습니다.",
     "question_type": "recommend",
     "expected_ticker": null
+  },
+  {
+    "question": "삼성전자 오늘 종가 얼마야?",
+    "ground_truth": "삼성전자의 종가를 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 주가 알려줘",
+    "ground_truth": "SK하이닉스의 종가를 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 PER이 얼마야?",
+    "ground_truth": "현대차의 PER을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 시가총액이 얼마야?",
+    "ground_truth": "삼성전자의 시가총액을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 배당수익률 알려줘",
+    "ground_truth": "삼성전자의 배당수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대건설 수익률이 어때?",
+    "ground_truth": "현대건설의 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "000720",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KB금융 주가 정보 알려줘",
+    "ground_truth": "KB금융의 종가와 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "105560",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자랑 SK하이닉스 비교해줘",
+    "ground_truth": "삼성전자와 SK하이닉스의 주가, PER, 시가총액을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["005930", "000660"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차와 삼성SDI 중에 PER이 낮은 건?",
+    "ground_truth": "현대차와 삼성SDI의 PER을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["005380", "006400"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "거래대금 많은 주식이 뭐야?",
+    "ground_truth": "거래대금 기준 상위 주식을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "배당수익률 높은 주식 추천해줘",
+    "ground_truth": "배당수익률이 높은 주식을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "PBR이 뭔가요?",
+    "ground_truth": "PBR(Price to Book Ratio)은 주가를 주당순자산(BPS)으로 나눈 지표입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 ETF에 많이 들어가 있어?",
+    "ground_truth": "삼성전자는 KODEX 200, TIGER 200 등 주요 ETF의 상위 보유종목입니다.",
+    "question_type": "simple",
+    "expected_ticker": "005930",
+    "asset_type": "mixed"
+  },
+  {
+    "question": "반도체 관련 주식이랑 ETF 뭐가 있어?",
+    "ground_truth": "반도체 관련 주식(삼성전자, SK하이닉스)과 ETF(KODEX 반도체)를 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "mixed"
+  },
+  {
+    "question": "한화에어로스페이스 주가 어때?",
+    "ground_truth": "한화에어로스페이스의 종가와 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "012450",
+    "asset_type": "stock"
   }
 ]
