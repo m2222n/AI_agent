@@ -7,27 +7,153 @@
   },
   {
     "question": "KODEX 반도체 ETF 수익률 알려줘",
-    "ground_truth": "KODEX 반도체의 1일 수익률은 +1.90%, 1주 +3.82%, 1개월 -7.24%, 3개월 +34.11%, 1년 +218.56%입니다.",
+    "ground_truth": "KODEX 반도체의 1일 수익률은 +1.90%입니다.",
     "question_type": "simple",
     "expected_ticker": "091160"
   },
   {
     "question": "KODEX 200의 주요 보유종목이 뭐야?",
-    "ground_truth": "KODEX 200의 주요 보유종목은 삼성전자(33.33%), SK하이닉스(18.25%), 현대차(2.33%)입니다.",
+    "ground_truth": "KODEX 200의 주요 보유종목은 삼성전자, SK하이닉스, 현대차 등입니다.",
+    "question_type": "simple",
+    "expected_ticker": "069500"
+  },
+  {
+    "question": "KODEX 200 ETF의 NAV는 얼마야?",
+    "ground_truth": "KODEX 200의 NAV(순자산가치)를 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "069500"
+  },
+  {
+    "question": "KODEX 200 등락률이 얼마야?",
+    "ground_truth": "KODEX 200의 등락률은 +2.72%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "069500"
+  },
+  {
+    "question": "KODEX 200선물인버스2X 수익률은?",
+    "ground_truth": "KODEX 200선물인버스2X의 1일 수익률은 -5.17%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "252670"
+  },
+  {
+    "question": "TIGER 미국나스닥100 수익률이 어때?",
+    "ground_truth": "TIGER 미국나스닥100의 1일 수익률은 +0.22%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "133690"
+  },
+  {
+    "question": "TIGER 차이나전기차 ETF 최근 성과가 어때?",
+    "ground_truth": "TIGER 차이나전기차SOLACTIVE의 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "371460"
+  },
+  {
+    "question": "KODEX 레버리지 종가 알려줘",
+    "ground_truth": "KODEX 레버리지의 종가를 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "122630"
+  },
+  {
+    "question": "KODEX 인버스 수익률이 어때?",
+    "ground_truth": "KODEX 인버스의 1일 수익률은 -2.65%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "114800"
+  },
+  {
+    "question": "TIGER 반도체TOP10 보유종목 알려줘",
+    "ground_truth": "TIGER 반도체TOP10의 주요 보유종목을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "396500"
+  },
+  {
+    "question": "KODEX 코스닥150 수익률은?",
+    "ground_truth": "KODEX 코스닥150의 1일 수익률은 -1.85%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "229200"
+  },
+  {
+    "question": "TIGER 미국S&P500 ETF 정보 알려줘",
+    "ground_truth": "TIGER 미국S&P500의 종가와 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "360750"
+  },
+  {
+    "question": "KODEX 미국S&P500 수익률 어때?",
+    "ground_truth": "KODEX 미국S&P500의 1일 수익률은 +0.16%입니다.",
+    "question_type": "simple",
+    "expected_ticker": "379800"
+  },
+  {
+    "question": "KODEX 2차전지산업 종가가 얼마야?",
+    "ground_truth": "KODEX 2차전지산업의 종가를 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "305720"
+  },
+  {
+    "question": "KODEX 미국나스닥100 수익률 알려줘",
+    "ground_truth": "KODEX 미국나스닥100의 수익률을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "379810"
+  },
+  {
+    "question": "ACE 200 ETF 거래량이 어때?",
+    "ground_truth": "ACE 200의 거래량을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "105190"
+  },
+  {
+    "question": "069500 종가 알려줘",
+    "ground_truth": "069500(KODEX 200)의 종가를 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "069500"
   },
   {
     "question": "TIGER 200이랑 KODEX 200 비교해줘",
-    "ground_truth": "두 ETF 모두 KOSPI 200 지수를 추종합니다. KODEX 200 종가 82,770원, TIGER 200 종가 82,785원으로 거의 동일합니다. 1일 수익률은 KODEX 200이 +2.72%, TIGER 200이 +2.84%입니다.",
+    "ground_truth": "두 ETF 모두 KOSPI 200 지수를 추종합니다.",
     "question_type": "compare",
     "expected_ticker": ["069500", "102110"]
   },
   {
     "question": "KODEX 반도체와 KODEX 200 중에 수익률이 더 좋은 건?",
-    "ground_truth": "3개월 기준 KODEX 반도체(+34.11%)가 KODEX 200(+25.01%)보다 높습니다. 1년 기준으로도 KODEX 반도체(+218.56%)가 KODEX 200(+147.41%)보다 높습니다.",
+    "ground_truth": "KODEX 반도체와 KODEX 200의 수익률을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": ["091160", "069500"]
+  },
+  {
+    "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
+    "ground_truth": "TIGER 미국나스닥100과 KODEX 반도체를 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["133690", "091160"]
+  },
+  {
+    "question": "KODEX 레버리지와 KODEX 인버스 비교해줘",
+    "ground_truth": "KODEX 레버리지는 상승장에서, KODEX 인버스는 하락장에서 수익을 추구합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["122630", "114800"]
+  },
+  {
+    "question": "TIGER 미국S&P500이랑 KODEX 미국S&P500 차이가 뭐야?",
+    "ground_truth": "둘 다 S&P500을 추종하며 운용사가 다릅니다.",
+    "question_type": "compare",
+    "expected_ticker": ["360750", "379800"]
+  },
+  {
+    "question": "KODEX 200이랑 RISE 200 중에 뭐가 나아?",
+    "ground_truth": "둘 다 KOSPI 200을 추종하는 ETF입니다.",
+    "question_type": "compare",
+    "expected_ticker": ["069500", "148020"]
+  },
+  {
+    "question": "KODEX 코스닥150레버리지와 KODEX 코스닥150 비교",
+    "ground_truth": "레버리지는 2배 추종, 일반은 1배 추종입니다.",
+    "question_type": "compare",
+    "expected_ticker": ["233740", "229200"]
+  },
+  {
+    "question": "KODEX 반도체레버리지와 TIGER 반도체TOP10레버리지 어떤 게 좋아?",
+    "ground_truth": "두 레버리지 ETF의 수익률과 보유종목을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["494310", "488080"]
   },
   {
     "question": "수익률 높은 ETF 추천해줘",
@@ -42,51 +168,8 @@
     "expected_ticker": null
   },
   {
-    "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
-    "ground_truth": "인버스 ETF는 지수 하락 시 수익을 내는 구조이지만, 장기 보유 시 복리 효과로 손실이 커질 수 있습니다. KODEX 200선물인버스2X의 1년 수익률은 -89.04%입니다.",
-    "question_type": "risk",
-    "expected_ticker": "252670"
-  },
-  {
-    "question": "ETF란 무엇인가요?",
-    "ground_truth": "ETF(Exchange Traded Fund)는 주식처럼 거래소에서 실시간 매매할 수 있는 펀드입니다.",
-    "question_type": "general",
-    "expected_ticker": null
-  },
-  {
-    "question": "KODEX 200 ETF의 NAV는 얼마야?",
-    "ground_truth": "KODEX 200의 NAV(순자산가치)는 82,931.14원입니다.",
-    "question_type": "simple",
-    "expected_ticker": "069500"
-  },
-  {
-    "question": "반도체 ETF 보유종목 알려줘",
-    "ground_truth": "KODEX 반도체의 주요 보유종목은 SK하이닉스(26.40%), 삼성전자(23.49%), 한미반도체(9.34%)입니다.",
-    "question_type": "simple",
-    "expected_ticker": "091160"
-  },
-  {
-    "question": "TIGER 미국나스닥100 수익률이 어때?",
-    "ground_truth": "TIGER 미국나스닥100의 1일 수익률은 +0.22%, 1주 +3.07%, 1개월 -2.14%, 3개월 -1.79%, 1년 +35.88%입니다.",
-    "question_type": "simple",
-    "expected_ticker": "133690"
-  },
-  {
-    "question": "비트코인 ETF 있어?",
-    "ground_truth": "보유한 데이터에서 비트코인 ETF 관련 정보를 찾지 못했습니다.",
-    "question_type": "simple",
-    "expected_ticker": null,
-    "expect_no_context": true
-  },
-  {
-    "question": "KODEX 200선물인버스2X 수익률은?",
-    "ground_truth": "KODEX 200선물인버스2X의 1일 수익률은 -5.17%, 1주 -12.88%, 1개월 -7.89%, 3개월 -50.29%, 1년 -89.04%입니다.",
-    "question_type": "simple",
-    "expected_ticker": "252670"
-  },
-  {
     "question": "삼성전자 비중이 높은 ETF가 뭐야?",
-    "ground_truth": "KODEX 200(삼성전자 33.33%), TIGER 200(삼성전자 33.41%), KODEX 반도체(삼성전자 23.49%) 등에서 삼성전자 비중이 높습니다.",
+    "ground_truth": "KODEX 200, TIGER 200, KODEX 반도체 등에서 삼성전자 비중이 높습니다.",
     "question_type": "recommend",
     "expected_ticker": ["069500", "102110", "091160"]
   },
@@ -97,27 +180,125 @@
     "expected_ticker": null
   },
   {
-    "question": "KODEX 200 등락률이 얼마야?",
-    "ground_truth": "KODEX 200의 등락률은 +1.25%입니다.",
-    "question_type": "simple",
-    "expected_ticker": "069500"
+    "question": "배당 수익률 높은 ETF 추천해줘",
+    "ground_truth": "배당 관련 ETF를 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
   },
   {
-    "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
-    "ground_truth": "TIGER 미국나스닥100과 KODEX 반도체를 비교하면, 3개월 수익률은 KODEX 반도체(+34.11%)가 나스닥100(-1.79%)보다 높습니다.",
-    "question_type": "compare",
-    "expected_ticker": ["133690", "091160"]
+    "question": "거래량 많은 ETF가 뭐야?",
+    "ground_truth": "거래대금 기준 상위 ETF를 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
+  },
+  {
+    "question": "방산 관련 ETF 뭐가 있어?",
+    "ground_truth": "KODEX 방산TOP10, TIGER K방산&우주, PLUS K방산 등이 있습니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
+  },
+  {
+    "question": "2차전지 ETF 추천해줘",
+    "ground_truth": "KODEX 2차전지산업, KODEX 2차전지산업레버리지 등이 있습니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
+  },
+  {
+    "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
+    "ground_truth": "인버스 ETF는 장기 보유 시 복리 효과로 손실이 커질 수 있습니다.",
+    "question_type": "risk",
+    "expected_ticker": "252670"
   },
   {
     "question": "레버리지 ETF 위험성에 대해 알려줘",
-    "ground_truth": "레버리지 ETF는 기초지수 변동의 2배를 추종하므로 변동성이 매우 큽니다. 장기 보유 시 복리 효과로 예상과 다른 수익률이 발생할 수 있습니다.",
+    "ground_truth": "레버리지 ETF는 기초지수 변동의 2배를 추종하므로 변동성이 매우 큽니다.",
     "question_type": "risk",
     "expected_ticker": null
   },
   {
-    "question": "TIGER 차이나전기차 ETF 최근 성과가 어때?",
-    "ground_truth": "TIGER 차이나전기차SOLACTIVE의 1일 수익률은 -1.03%, 1주 -5.92%, 1개월 +4.85%, 3개월 -0.65%, 1년 +33.40%입니다.",
+    "question": "KODEX 코스닥150레버리지 투자해도 되나?",
+    "ground_truth": "코스닥150레버리지는 고위험 상품으로 단기 투자에 적합합니다.",
+    "question_type": "risk",
+    "expected_ticker": "233740"
+  },
+  {
+    "question": "KODEX 200선물인버스2X 장기 보유하면 어떻게 돼?",
+    "ground_truth": "인버스2X는 장기 보유 시 복리 손실이 누적되어 큰 손실이 발생할 수 있습니다.",
+    "question_type": "risk",
+    "expected_ticker": "252670"
+  },
+  {
+    "question": "2차전지 ETF 지금 투자해도 괜찮을까?",
+    "ground_truth": "2차전지 ETF의 최근 수익률과 변동성을 고려하여 안내합니다.",
+    "question_type": "risk",
+    "expected_ticker": null
+  },
+  {
+    "question": "ETF란 무엇인가요?",
+    "ground_truth": "ETF(Exchange Traded Fund)는 주식처럼 거래소에서 실시간 매매할 수 있는 펀드입니다.",
+    "question_type": "general",
+    "expected_ticker": null
+  },
+  {
+    "question": "NAV가 뭔가요?",
+    "ground_truth": "NAV(Net Asset Value)는 ETF의 순자산가치로, 보유 자산의 시장가치를 총 발행좌수로 나눈 값입니다.",
+    "question_type": "general",
+    "expected_ticker": null
+  },
+  {
+    "question": "괴리율이 뭐야?",
+    "ground_truth": "괴리율은 ETF의 시장 가격과 NAV 사이의 차이를 백분율로 나타낸 것입니다.",
+    "question_type": "general",
+    "expected_ticker": null
+  },
+  {
+    "question": "추적오차율이 무슨 뜻이야?",
+    "ground_truth": "추적오차율은 ETF 수익률과 기초지수 수익률 간의 차이를 나타내는 지표입니다.",
+    "question_type": "general",
+    "expected_ticker": null
+  },
+  {
+    "question": "비트코인 ETF 있어?",
+    "ground_truth": "보유한 데이터에서 비트코인 ETF 관련 정보를 찾지 못했습니다.",
     "question_type": "simple",
-    "expected_ticker": "371460"
+    "expected_ticker": null,
+    "expect_no_context": true
+  },
+  {
+    "question": "테슬라 주가 알려줘",
+    "ground_truth": "개별 주식 정보는 제공하지 않습니다. ETF 관련 질문을 해주세요.",
+    "question_type": "general",
+    "expected_ticker": null,
+    "expect_no_context": true
+  },
+  {
+    "question": "미국 국채 ETF 있어?",
+    "ground_truth": "보유한 데이터에서 미국 국채 관련 ETF 정보를 확인합니다.",
+    "question_type": "simple",
+    "expected_ticker": null
+  },
+  {
+    "question": "금 ETF 추천해줘",
+    "ground_truth": "보유 데이터에서 금 관련 ETF를 검색합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
+  },
+  {
+    "question": "반도체 ETF 보유종목 알려줘",
+    "ground_truth": "KODEX 반도체의 주요 보유종목을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "091160"
+  },
+  {
+    "question": "코스닥 ETF 뭐가 있어?",
+    "ground_truth": "KODEX 코스닥150, KODEX 코스닥150레버리지 등이 있습니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
+  },
+  {
+    "question": "S&P500 추종하는 ETF 알려줘",
+    "ground_truth": "TIGER 미국S&P500, KODEX 미국S&P500 등이 있습니다.",
+    "question_type": "recommend",
+    "expected_ticker": null
   }
 ]
