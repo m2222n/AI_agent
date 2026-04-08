@@ -2,6 +2,7 @@
 하이브리드 검색 모듈 (FAISS Dense + Kiwi BM25 Sparse + MMR)
 
 검색 흐름:
+0. 쿼리에서 ETF 이름/티커 추출 → 직접 매칭 (exact match)
 1. 쿼리 → Kiwi 형태소 분석 → BM25 키워드 검색 (sparse)
 2. 쿼리 → OpenAI 임베딩 → FAISS 벡터 검색 (dense)
 3. RRF (Reciprocal Rank Fusion)로 두 결과를 결합
@@ -10,7 +11,8 @@
 """
 
 import logging
-from typing import List, Tuple, Optional
+import re
+from typing import List, Tuple, Optional, Dict
 
 import numpy as np
 from kiwipiepy import Kiwi
@@ -44,12 +46,25 @@ def tokenize_korean(text: str) -> List[str]:
     return tokens
 
 
+
+
 class HybridRetriever:
     """FAISS(dense) + BM25(sparse) 하이브리드 검색기"""
 
     def __init__(self, vectorstore: FAISS, documents: List[Document]):
         self.vectorstore = vectorstore
         self.documents = documents
+
+        # ETF 이름 → Document 인덱스 매핑 (정확 매칭용)
+        self._name_index: Dict[str, int] = {}
+        self._ticker_index: Dict[str, int] = {}
+        for i, doc in enumerate(documents):
+            name = doc.metadata.get("name", "")
+            ticker = doc.metadata.get("ticker", "")
+            if name:
+                self._name_index[name.lower()] = i
+            if ticker:
+                self._ticker_index[ticker] = i
 
         # BM25 인덱스 구축
         tokenized_corpus = [tokenize_korean(doc.page_content) for doc in documents]
@@ -60,6 +75,41 @@ class HybridRetriever:
             f"dense_weight={HYBRID_SEARCH['dense_weight']}, "
             f"sparse_weight={HYBRID_SEARCH['sparse_weight']}"
         )
+
+    def _match_etf_by_name(self, query: str) -> List[Tuple[Document, float]]:
+        """질문에서 ETF 이름/티커를 찾아 직접 매칭.
+
+        전략: 실제 ETF 이름 목록을 질문 텍스트에 대해 매칭.
+        긴 이름부터 매칭하여 "KODEX 200선물인버스2X"가 "KODEX 200"보다 먼저 매칭.
+
+        반환: 매칭된 [(Document, 1.0), ...] — 매칭 시 최고 점수 부여
+        """
+        q_lower = query.lower()
+        matched = []
+        seen_tickers = set()
+
+        # 1) 6자리 티커 직접 매칭
+        for ticker_match in re.finditer(r"\b(\d{6})\b", query):
+            ticker = ticker_match.group(1)
+            if ticker in self._ticker_index and ticker not in seen_tickers:
+                idx = self._ticker_index[ticker]
+                matched.append((self.documents[idx], 1.0))
+                seen_tickers.add(ticker)
+
+        # 2) ETF 이름 매칭 — 긴 이름부터 시도 (greedy matching)
+        sorted_names = sorted(self._name_index.keys(), key=len, reverse=True)
+        for doc_name in sorted_names:
+            if doc_name in q_lower:
+                idx = self._name_index[doc_name]
+                ticker = self.documents[idx].metadata.get("ticker", "")
+                if ticker not in seen_tickers:
+                    matched.append((self.documents[idx], 1.0))
+                    seen_tickers.add(ticker)
+
+        if matched:
+            logger.info(f"ETF 이름 매칭: {[d.metadata['name'] for d, _ in matched]}")
+
+        return matched
 
     def search(
         self, query: str, final_k: Optional[int] = None, use_mmr: bool = True
@@ -77,6 +127,14 @@ class HybridRetriever:
         """
         if final_k is None:
             final_k = HYBRID_SEARCH["final_k"]
+
+        # 0. ETF 이름/티커 직접 매칭 (정확도 최우선)
+        name_matched = self._match_etf_by_name(query)
+        matched_tickers = {d.metadata.get("ticker") for d, _ in name_matched}
+
+        # 이름 매칭만으로 충분하면 (질문이 특정 ETF만 묻는 경우) 바로 반환
+        if len(name_matched) >= final_k:
+            return name_matched[:final_k]
 
         dense_k = HYBRID_SEARCH["dense_k"]
         bm25_k = HYBRID_SEARCH["bm25_k"]
@@ -136,6 +194,15 @@ class HybridRetriever:
             candidates = self._apply_mmr(
                 candidates, final_k, lambda_param=HYBRID_SEARCH.get("mmr_lambda", 0.7)
             )
+
+        # 5. 이름 매칭 결과를 최상위에 병합 (중복 제거)
+        if name_matched:
+            remaining_k = final_k - len(name_matched)
+            hybrid_filtered = [
+                (doc, score) for doc, score in candidates
+                if doc.metadata.get("ticker") not in matched_tickers
+            ][:remaining_k]
+            return name_matched + hybrid_filtered
 
         return candidates[:final_k]
 

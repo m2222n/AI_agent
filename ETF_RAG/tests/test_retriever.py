@@ -167,6 +167,46 @@ def test_retrieve_faiss_fallback_no_results():
     assert sources == []
 
 
+# ── ETF 이름 매칭 테스트 ──────────────────────────────────────
+
+def test_name_matching_kodex200(hybrid_retriever):
+    """'KODEX 200' 질문 시 ticker 069500이 최상위"""
+    results = hybrid_retriever.search("KODEX 200 수익률 알려줘", final_k=3)
+    assert results[0][0].metadata["ticker"] == "069500"
+
+
+def test_name_matching_tiger(hybrid_retriever):
+    """'TIGER 반도체' 질문 시 ticker 091160이 최상위"""
+    results = hybrid_retriever.search("TIGER 반도체 보유종목", final_k=3)
+    assert results[0][0].metadata["ticker"] == "091160"
+
+
+def test_name_matching_compare(hybrid_retriever):
+    """비교 질문에서 두 ETF 모두 매칭"""
+    results = hybrid_retriever.search("KODEX 200이랑 TIGER 반도체 비교해줘", final_k=3)
+    tickers = [doc.metadata["ticker"] for doc, _ in results]
+    assert "069500" in tickers
+    assert "091160" in tickers
+
+
+def test_name_matching_ticker(hybrid_retriever):
+    """6자리 티커로 직접 매칭"""
+    results = hybrid_retriever.search("069500 종가 알려줘", final_k=3)
+    assert results[0][0].metadata["ticker"] == "069500"
+
+
+def test_name_matching_no_brand(hybrid_retriever):
+    """브랜드명 없는 질문은 이름 매칭 없이 하이브리드 검색"""
+    results = hybrid_retriever.search("반도체 ETF 수익률", final_k=3)
+    assert len(results) > 0  # 하이브리드 검색으로 결과 반환
+
+
+def test_name_matching_score(hybrid_retriever):
+    """이름 매칭된 결과는 score 1.0"""
+    results = hybrid_retriever.search("KODEX 200 정보", final_k=3)
+    assert results[0][1] == 1.0  # 이름 매칭 최고 점수
+
+
 # ── doc_key 테스트 ───────────────────────────────────────────
 
 def test_doc_key_uses_ticker():
