@@ -902,17 +902,66 @@
 2. **데이터 없는 항목 출력 방지**: simple/compare에서 수수료/위험등급/배당정책 삭제
 3. **보유종목 enrichment** (`tools.py`): `_enrich_with_structured_data()`에 holdings 상위 10개
 
-### 평가 결과 비교
-| 지표 | Baseline | 개선 후 | 변화 |
-|------|----------|---------|------|
-| Faithfulness | 0.500 | 0.521 | +0.021 |
-| Answer Relevancy | 0.423 | 0.301 | -0.122 |
-| Context Recall | 0.336 | 0.400 | +0.064 |
+### 평가 결과 비교 (4차까지)
+| 지표 | Baseline | 2차 | 3차 | 4차(최종) |
+|------|----------|-----|-----|-----------|
+| Faithfulness | 0.500 | 0.521 | 0.529 | **0.549** |
+| F (RAG only) | - | - | - | **0.578** |
+| Answer Relevancy | 0.423 | 0.301 | 0.341 | **0.340** |
+| Context Recall | 0.336 | 0.400 | 0.492 | **0.469** |
 
-- AR 하락 원인: 면책 문구가 모든 답변에 포함 → RAGAS가 "질문 무관 내용"으로 평가 (측정 아티팩트)
-- 결과: `eval/results/eval_20260408_162135.json` (baseline), `eval_20260408_163838.json` (개선)
+### 3차: RAGAS context에 구조화 데이터 포함
+- `run_eval.py`: `_enrich_with_structured_data()` 결과를 RAGAS context에 포함
+- 에이전트가 LLM에 전달하는 것과 동일한 context로 평가 → CR 대폭 개선
+
+### 4차: recommend/risk 데이터 근거 강화
+- `prompts.py` recommend: "#중요" 섹션 추가 — 추천 이유를 반드시 검색 데이터 수치로만 설명
+- `prompts.py` risk: "#중요" 섹션 추가 — 위험 분석에 실제 수익률/등락률 인용 강제
+- `run_eval.py`: `faithfulness_rag_only` 지표 추가 (general 제외)
+
+### Faithfulness 유형별 분석 (4차)
+- simple: 0.720 / compare: 0.698 / risk: 0.441 / recommend: 0.251 / general: 0.014
+- general (F=0.014): 구조적 한계 — LLM 지식 질문이므로 F 측정 부적합 → rag_only로 분리
+- recommend (F=0.251): 추천 논리가 context 외 지식 사용 → 데이터 근거 강제했으나 완전 해결 불가
+
+### AR 하락 원인
+- 면책 문구 + 한국어 역질문 생성 실패 (AR=0이 30/65개)
+- 추가 최적화 ROI 낮음
+
+### 결과 파일
+- `eval_20260408_162135.json` (baseline), `eval_20260408_163838.json` (2차)
+- `eval_20260408_173420.json` (3차), `eval_20260408_175504.json` (4차)
+
+### 상세 RAGAS 기록
+- 메모리 파일 참조: `memory/project_ai_agent_ragas.md`
+
+---
+
+## 주식 도구 확장 + 3년 백필 (2026-04-08)
+
+### 3년 과거 데이터 백필 완료
+- **`scripts/backfill_historical.py`** — 728 영업일 (2023-04-10 ~ 2026-04-08)
+  - ETF: 608,525 레코드, Stock: 2,057,558 레코드 → SQLite DB
+  - `--resume` 모드: 이미 수집된 날짜 스킵 (안전 재시작)
+  - ETF: 티커 목록 + OHLCV + 등락률 (보유종목/괴리율은 개별 API라 제외)
+  - Stock: OHLCV + 시가총액 + 펀더멘털 (PER/PBR/EPS/BPS/DIV/DPS)
+
+### 주식 도구 확장 (6개 → 8개)
+- **`compare_stocks(stock_name_1, stock_name_2)`**: 주식 비교 분석
+  - 구조화 JSON (`comparison_table`, `asset_type: "stock"`) → charts.py 자동 렌더링 (PER/PBR/시가총액/배당)
+  - 구조화 데이터 없으면 RAG 텍스트 fallback
+- **`get_stock_list(category)`**: 키워드 기반 주식 목록 (반도체, 자동차, 바이오 등)
+  - `_stock_retriever` or `_retriever` → `retrieve_relevant_docs(k=5)` + `_enrich_with_structured_data()`
+- **`prompts.py`**: 주식 비교/목록 도구 + 밸류에이션 분석 안내 추가
+
+### 테스트: 206개 전체 통과
+- charts 주식 비교 테스트 2개 추가
+- 3개 파일 ALL_TOOLS assertion 6→8 업데이트 (test_agent, test_sector, test_realtime)
+
+### 평가 데이터셋: 75개 (ETF 50 + 주식 22 + 혼합 3)
+- 주식 10개 추가: compare 2 (NAVER/카카오, LG에너지솔루션/삼성SDI), recommend 4 (자동차/바이오/은행/시가총액), simple 2 (기아 PER, POSCO홀딩스), mixed 1 (삼성전자 vs KODEX 반도체)
 
 ---
 
 _Last Updated: 2026-04-08_
-_Phase 1 + Phase 2 + 품질 안정화 + 검색 정확도 개선 + Phase 3 에이전트+스트리밍 + LangSmith + SQLite + 주식 확장 + Phase 4-1 README+비교차트 + Phase 4-2 UI/UX+에러핸들링+피드백+통합응답 + Phase 4-3 yfinance+섹터분석 + RAGAS Full 평가+프롬프트 개선 + 부트캠프/Semiconductor AI 교안_
+_Phase 1~4 + 주식 도구 8개 + 3년 백필 완료 + 테스트 206개 통과_

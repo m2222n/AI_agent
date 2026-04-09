@@ -333,6 +333,91 @@ def search_stock(query: str) -> str:
 
 
 @tool
+def compare_stocks(stock_name_1: str, stock_name_2: str) -> str:
+    """두 주식을 비교 분석합니다. PER, PBR, 시가총액, 배당수익률, 수익률 등을 나란히 비교합니다.
+    주식 vs 주식 비교에 특화된 도구입니다.
+
+    Args:
+        stock_name_1: 첫 번째 주식 이름 또는 티커 (예: "삼성전자", "005930")
+        stock_name_2: 두 번째 주식 이름 또는 티커 (예: "SK하이닉스", "000660")
+    """
+    # 구조화 데이터 직접 조회
+    d1 = _find_structured_data(stock_name_1)
+    d2 = _find_structured_data(stock_name_2)
+
+    if d1 and d2:
+        comparison = {
+            "__type__": "comparison_table",
+            "items": [
+                _extract_comparison_fields(d1),
+                _extract_comparison_fields(d2),
+            ],
+        }
+        text_parts = []
+        for name, data in [(stock_name_1, d1), (stock_name_2, d2)]:
+            line = f"[{data['name']}] 종가: {data.get('close', 0):,}원"
+            line += f", 등락률: {data.get('change_pct', 0):+.2f}%"
+            if "per" in data:
+                line += f", PER: {data.get('per', 0):.2f}배, PBR: {data.get('pbr', 0):.2f}배"
+            text_parts.append(line)
+        structured_json = json.dumps(comparison, ensure_ascii=False)
+        return f"{structured_json}\n\n---\n\n" + "\n".join(text_parts)
+
+    # 구조화 데이터 없으면 텍스트 검색 fallback
+    retriever = _stock_retriever or _retriever
+    if retriever is None:
+        return "검색기가 초기화되지 않았습니다."
+
+    from src.rag.retriever import retrieve_relevant_docs
+    ctx1, src1 = retrieve_relevant_docs(retriever, stock_name_1, k=1)
+    ctx2, src2 = retrieve_relevant_docs(retriever, stock_name_2, k=1)
+
+    parts = []
+    if ctx1:
+        parts.append(f"[주식 1: {stock_name_1}]\n{ctx1}")
+    else:
+        parts.append(f"[주식 1: {stock_name_1}]\n해당 종목 데이터를 찾지 못했습니다.")
+    if ctx2:
+        parts.append(f"[주식 2: {stock_name_2}]\n{ctx2}")
+    else:
+        parts.append(f"[주식 2: {stock_name_2}]\n해당 종목 데이터를 찾지 못했습니다.")
+
+    return "\n\n---\n\n".join(parts)
+
+
+@tool
+def get_stock_list(category: str = "") -> str:
+    """특정 카테고리나 키워드에 해당하는 주식 종목 목록을 검색합니다.
+    업종, 테마, 특성 등으로 주식 종목을 탐색할 때 사용합니다.
+
+    Args:
+        category: 주식 카테고리 또는 키워드 (예: "반도체", "자동차", "배당", "대형주", "바이오")
+    """
+    retriever = _stock_retriever or _retriever
+    if retriever is None:
+        return "검색기가 초기화되지 않았습니다."
+
+    from src.rag.retriever import retrieve_relevant_docs
+    context, sources = retrieve_relevant_docs(retriever, category, k=5)
+
+    if not context:
+        return f"'{category}' 관련 주식 종목을 찾지 못했습니다."
+
+    source_info = "\n".join(
+        f"- [{s['ticker']}] {s['name']} (관련도: {s['relevance_score']:.0f}%)"
+        for s in sources
+    )
+    result = f"{context}\n\n[검색된 종목 목록]\n{source_info}"
+
+    # 구조화 데이터 보강
+    enrichment = _enrich_with_structured_data(sources, _stock_data_index)
+    if enrichment:
+        result += enrichment
+
+    return result
+
+
+@tool
 def get_realtime_price(name_or_ticker: str) -> str:
     """ETF나 주식의 현재 가격을 조회합니다. 장중에는 실시간(15분 지연) 데이터를,
     장 마감 후에는 가장 최근 종가 데이터를 반환합니다.
@@ -492,4 +577,5 @@ def analyze_sector(query: str) -> str:
 
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
+             compare_stocks, get_stock_list,
              get_realtime_price, analyze_sector]

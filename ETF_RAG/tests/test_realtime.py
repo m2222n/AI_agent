@@ -215,9 +215,9 @@ def test_clear_cache():
 # ── 도구 테스트 ──────────────────────────────────────────
 
 def test_tool_all_tools_count():
-    """ALL_TOOLS 6개"""
+    """ALL_TOOLS 8개"""
     from src.llm.tools import ALL_TOOLS
-    assert len(ALL_TOOLS) == 6
+    assert len(ALL_TOOLS) == 8
     names = [t.name for t in ALL_TOOLS]
     assert "get_realtime_price" in names
 

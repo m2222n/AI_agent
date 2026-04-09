@@ -84,3 +84,49 @@ def test_fmt_pct_positive():
 
 def test_fmt_pct_negative():
     assert _fmt_pct(-1.23) == "-1.23%"
+
+
+# ── 주식 비교 파싱 테스트 ──
+
+
+def test_parse_stock_comparison():
+    """주식 비교 JSON 파싱 — asset_type=stock"""
+    data = {
+        "__type__": "comparison_table",
+        "items": [
+            {"name": "삼성전자", "ticker": "005930", "close": 55000,
+             "change_pct": 1.5, "volume": 10000000, "trade_value": 500000000000,
+             "per": 12.5, "pbr": 1.2, "market_cap": 350000000000000,
+             "div": 2.1, "asset_type": "stock"},
+            {"name": "SK하이닉스", "ticker": "000660", "close": 180000,
+             "change_pct": -0.8, "volume": 3000000, "trade_value": 540000000000,
+             "per": 8.3, "pbr": 1.8, "market_cap": 130000000000000,
+             "div": 1.5, "asset_type": "stock"},
+        ],
+    }
+    raw = json.dumps(data, ensure_ascii=False) + "\n\n---\n\n텍스트"
+    result = try_parse_comparison(raw)
+    assert result is not None
+    assert result["items"][0]["asset_type"] == "stock"
+    assert result["items"][0]["per"] == 12.5
+
+
+def test_parse_stock_comparison_with_returns():
+    """주식 비교 JSON — 수익률 포함"""
+    data = {
+        "__type__": "comparison_table",
+        "items": [
+            {"name": "A", "close": 100, "change_pct": 1.0,
+             "trade_value": 1000, "asset_type": "stock",
+             "per": 10.0, "pbr": 1.0, "market_cap": 1000000000000, "div": 2.0,
+             "return_1d": 1.0, "return_1m": 5.0},
+            {"name": "B", "close": 200, "change_pct": -1.0,
+             "trade_value": 2000, "asset_type": "stock",
+             "per": 15.0, "pbr": 2.0, "market_cap": 2000000000000, "div": 1.0,
+             "return_1d": -1.0, "return_1m": -3.0},
+        ],
+    }
+    result = try_parse_comparison(json.dumps(data, ensure_ascii=False))
+    assert result is not None
+    assert result["items"][0]["return_1d"] == 1.0
+    assert result["items"][1]["return_1m"] == -3.0

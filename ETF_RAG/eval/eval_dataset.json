@@ -404,5 +404,68 @@
     "question_type": "simple",
     "expected_ticker": "012450",
     "asset_type": "stock"
+  },
+  {
+    "question": "NAVER랑 카카오 비교해줘",
+    "ground_truth": "NAVER와 카카오의 주가, PER, 시가총액을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["035420", "035720"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "LG에너지솔루션이랑 삼성SDI 중에 뭐가 나아?",
+    "ground_truth": "LG에너지솔루션과 삼성SDI의 주가, PER, PBR을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["373220", "006400"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "자동차 관련 주식 알려줘",
+    "ground_truth": "자동차 관련 주식(현대차, 기아 등)을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "바이오 관련 주식 뭐가 있어?",
+    "ground_truth": "바이오 관련 주식을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "기아 PER이랑 PBR 알려줘",
+    "ground_truth": "기아의 PER과 PBR을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "000270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "POSCO홀딩스 주가 정보 알려줘",
+    "ground_truth": "POSCO홀딩스의 종가, 등락률, 시가총액을 안내합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
+  },
+  {
+    "question": "은행주 추천해줘",
+    "ground_truth": "은행 관련 주식을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "시가총액 큰 주식 알려줘",
+    "ground_truth": "시가총액 상위 주식을 안내합니다.",
+    "question_type": "recommend",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 주가랑 KODEX 반도체 ETF 비교하면 어때?",
+    "ground_truth": "삼성전자 주가와 KODEX 반도체 ETF의 수익률을 비교합니다.",
+    "question_type": "compare",
+    "expected_ticker": ["005930", "091160"],
+    "asset_type": "mixed"
   }
 ]

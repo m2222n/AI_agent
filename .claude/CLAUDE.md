@@ -117,7 +117,7 @@
 - [x] 평가 데이터셋 구축 (`eval/eval_dataset.json` — 50개 질문)
 - [x] 변경 전후 정량 비교 기록 (`eval/results/` — JSON, 5회 평가)
 - [x] 에이전트 전환 후 재평가: Hit Rate 88% 유지 (검색 품질 변화 없음)
-- [x] 주식 질문 15개 추가 (총 65개), 주식 검색 평가 파이프라인 확장
+- [x] 주식 질문 25개 추가 (총 75개), 주식 검색 평가 파이프라인 확장
 - [x] 주식 확장 후 재평가: 전체 90.8%, ETF 88%, 주식 100%, 혼합 100%
 - [x] RAGAS Full 평가 (에이전트 기반): Baseline F=0.500, AR=0.423, CR=0.336
 - [x] 프롬프트 개선 후 재평가: F=0.521(+0.021), AR=0.301(-0.122), CR=0.400(+0.064)
@@ -134,10 +134,13 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`):
+- [x] Function Calling 도구 정의 (`tools.py`) — 8개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
+  - `search_stock`: 주식 RAG 검색
+  - `compare_stocks`: 주식 비교 분석 (PER/PBR/시가총액/배당)
+  - `get_stock_list`: 주식 카테고리별 목록 검색
   - `get_realtime_price`: 장중 실시간 시세 (yfinance, 15분 지연) + 장 외 종가 fallback
   - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
@@ -221,7 +224,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 6개 (search_etf, compare_etfs, get_etf_list, search_stock, get_realtime_price, analyze_sector) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 8개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -234,12 +237,13 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (65개 질문: ETF 50 + 주식 15)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 204개 (agent 34 + charts 12 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
+├── tests/                  # pytest 206개 (agent 34 + charts 15 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
+│   ├── backfill_historical.py         # 3년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
 │   └── README_cron.md                 # 자동화 설정 안내
@@ -286,4 +290,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (RAGAS 4차 — F=0.549, F(RAG)=0.578, CR=0.469, 테스트 187개 통과)_
+_Last Updated: 2026-04-08 (주식 도구 8개 + 3년 백필 완료, 테스트 206개 통과)_
