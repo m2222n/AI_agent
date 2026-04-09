@@ -30,6 +30,17 @@ if [ -n "${1:-}" ]; then
 fi
 
 cd "$PROJECT_DIR"
+export PYTHONPATH="$PROJECT_DIR"
+
+# ── 네트워크 확인 (KRX DNS 해석 가능한지) ──────────────────
+MAX_RETRY=3
+for i in $(seq 1 $MAX_RETRY); do
+    if host data.krx.co.kr > /dev/null 2>&1; then
+        break
+    fi
+    echo "네트워크 대기 중... ($i/$MAX_RETRY)" >> "$LOG_FILE"
+    sleep 10
+done
 
 ETF_OK=true
 if $PYTHON "$ETF_COLLECTOR" $DATE_ARG --holdings 100 >> "$LOG_FILE" 2>&1; then

@@ -21,7 +21,7 @@
 |------|----------------|--------------|
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
-| 데이터 | **pykrx** (ETF 1084 + 주식 KOSPI/KOSDAQ 전종목) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
+| 데이터 | **pykrx** (ETF 1088 + 주식 KOSPI/KOSDAQ 전종목) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
@@ -137,7 +137,7 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`) — 8개:
+- [x] Function Calling 도구 정의 (`tools.py`) — 10개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
@@ -145,7 +145,9 @@
   - `compare_stocks`: 주식 비교 분석 (PER/PBR/시가총액/배당)
   - `get_stock_list`: 주식 카테고리별 목록 검색
   - `get_realtime_price`: 장중 실시간 시세 (yfinance, 15분 지연) + 장 외 종가 fallback
-  - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석
+  - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석 + 밸류에이션 위치
+  - `get_technical_indicators`: 기술적 지표 분석 (MA/RSI/MACD/볼린저/골든크로스)
+  - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -202,6 +204,40 @@
 
 ---
 
+### Phase C: 정량 분석 ← 현재 진행 중
+> "기술적 분석까지 되는 서비스인가?" 에 답할 수 있어야 한다.
+
+**C-1. 기술적 지표** ✅ 구현 완료
+- [x] `src/data/technical.py` — MA(5/20/60/120), EMA, RSI(14), MACD(12,26,9), 볼린저 밴드(20,2) 계산
+- [x] 골든크로스/데드크로스 판정 (5/20, 20/60, 60/120 MA 교차 감지)
+- [x] 추세 판정 (MA 정배열/역배열 기반)
+- [x] `get_technical_indicators` 도구 추가 (9번째 LangGraph 도구)
+- [x] 프롬프트에 기술적 지표 사용 안내 + 해석 기준 추가
+- [x] 테스트 29개 (MA 6 + RSI 5 + MACD 4 + 볼린저 5 + 크로스 4 + 통합 3 + 도구 2)
+
+**C-2. 업종별 밸류에이션 분포** ✅ 구현 완료
+- [x] 업종 내 상대적 위치 (PER/PBR 백분위) — `_calc_percentile()`, `_format_valuation_position()`
+- [x] analyze_sector 도구에 밸류에이션 분포 통계 추가 (PER 분포 구간, 중간값, PBR<1 저평가 수, 고배당 수)
+- [x] 종목 검색 시 업종 내 밸류에이션 상대 위치 자동 표시
+
+**C-3. 종목 간 상관관계/베타** ✅ 구현 완료
+- [x] `calc_correlation()` — 일봉 수익률 기반 상관계수 (공통 날짜 매칭)
+- [x] `calc_beta()` — 시장 대비 민감도 (Cov/Var, 벤치마크: KODEX 200)
+- [x] `get_stock_correlation` 도구 추가 (10번째 LangGraph 도구)
+- [x] 프롬프트에 상관관계/베타 해석 기준 추가
+- [x] 테스트 17개 (일간수익률 3 + 상관계수 3 + 베타 3 + 밸류에이션 6 + 도구 2)
+
+**C-4. 재무제표 데이터** (외부 API 필요)
+- [ ] OpenDart API 연동 (분기 매출/영업이익/순이익)
+
+**C-5. 포트폴리오 시뮬레이션**
+- [ ] 과거 데이터 기반 백테스트 + 샤프 비율
+
+**C-6. 평가 데이터셋 확장**
+- [ ] 주식 50개+ 질문 추가 (기술적 지표 질문 포함)
+
+---
+
 ## 프로젝트 구조
 
 ```
@@ -216,6 +252,7 @@ ETF_RAG/
 │   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
+│   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/상관계수/베타)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
@@ -228,7 +265,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 8개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 10개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -244,7 +281,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 211개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
+├── tests/                  # pytest 270개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + technical 46 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── backfill_historical.py         # 5년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
@@ -294,4 +331,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-09 (5년 백필 + 주식 enrichment 강화, 테스트 211개 통과)_
+_Last Updated: 2026-04-10 (Phase C-1~C-3 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타, 도구 10개, 테스트 270개 통과)_

@@ -621,14 +621,21 @@ def analyze_sector(query: str) -> str:
         lines.append(f"\n[통계] 평균 비중: {avg_weight:.2f}%, "
                       f"최대 비중: {max_m['etf_name']} ({max_m['weight']:.2f}%)")
 
-        # 해당 종목의 업종 정보도 추가
+        # 해당 종목의 업종 정보 + 밸류에이션 위치
         stock_data = _stock_data_index.get(query_lower) or _stock_data_index.get(query)
         if stock_data and stock_data.get("sector"):
             sector = stock_data["sector"]
             lines.append(f"\n[업종] {stock_name}: {sector}")
-            # 같은 업종 종목 간단 안내
+
             if sector in _sector_index:
-                peers = [s for s in _sector_index[sector]
+                sector_stocks = _sector_index[sector]
+                # 밸류에이션 상대 위치
+                val_info = _format_valuation_position(stock_data, sector_stocks)
+                if val_info:
+                    lines.append(val_info)
+
+                # 동일 업종 종목
+                peers = [s for s in sector_stocks
                          if s["ticker"] != stock_data.get("ticker", "")][:5]
                 if peers:
                     peer_names = ", ".join(p["name"] for p in peers)
@@ -672,6 +679,68 @@ def analyze_sector(query: str) -> str:
     return f"'{query}'에 해당하는 업종/보유종목 정보를 찾지 못했습니다."
 
 
+def _calc_percentile(value: float, values: list[float]) -> float:
+    """값이 리스트에서 몇 번째 백분위인지 계산 (0~100)."""
+    if not values or value is None:
+        return 50.0
+    below = sum(1 for v in values if v < value)
+    return round(below / len(values) * 100, 1)
+
+
+def _format_valuation_position(stock_data: dict, sector_stocks: list) -> str:
+    """종목의 업종 내 밸류에이션 상대 위치를 포맷팅."""
+    ticker = stock_data.get("ticker", "")
+    parts = []
+
+    # PER 위치
+    per = stock_data.get("per", 0)
+    pers = [s["per"] for s in sector_stocks if s["per"] and s["per"] > 0]
+    if per and per > 0 and len(pers) >= 3:
+        pctile = _calc_percentile(per, pers)
+        avg_per = sum(pers) / len(pers)
+        diff_pct = (per - avg_per) / avg_per * 100
+        if diff_pct > 20:
+            label = "고평가"
+        elif diff_pct < -20:
+            label = "저평가"
+        else:
+            label = "평균 수준"
+        parts.append(f"PER {per:.1f}배 (업종 평균 {avg_per:.1f}, "
+                     f"상위 {100 - pctile:.0f}%, {label})")
+
+    # PBR 위치
+    pbr = stock_data.get("pbr", 0)
+    pbrs = [s["pbr"] for s in sector_stocks if s["pbr"] and s["pbr"] > 0]
+    if pbr and pbr > 0 and len(pbrs) >= 3:
+        pctile = _calc_percentile(pbr, pbrs)
+        avg_pbr = sum(pbrs) / len(pbrs)
+        parts.append(f"PBR {pbr:.2f}배 (업종 평균 {avg_pbr:.2f}, "
+                     f"상위 {100 - pctile:.0f}%)")
+
+    # 배당수익률 위치
+    div_rate = stock_data.get("div", 0)
+    divs = [s["div"] for s in sector_stocks if s["div"] and s["div"] > 0]
+    if div_rate and div_rate > 0 and len(divs) >= 3:
+        pctile = _calc_percentile(div_rate, divs)
+        avg_div = sum(divs) / len(divs)
+        parts.append(f"배당 {div_rate:.2f}% (업종 평균 {avg_div:.2f}%, "
+                     f"상위 {100 - pctile:.0f}%)")
+
+    # 시가총액 순위
+    mcap = stock_data.get("market_cap", 0)
+    if mcap:
+        caps_sorted = sorted(
+            [s["market_cap"] for s in sector_stocks if s["market_cap"]],
+            reverse=True
+        )
+        rank = next((i + 1 for i, c in enumerate(caps_sorted) if c <= mcap), len(caps_sorted))
+        parts.append(f"시가총액 업종 내 {rank}/{len(caps_sorted)}위")
+
+    if not parts:
+        return ""
+    return "[업종 내 밸류에이션 위치] " + " | ".join(parts)
+
+
 def _format_sector_analysis(sector: str, stocks: list) -> str:
     """업종 분석 결과를 포맷팅 — 시가총액 상위 + PER/PBR 통계"""
     lines = [f"[{sector}] 업종 분석 ({len(stocks)}종목)\n"]
@@ -698,14 +767,24 @@ def _format_sector_analysis(sector: str, stocks: list) -> str:
         avg_per = sum(pers) / len(pers)
         min_per = min(pers)
         max_per = max(pers)
-        lines.append(f"- PER: 평균 {avg_per:.1f}배 (최저 {min_per:.1f} ~ 최고 {max_per:.1f})")
+        sorted_pers = sorted(pers)
+        median_per = sorted_pers[len(sorted_pers) // 2]
+        lines.append(f"- PER: 평균 {avg_per:.1f}배, 중간값 {median_per:.1f}배 "
+                     f"(최저 {min_per:.1f} ~ 최고 {max_per:.1f})")
+        # PER 분포 구간
+        ranges = [(0, 10), (10, 20), (20, 50), (50, float("inf"))]
+        labels = ["0~10배", "10~20배", "20~50배", "50배 이상"]
+        dist = [sum(1 for p in pers if lo <= p < hi) for lo, hi in ranges]
+        dist_str = ", ".join(f"{l}: {c}개" for l, c in zip(labels, dist) if c > 0)
+        lines.append(f"  분포: {dist_str}")
     if pbrs:
         avg_pbr = sum(pbrs) / len(pbrs)
         low_pbr = [s for s in stocks if s["pbr"] and 0 < s["pbr"] < 1]
         lines.append(f"- PBR: 평균 {avg_pbr:.2f}배 (PBR<1 저평가 {len(low_pbr)}종목)")
     if divs:
         avg_div = sum(divs) / len(divs)
-        lines.append(f"- 배당수익률: 평균 {avg_div:.2f}%")
+        high_div = [s for s in stocks if s["div"] and s["div"] >= 3.0]
+        lines.append(f"- 배당수익률: 평균 {avg_div:.2f}% (3% 이상 고배당 {len(high_div)}종목)")
 
     # 업종 시가총액 합계
     total_cap = sum(s["market_cap"] for s in stocks)
@@ -714,7 +793,182 @@ def _format_sector_analysis(sector: str, stocks: list) -> str:
     return "\n".join(lines)
 
 
+@tool
+def get_technical_indicators(name_or_ticker: str) -> str:
+    """ETF/주식의 기술적 지표를 분석합니다. 이동평균(MA), RSI, MACD, 볼린저 밴드, 골든크로스/데드크로스 판정 등을 제공합니다.
+    "삼성전자 골든크로스 났어?", "KODEX 200 기술적 분석", "SK하이닉스 RSI" 등의 질문에 사용합니다.
+
+    Args:
+        name_or_ticker: ETF/주식 이름 또는 티커 (예: "삼성전자", "005930", "KODEX 200")
+    """
+    # 종목 조회
+    data = _find_structured_data(name_or_ticker)
+    if not data:
+        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+
+    try:
+        from src.data.technical import get_technical_summary
+        summary = get_technical_summary(ticker)
+    except Exception as e:
+        logger.warning(f"기술적 지표 계산 실패: {e}")
+        return f"'{name}'의 기술적 지표 계산에 실패했습니다. (데이터 부족 또는 오류)"
+
+    if not summary:
+        return f"'{name}'의 일봉 데이터가 부족합니다 (최소 20일 필요)."
+
+    # 포맷팅
+    lines = [f"[{name} ({ticker})] 기술적 분석 (기준일: {_fmt_date(summary['date'])}, "
+             f"종가: {summary['close']:,}원, 분석 기간: {summary['data_days']}일)\n"]
+
+    # 이동평균
+    ma = summary["ma"]
+    lines.append("**이동평균(MA):**")
+    for label, key in [("5일", "ma5"), ("20일", "ma20"), ("60일", "ma60"), ("120일", "ma120")]:
+        val = ma.get(key)
+        if val:
+            diff = summary["close"] - val
+            pct = diff / val * 100
+            position = "위" if diff > 0 else "아래"
+            lines.append(f"  - {label} MA: {val:,}원 (현재가 {position} {abs(pct):.1f}%)")
+
+    # 추세
+    lines.append(f"  - 추세 판정: **{summary['trend']}** (MA5 vs MA20 vs MA60 정배열 기준)")
+
+    # 크로스
+    cross = summary["cross"]
+    cross_msgs = []
+    for label, key in [("5일/20일", "5_20"), ("20일/60일", "20_60"), ("60일/120일", "60_120")]:
+        val = cross.get(key)
+        if val == "golden_cross":
+            cross_msgs.append(f"  - ⚡ **{label} 골든크로스** 발생!")
+        elif val == "dead_cross":
+            cross_msgs.append(f"  - ⚠️ **{label} 데드크로스** 발생!")
+    if cross_msgs:
+        lines.append("\n**크로스 시그널:**")
+        lines.extend(cross_msgs)
+    else:
+        lines.append("\n**크로스 시그널:** 최근 교차 없음")
+
+    # RSI
+    rsi = summary.get("rsi")
+    if rsi is not None:
+        if rsi >= 70:
+            rsi_label = "과매수 구간 (매도 신호)"
+        elif rsi <= 30:
+            rsi_label = "과매도 구간 (매수 신호)"
+        else:
+            rsi_label = "중립 구간"
+        lines.append(f"\n**RSI(14):** {rsi:.1f} — {rsi_label}")
+
+    # MACD
+    macd = summary.get("macd")
+    if macd:
+        macd_signal = "매수 우위" if macd["histogram"] > 0 else "매도 우위"
+        lines.append(f"\n**MACD(12,26,9):**")
+        lines.append(f"  - MACD: {macd['macd']:,.0f}, Signal: {macd['signal']:,.0f}, "
+                     f"Histogram: {macd['histogram']:,.0f} ({macd_signal})")
+
+    # 볼린저 밴드
+    bb = summary.get("bollinger")
+    if bb:
+        lines.append(f"\n**볼린저 밴드(20,2):**")
+        lines.append(f"  - 상단: {bb['upper']:,.0f}원, 중심: {bb['middle']:,.0f}원, "
+                     f"하단: {bb['lower']:,.0f}원")
+        lines.append(f"  - 밴드폭: {bb['width']:.1f}%, %B: {bb['pct_b']:.1f}%")
+        if bb["pct_b"] > 100:
+            lines.append("  - 상단 돌파 (과매수 가능성)")
+        elif bb["pct_b"] < 0:
+            lines.append("  - 하단 이탈 (과매도 가능성)")
+
+    return "\n".join(lines)
+
+
+def _fmt_date(date_str: str) -> str:
+    """YYYYMMDD → YYYY-MM-DD"""
+    if len(date_str) == 8:
+        return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
+    return date_str
+
+
+@tool
+def get_stock_correlation(ticker1: str, ticker2: str) -> str:
+    """두 종목 간의 상관관계와 베타 계수를 분석합니다.
+    "삼성전자와 SK하이닉스 상관관계", "KODEX 200과 삼성전자 베타", "두 종목 연동성" 등의 질문에 사용합니다.
+
+    Args:
+        ticker1: 첫 번째 종목 이름 또는 티커 (예: "삼성전자", "005930")
+        ticker2: 두 번째 종목 이름 또는 티커 (예: "SK하이닉스", "000660", "KODEX 200")
+    """
+    # 종목 조회
+    d1 = _find_structured_data(ticker1)
+    d2 = _find_structured_data(ticker2)
+
+    if not d1:
+        return f"'{ticker1}'에 해당하는 종목을 찾을 수 없습니다."
+    if not d2:
+        return f"'{ticker2}'에 해당하는 종목을 찾을 수 없습니다."
+
+    t1 = d1.get("ticker", "")
+    t2 = d2.get("ticker", "")
+    n1 = d1.get("name", "")
+    n2 = d2.get("name", "")
+
+    try:
+        from src.data.technical import calc_correlation, calc_beta, MARKET_BENCHMARK
+
+        lines = [f"[{n1} ({t1}) vs {n2} ({t2})] 상관관계 분석\n"]
+
+        # 상관계수 계산
+        corr = calc_correlation(t1, t2, days=120)
+        if corr:
+            c = corr["correlation"]
+            if c >= 0.7:
+                label = "강한 양의 상관관계 (동반 등락 경향)"
+            elif c >= 0.3:
+                label = "약한 양의 상관관계"
+            elif c >= -0.3:
+                label = "거의 무관 (분산투자 효과)"
+            elif c >= -0.7:
+                label = "약한 음의 상관관계"
+            else:
+                label = "강한 음의 상관관계 (반대 방향 등락)"
+            lines.append(f"**상관계수:** {c:.4f} — {label}")
+            lines.append(f"  분석 기간: {corr['period']} ({corr['data_days']}일)")
+        else:
+            lines.append("**상관계수:** 데이터 부족으로 계산 불가")
+
+        # 베타 계수 — 각 종목에 대해 시장 벤치마크 기준
+        lines.append("")
+        for ticker, name in [(t1, n1), (t2, n2)]:
+            beta = calc_beta(ticker, days=250)
+            if beta:
+                b = beta["beta"]
+                if b > 1.2:
+                    b_label = "공격적 (시장 대비 변동성 큼)"
+                elif b > 0.8:
+                    b_label = "시장 평균 수준"
+                elif b > 0:
+                    b_label = "방어적 (시장 대비 변동성 작음)"
+                else:
+                    b_label = "역방향 (시장과 반대 움직임)"
+                lines.append(f"**{name} 베타:** {b:.3f} — {b_label}")
+                lines.append(f"  벤치마크: KODEX 200 ({beta['benchmark']}), "
+                             f"분석 기간: {beta['data_days']}일")
+            else:
+                lines.append(f"**{name} 베타:** 데이터 부족으로 계산 불가")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.warning(f"상관관계/베타 계산 실패: {e}")
+        return f"상관관계 분석에 실패했습니다. (데이터 부족 또는 오류)"
+
+
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
              compare_stocks, get_stock_list,
-             get_realtime_price, analyze_sector]
+             get_realtime_price, analyze_sector, get_technical_indicators,
+             get_stock_correlation]
