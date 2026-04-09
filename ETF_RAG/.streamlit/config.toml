@@ -1,0 +1,9 @@
+[server]
+headless = true
+runOnSave = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#3B82F6"
