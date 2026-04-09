@@ -141,6 +141,27 @@ def collect_bulk_fundamental(date: str, market: str = "ALL") -> dict:
     return result
 
 
+def collect_bulk_sector(date: str, market: str = "ALL") -> dict:
+    """전종목 업종 분류 일괄 수집
+
+    Returns: {ticker: sector_name}  (예: {"005930": "전기·전자"})
+    """
+    logger.info(f"업종 분류 수집 중... ({market})")
+    markets = ["KOSPI", "KOSDAQ"] if market == "ALL" else [market]
+
+    result = {}
+    for mkt in markets:
+        try:
+            df = stock.get_market_sector_classifications(date, market=mkt)
+            for ticker, row in df.iterrows():
+                result[ticker] = row.get("업종명", "")
+        except Exception as e:
+            logger.warning(f"업종 분류 수집 실패 ({mkt}): {e}")
+
+    logger.info(f"업종 분류 {len(result)}종목 수집 완료")
+    return result
+
+
 def collect_bulk_returns(date: str, market: str = "ALL") -> dict:
     """전종목 기간별 수익률 일괄 수집
 
@@ -217,10 +238,14 @@ def collect_all(date: str, market: str = "ALL", max_stocks: int = 0) -> dict:
     bulk_fund = collect_bulk_fundamental(date, market)
     time.sleep(REQUEST_DELAY)
 
-    # 5) 수익률 일괄 수집
+    # 5) 업종 분류 일괄 수집
+    bulk_sector = collect_bulk_sector(date, market)
+    time.sleep(REQUEST_DELAY)
+
+    # 6) 수익률 일괄 수집
     bulk_returns = collect_bulk_returns(date, market)
 
-    # 6) 데이터 조립
+    # 7) 데이터 조립
     stocks = []
     for ticker in tickers:
         ohlcv = bulk_ohlcv.get(ticker, {})
@@ -231,6 +256,7 @@ def collect_all(date: str, market: str = "ALL", max_stocks: int = 0) -> dict:
             "ticker": ticker,
             "name": name_map.get(ticker, ""),
             "date": date,
+            "sector": bulk_sector.get(ticker, ""),
             "ohlcv": ohlcv,
             "market_cap": cap.get("market_cap", 0),
             "shares_outstanding": cap.get("shares_outstanding", 0),

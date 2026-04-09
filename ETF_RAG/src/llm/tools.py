@@ -25,6 +25,9 @@ _stock_data_index = {}     # {name_lower: dict, ticker: dict}
 # 역인덱스 — 보유종목 → ETF 매핑 (섹터 분석용)
 _holdings_reverse_index = {}   # {stock_ticker: [{etf_name, etf_ticker, weight}]}
 
+# 업종 인덱스 — 업종명 → 종목 리스트 매핑
+_sector_index = {}             # {sector_name: [{name, ticker, per, pbr, market_cap, ...}]}
+
 
 def _build_data_index(data_list):
     """데이터 리스트에서 이름/티커 → dict 인덱스 구축"""
@@ -63,11 +66,37 @@ def _build_holdings_reverse_index(etf_data_list):
     return reverse
 
 
+def _build_sector_index(stock_data_list):
+    """업종별 종목 인덱스 구축 — 업종명으로 종목 목록 조회"""
+    index = {}
+    for s in stock_data_list:
+        sector = s.get("sector", "")
+        if not sector:
+            continue
+        entry = {
+            "name": s.get("name", ""),
+            "ticker": s.get("ticker", ""),
+            "close": s.get("close", 0),
+            "change_pct": s.get("change_pct", 0),
+            "market_cap": s.get("market_cap", 0),
+            "trade_value": s.get("trade_value", 0),
+            "per": s.get("per", 0),
+            "pbr": s.get("pbr", 0),
+            "eps": s.get("eps", 0),
+            "div": s.get("div", 0),
+        }
+        index.setdefault(sector, []).append(entry)
+    # 각 업종 내 시가총액 기준 정렬
+    for sector in index:
+        index[sector].sort(key=lambda x: x["market_cap"], reverse=True)
+    return index
+
+
 def set_retriever(retriever, documents=None, stock_retriever=None,
                   etf_data=None, stock_data=None):
     """앱 초기화 시 retriever와 documents를 주입"""
     global _retriever, _documents, _stock_retriever
-    global _etf_data_index, _stock_data_index, _holdings_reverse_index
+    global _etf_data_index, _stock_data_index, _holdings_reverse_index, _sector_index
     _retriever = retriever
     _documents = documents or (retriever.documents if hasattr(retriever, "documents") else [])
     _stock_retriever = stock_retriever
@@ -76,6 +105,7 @@ def set_retriever(retriever, documents=None, stock_retriever=None,
         _holdings_reverse_index = _build_holdings_reverse_index(etf_data)
     if stock_data is not None:
         _stock_data_index = _build_data_index(stock_data)
+        _sector_index = _build_sector_index(stock_data)
 
 
 def _enrich_with_structured_data(sources: list, index: dict) -> str:
@@ -520,26 +550,57 @@ def get_realtime_price(name_or_ticker: str) -> str:
     return line
 
 
+def _format_cap(value: int) -> str:
+    """시가총액을 조/억 단위 문자열로"""
+    if value >= 1_0000_0000_0000:
+        return f"{value / 1_0000_0000_0000:.1f}조"
+    elif value >= 1_0000_0000:
+        return f"{value / 1_0000_0000:,.0f}억"
+    return f"{value:,}"
+
+
 @tool
 def analyze_sector(query: str) -> str:
-    """특정 종목이 포함된 ETF를 찾거나, 섹터/테마별 ETF 노출도를 분석합니다.
-    "삼성전자 담고 있는 ETF", "반도체 관련 ETF 보유종목", "SK하이닉스 비중 높은 ETF" 등의 질문에 사용합니다.
+    """특정 종목이 포함된 ETF를 찾거나, 업종별 종목 분석(PER/PBR 비교, 시가총액 상위)을 수행합니다.
+    "삼성전자 담고 있는 ETF", "전기전자 업종 분석", "은행 업종 PER 비교", "반도체 관련 ETF" 등의 질문에 사용합니다.
 
     Args:
-        query: 분석할 종목명, 티커, 또는 섹터/테마 키워드 (예: "삼성전자", "005930", "반도체")
+        query: 종목명/티커, 업종명, 또는 섹터 키워드 (예: "삼성전자", "전기·전자", "반도체", "은행")
     """
-    if not _holdings_reverse_index:
-        return "보유종목 데이터가 없습니다. ETF 데이터 수집 후 이용 가능합니다."
-
     query_lower = query.lower().strip()
 
-    # 1. 정확 매칭 — 종목명 또는 티커로 직접 조회
+    # 1. 업종 인덱스 검색 — 정확 매칭 또는 부분 매칭
+    if _sector_index:
+        matched_sector = None
+        matched_stocks = None
+
+        # 정확 매칭
+        for sector_name, stocks in _sector_index.items():
+            if sector_name.lower() == query_lower or sector_name == query:
+                matched_sector = sector_name
+                matched_stocks = stocks
+                break
+
+        # 부분 매칭
+        if not matched_sector:
+            for sector_name, stocks in _sector_index.items():
+                if query_lower in sector_name.lower():
+                    matched_sector = sector_name
+                    matched_stocks = stocks
+                    break
+
+        if matched_sector and matched_stocks:
+            return _format_sector_analysis(matched_sector, matched_stocks)
+
+    # 2. 보유종목 역인덱스 — 종목→ETF 매핑
+    if not _holdings_reverse_index:
+        return "보유종목/업종 데이터가 없습니다. 데이터 수집 후 이용 가능합니다."
+
+    # 2-1. 정확 매칭 — 종목명 또는 티커로 직접 조회
     matches = _holdings_reverse_index.get(query_lower) or _holdings_reverse_index.get(query)
     if matches:
         stock_name = matches[0].get("stock_name", query)
-        # 비중 높은 순으로 정렬
         sorted_matches = sorted(matches, key=lambda x: x["weight"], reverse=True)
-        # 중복 제거 (같은 ETF가 name/ticker 양쪽 키로 들어갈 수 있음)
         seen = set()
         unique = []
         for m in sorted_matches:
@@ -548,24 +609,36 @@ def analyze_sector(query: str) -> str:
                 unique.append(m)
 
         lines = [f"[{stock_name}]을(를) 보유한 ETF ({len(unique)}개):\n"]
-        for m in unique[:15]:  # 상위 15개
+        for m in unique[:15]:
             lines.append(
                 f"- [{m['etf_ticker']}] {m['etf_name']} (비중: {m['weight']:.2f}%)"
             )
         if len(unique) > 15:
             lines.append(f"  ... 외 {len(unique) - 15}개")
 
-        # 평균 비중 통계
         avg_weight = sum(m["weight"] for m in unique) / len(unique)
         max_m = unique[0]
         lines.append(f"\n[통계] 평균 비중: {avg_weight:.2f}%, "
                       f"최대 비중: {max_m['etf_name']} ({max_m['weight']:.2f}%)")
+
+        # 해당 종목의 업종 정보도 추가
+        stock_data = _stock_data_index.get(query_lower) or _stock_data_index.get(query)
+        if stock_data and stock_data.get("sector"):
+            sector = stock_data["sector"]
+            lines.append(f"\n[업종] {stock_name}: {sector}")
+            # 같은 업종 종목 간단 안내
+            if sector in _sector_index:
+                peers = [s for s in _sector_index[sector]
+                         if s["ticker"] != stock_data.get("ticker", "")][:5]
+                if peers:
+                    peer_names = ", ".join(p["name"] for p in peers)
+                    lines.append(f"[동일 업종] {peer_names}")
+
         return "\n".join(lines)
 
-    # 2. 부분 매칭 — 키워드로 종목명 검색
-    keyword_matches = {}  # {stock_ticker: {stock_name, etfs: [...]}}
+    # 2-2. 부분 매칭 — 키워드로 종목명 검색
+    keyword_matches = {}
     for key, entries in _holdings_reverse_index.items():
-        # 종목명 키만 검색 (티커 키는 건너뜀)
         if not key.replace(" ", "").isalpha() and not any(
             '\uac00' <= c <= '\ud7a3' for c in key
         ):
@@ -573,7 +646,6 @@ def analyze_sector(query: str) -> str:
         if query_lower in key:
             for e in entries:
                 st = e.get("stock_name", "")
-                stk = entries[0].get("stock_name", key)
                 if st not in keyword_matches:
                     keyword_matches[st] = {"stock_name": st, "etfs": []}
                 if e["etf_ticker"] not in [x["etf_ticker"] for x in keyword_matches[st]["etfs"]]:
@@ -585,7 +657,7 @@ def analyze_sector(query: str) -> str:
             keyword_matches.items(),
             key=lambda x: len(x[1]["etfs"]),
             reverse=True,
-        )[:5]:  # 상위 5개 종목
+        )[:5]:
             etfs = sorted(info["etfs"], key=lambda x: x["weight"], reverse=True)
             lines.append(f"**{stock_name}** ({len(etfs)}개 ETF에 편입)")
             for e in etfs[:5]:
@@ -597,7 +669,49 @@ def analyze_sector(query: str) -> str:
             lines.append("")
         return "\n".join(lines)
 
-    return f"'{query}'에 해당하는 보유종목 정보를 찾지 못했습니다."
+    return f"'{query}'에 해당하는 업종/보유종목 정보를 찾지 못했습니다."
+
+
+def _format_sector_analysis(sector: str, stocks: list) -> str:
+    """업종 분석 결과를 포맷팅 — 시가총액 상위 + PER/PBR 통계"""
+    lines = [f"[{sector}] 업종 분석 ({len(stocks)}종목)\n"]
+
+    # 시가총액 상위 10개
+    lines.append("**시가총액 상위:**")
+    for i, s in enumerate(stocks[:10], 1):
+        per_str = f"PER {s['per']:.1f}" if s["per"] else "PER -"
+        pbr_str = f"PBR {s['pbr']:.2f}" if s["pbr"] else "PBR -"
+        cap_str = _format_cap(s["market_cap"])
+        lines.append(
+            f"{i}. [{s['ticker']}] {s['name']} | "
+            f"종가 {s['close']:,}원 ({s['change_pct']:+.2f}%) | "
+            f"시총 {cap_str} | {per_str} | {pbr_str}"
+        )
+
+    # 업종 PER/PBR 통계
+    pers = [s["per"] for s in stocks if s["per"] and s["per"] > 0]
+    pbrs = [s["pbr"] for s in stocks if s["pbr"] and s["pbr"] > 0]
+    divs = [s["div"] for s in stocks if s["div"] and s["div"] > 0]
+
+    lines.append(f"\n**업종 밸류에이션 통계 ({sector}):**")
+    if pers:
+        avg_per = sum(pers) / len(pers)
+        min_per = min(pers)
+        max_per = max(pers)
+        lines.append(f"- PER: 평균 {avg_per:.1f}배 (최저 {min_per:.1f} ~ 최고 {max_per:.1f})")
+    if pbrs:
+        avg_pbr = sum(pbrs) / len(pbrs)
+        low_pbr = [s for s in stocks if s["pbr"] and 0 < s["pbr"] < 1]
+        lines.append(f"- PBR: 평균 {avg_pbr:.2f}배 (PBR<1 저평가 {len(low_pbr)}종목)")
+    if divs:
+        avg_div = sum(divs) / len(divs)
+        lines.append(f"- 배당수익률: 평균 {avg_div:.2f}%")
+
+    # 업종 시가총액 합계
+    total_cap = sum(s["market_cap"] for s in stocks)
+    lines.append(f"- 업종 시가총액 합계: {_format_cap(total_cap)}")
+
+    return "\n".join(lines)
 
 
 # 에이전트에 바인딩할 도구 목록

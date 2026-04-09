@@ -358,3 +358,71 @@ def test_save_result(tmp_path):
     with open(filepath, "r", encoding="utf-8") as f:
         loaded = json.load(f)
     assert loaded["metadata"]["total_stocks"] == 3
+
+
+# ── 업종(sector) DB 저장/조회 테스트 ────────────────────────
+
+SAMPLE_STOCK_WITH_SECTOR = {
+    "metadata": {
+        "collection_date": "20260408",
+        "collected_at": "2026-04-08T18:00:00",
+        "total_stocks": 2,
+        "market": "ALL",
+        "source": "pykrx",
+    },
+    "stocks": [
+        {
+            "ticker": "005930", "name": "삼성전자", "date": "20260408",
+            "sector": "전기·전자",
+            "ohlcv": {"open": 80000, "high": 82000, "low": 79000, "close": 81000,
+                      "volume": 10000000, "trade_value": 810000000000, "change_pct": 1.0},
+            "market_cap": 490_000_000_000_000, "shares_outstanding": 5969782550,
+            "fundamental": {"bps": 50000, "per": 12.5, "pbr": 1.6, "eps": 6600, "div": 2.1, "dps": 1444},
+            "returns": {"1d": 1.0},
+        },
+        {
+            "ticker": "105560", "name": "KB금융", "date": "20260408",
+            "sector": "기타금융",
+            "ohlcv": {"open": 78000, "high": 80000, "low": 77000, "close": 79000,
+                      "volume": 2000000, "trade_value": 158000000000, "change_pct": 2.0},
+            "market_cap": 30_000_000_000_000, "shares_outstanding": 379000000,
+            "fundamental": {"bps": 100000, "per": 6.0, "pbr": 0.5, "eps": 13000, "div": 4.5, "dps": 3500},
+            "returns": {"1d": 2.0},
+        },
+    ],
+}
+
+
+def test_upsert_stock_with_sector(stock_db):
+    """주식 저장 시 sector가 instruments에 저장됨"""
+    upsert_stock_data(stock_db, SAMPLE_STOCK_WITH_SECTOR)
+    row = stock_db.execute(
+        "SELECT sector FROM instruments WHERE ticker = '005930'"
+    ).fetchone()
+    assert row["sector"] == "전기·전자"
+
+
+def test_get_latest_stock_data_includes_sector(stock_db):
+    """get_latest_stock_data 결과에 sector 포함"""
+    upsert_stock_data(stock_db, SAMPLE_STOCK_WITH_SECTOR)
+    data = get_latest_stock_data(stock_db)
+    samsung = [s for s in data if s["ticker"] == "005930"][0]
+    assert samsung["sector"] == "전기·전자"
+    kb = [s for s in data if s["ticker"] == "105560"][0]
+    assert kb["sector"] == "기타금융"
+
+
+def test_sector_preserved_on_update(stock_db):
+    """sector가 빈 문자열로 업데이트되어도 기존 값 유지"""
+    upsert_stock_data(stock_db, SAMPLE_STOCK_WITH_SECTOR)
+
+    # sector 없는 데이터로 재저장
+    no_sector_data = json.loads(json.dumps(SAMPLE_STOCK_WITH_SECTOR))
+    for s in no_sector_data["stocks"]:
+        s["sector"] = ""
+    upsert_stock_data(stock_db, no_sector_data)
+
+    row = stock_db.execute(
+        "SELECT sector FROM instruments WHERE ticker = '005930'"
+    ).fetchone()
+    assert row["sector"] == "전기·전자"  # 기존 값 유지

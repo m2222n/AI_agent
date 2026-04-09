@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS instruments (
     ticker      TEXT PRIMARY KEY,
     name        TEXT NOT NULL,
     type        TEXT NOT NULL DEFAULT 'etf',
+    sector      TEXT DEFAULT '',
     first_seen  TEXT NOT NULL,
     last_seen   TEXT NOT NULL,
     is_active   INTEGER NOT NULL DEFAULT 1
@@ -103,6 +104,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_prices_date ON daily_prices(date);
 CREATE INDEX IF NOT EXISTS idx_returns_date ON returns(date);
 CREATE INDEX IF NOT EXISTS idx_holdings_date ON holdings(date);
 CREATE INDEX IF NOT EXISTS idx_instruments_type ON instruments(type);
+CREATE INDEX IF NOT EXISTS idx_instruments_sector ON instruments(sector);
 CREATE INDEX IF NOT EXISTS idx_stock_fundamentals_date ON stock_fundamentals(date);
 """
 
@@ -118,11 +120,21 @@ def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
 
 
 def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
-    """DB 초기화: 테이블 생성 + 연결 반환"""
+    """DB 초기화: 테이블 생성 + 마이그레이션 + 연결 반환"""
     conn = get_connection(db_path)
     conn.executescript(_SCHEMA_SQL)
+    _migrate(conn)
     logger.info(f"DB 초기화: {db_path}")
     return conn
+
+
+def _migrate(conn: sqlite3.Connection):
+    """기존 DB 스키마 마이그레이션 (컬럼 추가 등)"""
+    # instruments.sector 컬럼 추가 (v2)
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(instruments)").fetchall()}
+    if "sector" not in cols:
+        conn.execute("ALTER TABLE instruments ADD COLUMN sector TEXT DEFAULT ''")
+        logger.info("마이그레이션: instruments.sector 컬럼 추가")
 
 
 # ── 쓰기: collector 출력 → DB ──────────────────────────────────
@@ -247,15 +259,18 @@ def upsert_stock_data(conn: sqlite3.Connection, data: dict) -> int:
     date = meta.get("collection_date", "")
 
     with conn:
-        # 1) instruments (type='stock')
+        # 1) instruments (type='stock', sector 포함)
         conn.executemany("""
-            INSERT INTO instruments (ticker, name, type, first_seen, last_seen)
-            VALUES (?, ?, 'stock', ?, ?)
+            INSERT INTO instruments (ticker, name, type, sector, first_seen, last_seen)
+            VALUES (?, ?, 'stock', ?, ?, ?)
             ON CONFLICT(ticker) DO UPDATE SET
                 name = excluded.name,
+                sector = CASE WHEN excluded.sector != '' THEN excluded.sector
+                              ELSE instruments.sector END,
                 last_seen = excluded.last_seen,
                 is_active = 1
-        """, [(s["ticker"], s["name"], date, date) for s in stocks])
+        """, [(s["ticker"], s["name"], s.get("sector", ""), date, date)
+              for s in stocks])
 
         # 2) daily_prices (주식은 nav/base_index/deviation/tracking_error 없음)
         price_rows = []
@@ -434,9 +449,9 @@ def get_latest_stock_data(conn: sqlite3.Connection,
     if not date:
         return []
 
-    # 시세 + 종목명
+    # 시세 + 종목명 + 업종
     rows = conn.execute("""
-        SELECT p.*, i.name
+        SELECT p.*, i.name, i.sector
         FROM daily_prices p
         JOIN instruments i ON p.ticker = i.ticker
         WHERE p.date = ? AND i.type = 'stock'
@@ -484,6 +499,7 @@ def get_latest_stock_data(conn: sqlite3.Connection,
             "ticker": ticker,
             "name": row["name"],
             "date": row["date"],
+            "sector": row["sector"] or "",
             "open": row["open"] or 0,
             "high": row["high"] or 0,
             "low": row["low"] or 0,

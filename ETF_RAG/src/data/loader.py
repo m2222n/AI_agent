@@ -138,6 +138,7 @@ def _normalize_stock_collected(raw: dict) -> List[dict]:
             "ticker": s["ticker"],
             "name": s["name"],
             "date": s.get("date", raw.get("metadata", {}).get("collection_date", "")),
+            "sector": s.get("sector", ""),
             "open": ohlcv.get("open", 0),
             "high": ohlcv.get("high", 0),
             "low": ohlcv.get("low", 0),
@@ -386,8 +387,11 @@ def _create_doc_from_stock(s: dict) -> Document:
     div_yield = s.get("div", 0)
     dps = s.get("dps", 0)
 
+    sector = s.get("sector", "")
+    sector_line = f"\n업종: {sector}" if sector else ""
+
     content = f"""종목명: {s['name']} ({s['ticker']})
-자산유형: 주식
+자산유형: 주식{sector_line}
 기준일: {s['date']}
 종가: {s['close']:,}원
 등락률: {s.get('change_pct', 0):+.2f}%

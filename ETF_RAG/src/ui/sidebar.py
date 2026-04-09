@@ -116,14 +116,46 @@ def _render_etf_list(etf_data: list):
 
 
 def _render_stock_list(stock_data: list):
-    # 거래대금 상위 20개
-    display_data = sorted(stock_data, key=lambda s: s.get("trade_value", 0), reverse=True)[:20]
-    st.caption(f"거래대금 상위 20개 (전체 {len(stock_data)}종목)")
+    # 업종 필터
+    sectors = sorted(set(s.get("sector", "") for s in stock_data if s.get("sector")))
+    filter_options = ["전체"] + sectors
+    selected_sector = st.selectbox(
+        "업종 필터", filter_options, key="sector_filter",
+        label_visibility="collapsed",
+    )
+
+    # 종목 검색
+    search_query = st.text_input(
+        "종목 검색", placeholder="종목명 검색...", key="stock_search",
+        label_visibility="collapsed",
+    )
+
+    # 필터링
+    filtered = stock_data
+    if selected_sector != "전체":
+        filtered = [s for s in filtered if s.get("sector") == selected_sector]
+    if search_query:
+        q = search_query.lower()
+        filtered = [s for s in filtered
+                    if q in s.get("name", "").lower() or q in s.get("ticker", "")]
+
+    # 정렬 + 상위 20개
+    display_data = sorted(filtered, key=lambda s: s.get("trade_value", 0), reverse=True)[:20]
+    total = len(filtered)
+    shown = len(display_data)
+
+    if selected_sector != "전체":
+        st.caption(f"📁 {selected_sector} ({shown}/{total}종목)")
+    elif search_query:
+        st.caption(f"🔍 '{search_query}' 검색결과 ({shown}/{total}종목)")
+    else:
+        st.caption(f"거래대금 상위 {shown}개 (전체 {len(stock_data)}종목)")
 
     for s in display_data:
         change_pct = s.get("change_pct", 0)
         change_indicator = _format_change(change_pct)
-        label = f"{s['name']}  {change_indicator}"
+        sector_badge = f" [{s.get('sector', '')}]" if s.get("sector") else ""
+        label = f"{s['name']}{sector_badge}  {change_indicator}"
 
         with st.expander(label):
             col1, col2 = st.columns(2)
