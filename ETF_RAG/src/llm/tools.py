@@ -105,7 +105,21 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
             line += f", NAV: {data.get('nav', 0):,.0f}원"
         # 주식 전용
         if "per" in data:
-            line += f", PER: {data.get('per', 0):.2f}배"
+            per = data.get("per", 0)
+            pbr = data.get("pbr", 0)
+            line += f", PER: {per:.2f}배, PBR: {pbr:.2f}배"
+            mcap = data.get("market_cap", 0)
+            if mcap:
+                if mcap >= 1_0000_0000_0000:  # 조 단위
+                    line += f", 시가총액: {mcap / 1_0000_0000_0000:.1f}조원"
+                else:
+                    line += f", 시가총액: {mcap / 1_0000_0000:,.0f}억원"
+            div_rate = data.get("div", 0)
+            if div_rate:
+                line += f", 배당수익률: {div_rate:.2f}%"
+            eps = data.get("eps", 0)
+            if eps:
+                line += f", EPS: {eps:,.0f}원"
 
         enriched.append(line)
 
@@ -212,8 +226,10 @@ def _extract_comparison_fields(data: dict) -> dict:
         fields["per"] = data.get("per", 0)
         fields["pbr"] = data.get("pbr", 0)
         fields["eps"] = data.get("eps", 0)
+        fields["bps"] = data.get("bps", 0)
         fields["market_cap"] = data.get("market_cap", 0)
         fields["div"] = data.get("div", 0)
+        fields["dps"] = data.get("dps", 0)
         fields["asset_type"] = "stock"
 
     if "asset_type" not in fields:
@@ -359,6 +375,15 @@ def compare_stocks(stock_name_1: str, stock_name_2: str) -> str:
             line += f", 등락률: {data.get('change_pct', 0):+.2f}%"
             if "per" in data:
                 line += f", PER: {data.get('per', 0):.2f}배, PBR: {data.get('pbr', 0):.2f}배"
+                mcap = data.get("market_cap", 0)
+                if mcap:
+                    if mcap >= 1_0000_0000_0000:
+                        line += f", 시가총액: {mcap / 1_0000_0000_0000:.1f}조원"
+                    else:
+                        line += f", 시가총액: {mcap / 1_0000_0000:,.0f}억원"
+                div_rate = data.get("div", 0)
+                if div_rate:
+                    line += f", 배당: {div_rate:.2f}%"
             text_parts.append(line)
         structured_json = json.dumps(comparison, ensure_ascii=False)
         return f"{structured_json}\n\n---\n\n" + "\n".join(text_parts)

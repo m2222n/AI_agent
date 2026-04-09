@@ -67,7 +67,7 @@
 - [x] retriever.py: 수집 데이터 metadata 호환성 수정 (id/ticker fallback)
 - [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
 - [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
-- [x] **SQLite 데이터베이스** — 3년 보존, WAL 모드, 5테이블 (instruments, daily_prices, returns, holdings, collection_log)
+- [x] **SQLite 데이터베이스** — 5년 보존, WAL 모드, 6테이블 (instruments, daily_prices, returns, holdings, collection_log, stock_fundamentals)
 - [x] loader.py 4-tier 우선순위: SQLite DB → collected/ → deploy/ → 하드코딩 fallback
 - [x] deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적, ~1MB)
 - [x] collector.py 듀얼 라이트: JSON + SQLite 동시 저장
@@ -83,6 +83,7 @@
 - [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:00 자동 실행
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
+- [x] 5년 백필 완료 (2021-04-10 ~ 2026-04-08, ETF+주식 전종목)
 
 **자기 검증:** "내일 실제 ETF 가격이 반영되나?" → No면 실패
 
@@ -243,10 +244,10 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 208개 (agent 34 + charts 15 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
+├── tests/                  # pytest 211개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
-│   ├── backfill_historical.py         # 3년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
+│   ├── backfill_historical.py         # 5년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
 │   └── README_cron.md                 # 자동화 설정 안내
@@ -293,4 +294,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-09 (deploy/ 배포 데이터 추가, 테스트 208개 통과)_
+_Last Updated: 2026-04-09 (5년 백필 + 주식 enrichment 강화, 테스트 211개 통과)_

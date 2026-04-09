@@ -1,7 +1,7 @@
 """
 SQLite 데이터베이스 레이어 — ETF/주식 시계열 데이터 저장
 
-기존 JSON 파일 기반 저장소를 대체하여 3년 보존 + 시계열 조회를 지원.
+기존 JSON 파일 기반 저장소를 대체하여 5년 보존 + 시계열 조회를 지원.
 collector.py 출력을 그대로 받아 저장하고, loader.py 호환 포맷으로 반환.
 
 사용법:
@@ -544,9 +544,9 @@ def search_instruments(conn: sqlite3.Connection,
 
 # ── 유지보수 ──────────────────────────────────────────────────
 
-def prune_old_data(conn: sqlite3.Connection, retention_days: int = 1095):
+def prune_old_data(conn: sqlite3.Connection, retention_days: int = 1825):
     """
-    오래된 데이터 삭제 (기본 3년 = 1095일).
+    오래된 데이터 삭제 (기본 5년 = 1825일).
     holdings는 1년만 보존.
     """
     cutoff = (datetime.now() - timedelta(days=retention_days)).strftime("%Y%m%d")

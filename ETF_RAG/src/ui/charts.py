@@ -57,11 +57,14 @@ def render_comparison(data: dict):
     # 주식 전용 행
     if asset_type == "stock":
         rows.extend([
-            ("PER", f"{a.get('per', 0):.2f}배", f"{b.get('per', 0):.2f}배"),
-            ("PBR", f"{a.get('pbr', 0):.2f}배", f"{b.get('pbr', 0):.2f}배"),
             ("시가총액", _format_market_cap(a.get("market_cap", 0)),
              _format_market_cap(b.get("market_cap", 0))),
+            ("PER", f"{a.get('per', 0):.2f}배", f"{b.get('per', 0):.2f}배"),
+            ("PBR", f"{a.get('pbr', 0):.2f}배", f"{b.get('pbr', 0):.2f}배"),
+            ("EPS", f"{a.get('eps', 0):,.0f}원", f"{b.get('eps', 0):,.0f}원"),
+            ("BPS", f"{a.get('bps', 0):,.0f}원", f"{b.get('bps', 0):,.0f}원"),
             ("배당수익률", f"{a.get('div', 0):.2f}%", f"{b.get('div', 0):.2f}%"),
+            ("DPS", f"{a.get('dps', 0):,.0f}원", f"{b.get('dps', 0):,.0f}원"),
         ])
 
     # 테이블 렌더링
@@ -105,6 +108,28 @@ def render_comparison(data: dict):
             import pandas as pd
             df = pd.DataFrame(chart_data).set_index("기간")
             st.bar_chart(df)
+
+    # ── 주식 밸류에이션 바 차트 ──
+    if asset_type == "stock":
+        val_metrics = [
+            ("PER", "per", "배"),
+            ("PBR", "pbr", "배"),
+            ("배당수익률", "div", "%"),
+        ]
+        val_data = {"지표": [], name_a: [], name_b: []}
+        for label, key, _ in val_metrics:
+            va = a.get(key, 0)
+            vb = b.get(key, 0)
+            if va or vb:
+                val_data["지표"].append(label)
+                val_data[name_a].append(va or 0)
+                val_data[name_b].append(vb or 0)
+
+        if val_data["지표"]:
+            st.markdown("#### 밸류에이션 비교")
+            import pandas as pd
+            df_val = pd.DataFrame(val_data).set_index("지표")
+            st.bar_chart(df_val)
 
 
 def _format_value(value: int) -> str:

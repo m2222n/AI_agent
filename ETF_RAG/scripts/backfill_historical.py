@@ -1,16 +1,16 @@
 """
-과거 데이터 백필 스크립트 — ETF + 주식 전종목 3년치
+과거 데이터 백필 스크립트 — ETF + 주식 전종목 5년치
 
 pykrx 일괄 API로 영업일마다 전종목 시세를 SQLite에 저장.
 보유종목/괴리율/추적오차는 과거 데이터라 의미 없으므로 시세+수익률만 수집.
 주식은 시세+시가총액+펀더멘털(PER/PBR)도 포함.
 
 사용법:
-    # 3년치 전체 백필 (기본)
+    # 5년치 전체 백필 (기본)
     python scripts/backfill_historical.py
 
     # 기간 지정
-    python scripts/backfill_historical.py --start 20240101 --end 20260407
+    python scripts/backfill_historical.py --start 20210401 --end 20260409
 
     # ETF만
     python scripts/backfill_historical.py --type etf
@@ -21,7 +21,7 @@ pykrx 일괄 API로 영업일마다 전종목 시세를 SQLite에 저장.
     # 진행 상황 확인 (이어서 수집)
     python scripts/backfill_historical.py --resume
 
-예상 시간: ETF 3년 ~40분, 주식 3년 ~60분 (네트워크 상태에 따라 다름)
+예상 시간: ETF 5년 ~70분, 주식 5년 ~100분 (네트워크 상태에 따라 다름)
 """
 
 import os
@@ -241,7 +241,7 @@ def collect_stock_day(conn: sqlite3.Connection, date: str) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="과거 데이터 백필 (ETF + 주식 전종목)")
-    parser.add_argument("--start", default=None, help="시작일 (YYYYMMDD, 기본: 3년 전)")
+    parser.add_argument("--start", default=None, help="시작일 (YYYYMMDD, 기본: 5년 전)")
     parser.add_argument("--end", default=None, help="종료일 (YYYYMMDD, 기본: 어제)")
     parser.add_argument("--type", choices=["etf", "stock", "all"], default="all",
                         help="수집 대상 (기본: all)")
@@ -258,7 +258,7 @@ def main():
     if args.start:
         start_date = args.start
     else:
-        start_date = (datetime.now() - timedelta(days=365 * 3)).strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=365 * 5)).strftime("%Y%m%d")
 
     logger.info(f"=== 백필 시작: {start_date} ~ {end_date}, 대상: {args.type} ===")
 
