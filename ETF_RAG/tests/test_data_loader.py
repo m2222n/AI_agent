@@ -201,7 +201,8 @@ def test_filter_excludes_low_trade_value(tmp_path):
 
 def test_fallback_to_hardcoded():
     with patch("src.data.loader.DB_PATH", _FAKE_DB), \
-         patch("src.data.loader.get_latest_collected_path", return_value=None):
+         patch("src.data.loader.get_latest_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_etf_path", return_value=None):
         from src.data.loader import load_etf_data
         data = load_etf_data()
 
@@ -212,7 +213,8 @@ def test_fallback_to_hardcoded():
 
 def test_hardcoded_documents():
     with patch("src.data.loader.DB_PATH", _FAKE_DB), \
-         patch("src.data.loader.get_latest_collected_path", return_value=None):
+         patch("src.data.loader.get_latest_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_etf_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -226,7 +228,8 @@ def test_hardcoded_documents():
 
 def test_hardcoded_documents_have_metadata():
     with patch("src.data.loader.DB_PATH", _FAKE_DB), \
-         patch("src.data.loader.get_latest_collected_path", return_value=None):
+         patch("src.data.loader.get_latest_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_etf_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
         docs = create_documents(data)
@@ -235,6 +238,60 @@ def test_hardcoded_documents_have_metadata():
         assert "name" in doc.metadata
         assert "ticker" in doc.metadata
         assert len(doc.page_content) > 100
+
+
+# ── deploy fallback 테스트 ────────────────────────────────────
+
+def test_deploy_etf_fallback(tmp_path):
+    """collected 없고 deploy에 ETF 데이터 있으면 deploy에서 로드"""
+    deploy_etf = tmp_path / "etf_data.json"
+    deploy_etf.write_text(json.dumps({
+        "metadata": {"collection_date": "20260408"},
+        "etfs": [{
+            "ticker": "069500", "name": "KODEX 200", "date": "20260408",
+            "ohlcv": {"open": 35000, "high": 35500, "low": 34500, "close": 35000,
+                      "volume": 5000000, "trade_value": 175_000_000_000, "nav": 35100,
+                      "base_index": 350.0, "change": 500, "change_pct": 1.45},
+            "returns": {"1d": 1.45}, "holdings": [],
+        }],
+    }), encoding="utf-8")
+
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_etf_path", return_value=deploy_etf):
+        from src.data.loader import load_etf_data
+        data = load_etf_data()
+
+    assert len(data) == 1
+    assert data[0]["ticker"] == "069500"
+    assert data[0]["close"] == 35000
+
+
+def test_deploy_stock_fallback(tmp_path):
+    """DB/collected 없고 deploy에 주식 데이터 있으면 deploy에서 로드"""
+    deploy_stock = tmp_path / "stock_data.json"
+    deploy_stock.write_text(json.dumps({
+        "metadata": {"collection_date": "20260408", "total_stocks": 1},
+        "stocks": [{
+            "ticker": "005930", "name": "삼성전자", "date": "20260408",
+            "ohlcv": {"open": 82000, "high": 83000, "low": 81500, "close": 82500,
+                      "volume": 15000000, "trade_value": 1237500000000, "change_pct": 1.23},
+            "market_cap": 492_000_000_000_000, "shares_outstanding": 5_969_782_550,
+            "fundamental": {"bps": 50000.0, "per": 12.5, "pbr": 1.65,
+                           "eps": 6600.0, "div": 2.1, "dps": 1444.0},
+            "returns": {"1d": 1.23},
+        }],
+    }), encoding="utf-8")
+
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_stock_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_stock_path", return_value=deploy_stock):
+        from src.data.loader import load_stock_data
+        data = load_stock_data()
+
+    assert len(data) == 1
+    assert data[0]["ticker"] == "005930"
+    assert data[0]["per"] == 12.5
 
 
 # ── config 테스트 ─────────────────────────────────────────────
@@ -316,8 +373,10 @@ def test_load_stock_data_from_db(tmp_path):
 
 
 def test_load_stock_data_no_db():
-    """DB 없으면 빈 리스트 반환"""
-    with patch("src.data.loader.DB_PATH", _FAKE_DB):
+    """DB/collected/deploy 모두 없으면 빈 리스트 반환"""
+    with patch("src.data.loader.DB_PATH", _FAKE_DB), \
+         patch("src.data.loader.get_latest_stock_collected_path", return_value=None), \
+         patch("src.data.loader.get_deploy_stock_path", return_value=None):
         from src.data.loader import load_stock_data
         data = load_stock_data()
     assert data == []

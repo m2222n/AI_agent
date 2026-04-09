@@ -18,16 +18,37 @@ def is_langsmith_enabled() -> bool:
 DATA_DIR = PROJECT_ROOT / "src" / "data"
 ETF_DATA_PATH = DATA_DIR / "etf_data.json"  # 하드코딩 샘플 (fallback)
 COLLECTED_DIR = DATA_DIR / "collected"       # 수집 데이터 디렉토리
+DEPLOY_DIR = DATA_DIR / "deploy"             # 배포용 데이터 (Git 추적)
 DB_PATH = DATA_DIR / "etf_rag.db"           # SQLite 데이터베이스
 LOG_DIR = PROJECT_ROOT / "logs"
 
 
 def get_latest_collected_path() -> Optional[Path]:
-    """수집 디렉토리에서 가장 최근 데이터 파일 경로를 반환. 없으면 None."""
+    """수집 디렉토리에서 가장 최근 ETF 데이터 파일 경로를 반환. 없으면 None."""
     if not COLLECTED_DIR.exists():
         return None
     files = sorted(COLLECTED_DIR.glob("etf_data_*.json"), reverse=True)
     return files[0] if files else None
+
+
+def get_latest_stock_collected_path() -> Optional[Path]:
+    """수집 디렉토리에서 가장 최근 주식 데이터 파일 경로를 반환. 없으면 None."""
+    if not COLLECTED_DIR.exists():
+        return None
+    files = sorted(COLLECTED_DIR.glob("stock_data_*.json"), reverse=True)
+    return files[0] if files else None
+
+
+def get_deploy_etf_path() -> Optional[Path]:
+    """배포용 ETF 데이터 경로. 없으면 None."""
+    p = DEPLOY_DIR / "etf_data.json"
+    return p if p.exists() else None
+
+
+def get_deploy_stock_path() -> Optional[Path]:
+    """배포용 주식 데이터 경로. 없으면 None."""
+    p = DEPLOY_DIR / "stock_data.json"
+    return p if p.exists() else None
 
 # ETF 선별 기준
 # 전종목 1084개 중 RAG 검색 대상을 필터링하는 기준

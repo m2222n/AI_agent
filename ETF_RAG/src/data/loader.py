@@ -5,9 +5,13 @@ LangChain Document 객체로 변환합니다.
 ETF 로드 우선순위:
     1. SQLite DB (etf_rag.db)
     2. collected/ 디렉토리의 최신 수집 파일 (etf_data_YYYYMMDD.json)
-    3. etf_data.json 하드코딩 샘플 (8개 ETF, Phase 0 잔재)
+    3. deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적)
+    4. etf_data.json 하드코딩 샘플 (8개 ETF, Phase 0 잔재)
 
-주식 로드: SQLite DB에서만 로드 (하드코딩 fallback 없음)
+주식 로드 우선순위:
+    1. SQLite DB (etf_rag.db)
+    2. collected/ 디렉토리의 최신 수집 파일 (stock_data_YYYYMMDD.json)
+    3. deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적)
 """
 
 import json
@@ -16,7 +20,11 @@ from typing import List
 
 from langchain_core.documents import Document
 
-from config import DB_PATH, ETF_DATA_PATH, ETF_SELECTION, get_latest_collected_path
+from config import (
+    DB_PATH, ETF_DATA_PATH, ETF_SELECTION,
+    get_latest_collected_path, get_latest_stock_collected_path,
+    get_deploy_etf_path, get_deploy_stock_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +58,27 @@ def load_etf_data() -> List[dict]:
         logger.info(f"ETF 필터링: {before}개 → {len(etfs)}개")
         return etfs
 
-    # 3순위: 하드코딩 샘플
+    # 3순위: deploy/ 배포용 데이터 (Streamlit Cloud용)
+    deploy_path = get_deploy_etf_path()
+    if deploy_path:
+        logger.info(f"배포용 데이터 로드: {deploy_path}")
+        with open(deploy_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        etfs = _normalize_collected(raw)
+        before = len(etfs)
+        etfs = _filter_etfs(etfs)
+        logger.info(f"ETF 필터링 (deploy): {before}개 → {len(etfs)}개")
+        return etfs
+
+    # 4순위: 하드코딩 샘플
     logger.info("수집 데이터 없음, 하드코딩 샘플 로드")
     with open(ETF_DATA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_stock_data() -> List[dict]:
-    """주식 데이터 로드. SQLite DB에서만 로드."""
+    """주식 데이터 로드. SQLite DB → collected/ JSON → deploy/ 순서."""
+    # 1순위: SQLite 데이터베이스
     if DB_PATH.exists():
         try:
             from src.data.database import get_connection, get_latest_stock_data
@@ -72,8 +93,68 @@ def load_stock_data() -> List[dict]:
         except Exception as e:
             logger.warning(f"주식 DB 로드 실패: {e}")
 
+    # 2순위: collected/ JSON 파일
+    stock_collected = get_latest_stock_collected_path()
+    if stock_collected:
+        logger.info(f"주식 수집 데이터 로드: {stock_collected.name}")
+        with open(stock_collected, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        stocks = _normalize_stock_collected(raw)
+        before = len(stocks)
+        stocks = _filter_stocks(stocks)
+        logger.info(f"주식 필터링: {before}개 → {len(stocks)}개")
+        return stocks
+
+    # 3순위: deploy/ 배포용 데이터
+    deploy_path = get_deploy_stock_path()
+    if deploy_path:
+        logger.info(f"주식 배포용 데이터 로드: {deploy_path}")
+        with open(deploy_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        stocks = _normalize_stock_collected(raw)
+        before = len(stocks)
+        stocks = _filter_stocks(stocks)
+        logger.info(f"주식 필터링 (deploy): {before}개 → {len(stocks)}개")
+        return stocks
+
     logger.info("주식 데이터 없음")
     return []
+
+
+def _normalize_stock_collected(raw: dict) -> List[dict]:
+    """수집된 주식 JSON을 통일 포맷으로 변환.
+
+    수집 데이터 구조:
+        {"metadata": {...}, "stocks": [{ticker, name, date, ohlcv, market_cap, fundamental, returns}]}
+
+    반환 구조 (DB 포맷과 호환):
+        [{ticker, name, date, close, volume, trade_value, change_pct, market_cap, per, pbr, eps, div, dps, returns}]
+    """
+    stocks = []
+    for s in raw.get("stocks", []):
+        ohlcv = s.get("ohlcv") or {}
+        fund = s.get("fundamental") or {}
+        stock = {
+            "ticker": s["ticker"],
+            "name": s["name"],
+            "date": s.get("date", raw.get("metadata", {}).get("collection_date", "")),
+            "open": ohlcv.get("open", 0),
+            "high": ohlcv.get("high", 0),
+            "low": ohlcv.get("low", 0),
+            "close": ohlcv.get("close", 0),
+            "volume": ohlcv.get("volume", 0),
+            "trade_value": ohlcv.get("trade_value", 0),
+            "change_pct": ohlcv.get("change_pct", 0.0),
+            "market_cap": s.get("market_cap", 0),
+            "per": fund.get("per", 0),
+            "pbr": fund.get("pbr", 0),
+            "eps": fund.get("eps", 0),
+            "div": fund.get("div", 0),
+            "dps": fund.get("dps", 0),
+            "returns": s.get("returns", {}),
+        }
+        stocks.append(stock)
+    return stocks
 
 
 def _filter_stocks(stocks: List[dict]) -> List[dict]:

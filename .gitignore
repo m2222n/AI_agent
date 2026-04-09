@@ -25,6 +25,9 @@ logs/
 # Collected data (regenerated daily by collector.py)
 ETF_RAG/src/data/collected/
 
+# Deploy data is tracked (Streamlit Cloud용)
+# ETF_RAG/src/data/deploy/ — NOT ignored
+
 # SQLite database (regenerated from collector)
 ETF_RAG/src/data/*.db
 ETF_RAG/src/data/*.db-wal
