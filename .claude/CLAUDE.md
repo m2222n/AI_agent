@@ -68,7 +68,8 @@
 - [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
 - [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
 - [x] **SQLite 데이터베이스** — 3년 보존, WAL 모드, 5테이블 (instruments, daily_prices, returns, holdings, collection_log)
-- [x] loader.py 3-tier 우선순위: SQLite DB → collected/ JSON → 하드코딩 fallback
+- [x] loader.py 4-tier 우선순위: SQLite DB → collected/ → deploy/ → 하드코딩 fallback
+- [x] deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적, ~1MB)
 - [x] collector.py 듀얼 라이트: JSON + SQLite 동시 저장
 - [x] 데이터 정합성 검증 로직 — validate_result() 구현 완료
 
@@ -218,7 +219,8 @@ ETF_RAG/
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
-│   │   ├── collected/      # 수집 결과 JSON (etf_data_YYYYMMDD.json)
+│   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
+│   │   ├── deploy/         # 배포용 데이터 (Git 추적, Streamlit Cloud용)
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
 │   │   ├── vectorstore.py  # create_vectorstore(), get_embeddings() — text-embedding-3-small
@@ -241,7 +243,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 206개 (agent 34 + charts 15 + classifier 10 + config 4 + database 22 + loader 19 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
+├── tests/                  # pytest 208개 (agent 34 + charts 15 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── backfill_historical.py         # 3년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
@@ -291,4 +293,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-08 (주식 도구 8개 + 3년 백필 완료, 테스트 206개 통과)_
+_Last Updated: 2026-04-09 (deploy/ 배포 데이터 추가, 테스트 208개 통과)_

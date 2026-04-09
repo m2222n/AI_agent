@@ -963,5 +963,22 @@
 
 ---
 
-_Last Updated: 2026-04-08_
-_Phase 1~4 + 주식 도구 8개 + 3년 백필 완료 + 테스트 206개 통과_
+## Streamlit Cloud 배포 데이터 (2026-04-09)
+
+### 문제
+- Streamlit Cloud에 SQLite DB/collected/ 없음 → 하드코딩 8개 ETF 샘플만 로드
+- ETF 검색, 비교, 현재가 조회 모두 실패 (시세 데이터 없음)
+- 주식 기능 전체 불가 (fallback 데이터 없음)
+
+### 해결: deploy/ 배포용 데이터 폴더
+- `src/data/deploy/etf_data.json` (922K) + `stock_data.json` (134K)
+- loader.py 4-tier fallback: DB → collected/ → **deploy/** → hardcoded
+- `_normalize_stock_collected()` 추가: 주식 JSON 정규화 (collected/deploy 공통)
+- config.py: `get_deploy_etf_path()`, `get_deploy_stock_path()` + stock collected 헬퍼
+
+### 테스트: 208개 통과 (+2: deploy ETF/주식 fallback)
+
+---
+
+_Last Updated: 2026-04-09_
+_Phase 1~4 + deploy/ 배포 데이터 + 테스트 208개 통과_

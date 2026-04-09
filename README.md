@@ -8,7 +8,7 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 [![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-206_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-208_Passed-2ea44f?style=for-the-badge)](#)
 [![RAGAS](https://img.shields.io/badge/Hit_Rate-91.9%25-blue?style=for-the-badge)](#)
 
 </div>
@@ -96,7 +96,7 @@ graph LR
 | **데이터** | pykrx (ETF 1,088 + 주식 전종목) + yfinance (장중) |
 | **저장** | SQLite WAL (3년 보존) + JSON fallback |
 | **평가** | RAGAS (Hit Rate 91.9%, 75개 데이터셋) |
-| **테스트** | pytest 206개 |
+| **테스트** | pytest 208개 |
 | **모니터링** | LangSmith (free tier) |
 | **UI** | Streamlit (커스텀 CSS, 반응형) |
 | **배포** | Streamlit Cloud |
@@ -158,7 +158,7 @@ ETF_RAG/
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
 ├── eval/                      # RAGAS 평가 (75개 질문)
-├── tests/                     # pytest 206개
+├── tests/                     # pytest 208개
 └── scripts/                   # 백필 + 일배치 자동화 (launchd)
 ```
 
