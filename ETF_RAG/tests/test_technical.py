@@ -12,6 +12,7 @@ from src.data.technical import (
     calc_correlation,
     calc_beta,
     _daily_returns,
+    simulate_portfolio,
 )
 
 
@@ -385,6 +386,109 @@ class TestValuationPercentile:
         assert result == ""
 
 
+# ── 포트폴리오 시뮬레이션 테스트 ──────────────────────────────
+
+class TestPortfolioSimulation:
+    def _make_mock(self, monkeypatch, closes_map):
+        """ticker → closes 딕셔너리로 _get_closes 모킹"""
+        from src.data import technical
+        def mock_get_closes(ticker, days=260):
+            closes = closes_map.get(ticker, [])
+            data = [{"date": f"2026{i // 28 + 1:02d}{i % 28 + 1:02d}", "close": c}
+                    for i, c in enumerate(closes)]
+            return data
+        monkeypatch.setattr(technical, "_get_closes", mock_get_closes)
+
+    def test_basic_equal_weight(self, monkeypatch):
+        """두 종목 균등 비중 시뮬레이션"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 100 for i in range(n)],
+            "B": [30000 + i * 50 for i in range(n)],
+        })
+        result = simulate_portfolio(["A", "B"], [0.5, 0.5], days=50)
+        assert result is not None
+        p = result["portfolio"]
+        assert "total_return" in p
+        assert "annualized_return" in p
+        assert "volatility" in p
+        assert "sharpe_ratio" in p
+        assert "max_drawdown" in p
+        assert len(result["individual"]) == 2
+        assert result["data_days"] > 0
+
+    def test_single_ticker(self, monkeypatch):
+        """단일 종목 100% → 포트폴리오 수익률 = 개별 수익률"""
+        n = 60
+        closes = [50000 + i * 100 for i in range(n)]
+        self._make_mock(monkeypatch, {"A": closes})
+        result = simulate_portfolio(["A"], [1.0], days=50)
+        assert result is not None
+        # 포트폴리오 총수익률 ≈ 개별 총수익률
+        assert abs(result["portfolio"]["total_return"] -
+                   result["individual"][0]["total_return"]) < 0.01
+
+    def test_monotonic_increase_no_drawdown(self, monkeypatch):
+        """단조 증가 → MDD = 0"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 100 for i in range(n)],
+        })
+        result = simulate_portfolio(["A"], [1.0], days=50)
+        assert result is not None
+        assert result["portfolio"]["max_drawdown"] == 0.0
+
+    def test_weight_normalization(self, monkeypatch):
+        """비중 합이 100이어도 정규화"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 100 for i in range(n)],
+            "B": [30000 + i * 50 for i in range(n)],
+        })
+        result = simulate_portfolio(["A", "B"], [60, 40], days=50)
+        assert result is not None
+        # 비중이 0.6, 0.4로 정규화
+        assert abs(result["individual"][0]["weight"] - 0.6) < 0.01
+
+    def test_insufficient_data(self, monkeypatch):
+        """데이터 부족 → None"""
+        self._make_mock(monkeypatch, {"A": [50000] * 5})
+        assert simulate_portfolio(["A"], [1.0]) is None
+
+    def test_invalid_inputs(self):
+        """잘못된 입력 → None"""
+        assert simulate_portfolio([], []) is None
+        assert simulate_portfolio(["A"], []) is None
+        assert simulate_portfolio(["A"], [-1]) is None
+
+    def test_uptrend_positive_sharpe(self, monkeypatch):
+        """상승 추세 → 양의 샤프"""
+        n = 260
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 200 for i in range(n)],
+        })
+        result = simulate_portfolio(["A"], [1.0], days=250)
+        assert result is not None
+        assert result["portfolio"]["sharpe_ratio"] > 0
+
+
+# ── 포트폴리오 도구 테스트 ────────────────────────────────────
+
+class TestPortfolioTool:
+    def test_tool_in_all_tools(self):
+        from src.llm.tools import ALL_TOOLS
+        names = [t.name for t in ALL_TOOLS]
+        assert "simulate_portfolio" in names
+
+    def test_tool_no_tickers(self, monkeypatch):
+        from src.llm import tools
+        monkeypatch.setattr(tools, "_etf_data_index", {})
+        monkeypatch.setattr(tools, "_stock_data_index", {})
+        from src.llm.tools import simulate_portfolio as sim_tool
+        result = sim_tool.invoke({"tickers_and_weights": "없는종목 50%"})
+        assert "찾을 수 없습니다" in result or "종목" in result
+
+
 # ── 상관관계 도구 테스트 ──────────────────────────────────────
 
 class TestCorrelationTool:
@@ -408,7 +512,7 @@ class TestToolIntegration:
     def test_all_tools_includes_technical(self):
         """ALL_TOOLS에 get_technical_indicators 포함 (9개)"""
         from src.llm.tools import ALL_TOOLS
-        assert len(ALL_TOOLS) == 10
+        assert len(ALL_TOOLS) == 11
         names = [t.name for t in ALL_TOOLS]
         assert "get_technical_indicators" in names
 

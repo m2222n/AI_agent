@@ -363,3 +363,118 @@ def calc_beta(ticker: str, benchmark: str = None,
         "data_days": n,
         "benchmark": benchmark,
     }
+
+
+def simulate_portfolio(tickers: list[str], weights: list[float],
+                       days: int = 250) -> Optional[dict]:
+    """포트폴리오 백테스트 시뮬레이션.
+
+    Args:
+        tickers: 종목 티커 리스트
+        weights: 비중 리스트 (합계 1.0으로 정규화됨)
+        days: 시뮬레이션 기간 (영업일)
+
+    Returns:
+        {
+            "portfolio": {"total_return", "annualized_return", "volatility",
+                          "sharpe_ratio", "max_drawdown"},
+            "individual": [{"ticker", "weight", "total_return"}],
+            "period": str, "data_days": int,
+        }
+    """
+    if not tickers or not weights or len(tickers) != len(weights):
+        return None
+
+    # 비중 정규화
+    w_sum = sum(weights)
+    if w_sum <= 0:
+        return None
+    weights = [w / w_sum for w in weights]
+
+    # 각 종목 종가 조회
+    all_data = {}
+    for ticker in tickers:
+        data = _get_closes(ticker, days=days + 10)
+        if len(data) < 20:
+            return None
+        all_data[ticker] = {d["date"]: d["close"] for d in data}
+
+    # 공통 날짜 매칭
+    common_dates = sorted(
+        set.intersection(*(set(d.keys()) for d in all_data.values()))
+    )
+    if len(common_dates) < 20:
+        return None
+
+    common_dates = common_dates[-days:] if len(common_dates) > days else common_dates
+
+    # 개별 종목 일간 수익률
+    individual_returns = {}
+    for ticker in tickers:
+        closes = [all_data[ticker][d] for d in common_dates]
+        individual_returns[ticker] = _daily_returns(closes)
+
+    n = min(len(r) for r in individual_returns.values())
+    if n < 10:
+        return None
+
+    # 포트폴리오 일간 수익률 = 가중합
+    port_daily = []
+    for i in range(n):
+        r = sum(w * individual_returns[t][i]
+                for t, w in zip(tickers, weights))
+        port_daily.append(r)
+
+    # 누적 수익률 (wealth curve)
+    wealth = [1.0]
+    for r in port_daily:
+        wealth.append(wealth[-1] * (1 + r))
+
+    total_return = wealth[-1] - 1
+    trading_days = len(port_daily)
+
+    # 연환산 수익률
+    ann_return = (wealth[-1] ** (250 / trading_days) - 1
+                  if trading_days > 0 and wealth[-1] > 0 else 0.0)
+
+    # 변동성 (연환산)
+    mean_r = sum(port_daily) / trading_days
+    variance = sum((r - mean_r) ** 2 for r in port_daily) / trading_days
+    ann_vol = (variance ** 0.5) * (250 ** 0.5)
+
+    # 샤프 비율 (무위험 수익률 3.5%)
+    sharpe = (ann_return - 0.035) / ann_vol if ann_vol > 0 else 0.0
+
+    # 최대 낙폭 (MDD)
+    peak = wealth[0]
+    max_dd = 0.0
+    for w in wealth:
+        if w > peak:
+            peak = w
+        dd = (w - peak) / peak
+        if dd < max_dd:
+            max_dd = dd
+
+    # 개별 종목 수익률
+    individual = []
+    for ticker, weight in zip(tickers, weights):
+        closes = [all_data[ticker][d] for d in common_dates]
+        ret = (closes[-1] - closes[0]) / closes[0] if closes[0] > 0 else 0.0
+        individual.append({
+            "ticker": ticker,
+            "weight": round(weight, 4),
+            "total_return": round(ret, 4),
+        })
+
+    return {
+        "portfolio": {
+            "total_return": round(total_return, 4),
+            "annualized_return": round(ann_return, 4),
+            "volatility": round(ann_vol, 4),
+            "sharpe_ratio": round(sharpe, 2),
+            "max_drawdown": round(max_dd, 4),
+        },
+        "individual": individual,
+        "period": f"{common_dates[0]}~{common_dates[-1]}",
+        "data_days": trading_days,
+    }

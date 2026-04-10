@@ -137,7 +137,7 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`) — 10개:
+- [x] Function Calling 도구 정의 (`tools.py`) — 11개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
@@ -148,6 +148,7 @@
   - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석 + 밸류에이션 위치
   - `get_technical_indicators`: 기술적 지표 분석 (MA/RSI/MACD/볼린저/골든크로스)
   - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
+  - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성)
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -230,8 +231,11 @@
 **C-4. 재무제표 데이터** (외부 API 필요)
 - [ ] OpenDart API 연동 (분기 매출/영업이익/순이익)
 
-**C-5. 포트폴리오 시뮬레이션**
-- [ ] 과거 데이터 기반 백테스트 + 샤프 비율
+**C-5. 포트폴리오 시뮬레이션** ✅ 구현 완료
+- [x] `simulate_portfolio()` — 백테스트 (총수익률, 연환산, MDD, 샤프, 변동성)
+- [x] `simulate_portfolio` 도구 추가 (11번째 LangGraph 도구)
+- [x] 자연어 파싱 ("삼성전자 50%, SK하이닉스 50%"), 기간 선택 (6m~5y)
+- [x] 테스트 10개 (시뮬레이션 8 + 도구 2)
 
 **C-6. 평가 데이터셋 확장**
 - [ ] 주식 50개+ 질문 추가 (기술적 지표 질문 포함)
@@ -265,7 +269,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 10개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 11개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -281,7 +285,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 270개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + technical 46 + ui_features 12)
+├── tests/                  # pytest 279개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + technical 55 + ui_features 12)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── backfill_historical.py         # 5년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
@@ -331,4 +335,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-10 (Phase C-1~C-3 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타, 도구 10개, 테스트 270개 통과)_
+_Last Updated: 2026-04-10 (Phase C-1~C-5 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타 + 포트폴리오 시뮬레이션, 도구 11개, 테스트 279개 통과)_

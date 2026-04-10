@@ -967,8 +967,104 @@ def get_stock_correlation(ticker1: str, ticker2: str) -> str:
         return f"상관관계 분석에 실패했습니다. (데이터 부족 또는 오류)"
 
 
+@tool
+def simulate_portfolio(tickers_and_weights: str, period: str = "1y") -> str:
+    """포트폴리오를 구성하여 과거 데이터 기반 시뮬레이션(백테스트)을 수행합니다.
+    총 수익률, 연환산 수익률, 최대 낙폭(MDD), 샤프 비율, 변동성을 계산합니다.
+    "삼성전자 50% SK하이닉스 50% 1년 백테스트", "포트폴리오 시뮬레이션" 등의 질문에 사용합니다.
+
+    Args:
+        tickers_and_weights: 종목과 비중 (예: "삼성전자 50%, SK하이닉스 50%")
+        period: 시뮬레이션 기간 (예: "6m", "1y", "2y", "3y", "5y"). 기본값 1y
+    """
+    import re
+
+    # 기간 파싱
+    period_map = {"6m": 125, "1y": 250, "2y": 500, "3y": 750, "5y": 1250}
+    days = period_map.get(period.lower().strip(), 250)
+
+    # 종목+비중 파싱: "삼성전자 50%, SK하이닉스 50%" 또는 "삼성전자:50 SK하이닉스:50"
+    # 패턴: 종목명/티커 뒤에 숫자(비중)
+    text = tickers_and_weights.replace(":", " ").replace(",", " ")
+    # 숫자(비중) 추출 위치 기준으로 분리
+    parts = re.split(r'(\d+(?:\.\d+)?)\s*%?\s*', text)
+
+    resolved_tickers = []
+    resolved_weights = []
+    resolved_names = []
+
+    i = 0
+    while i < len(parts):
+        name_part = parts[i].strip()
+        if name_part and i + 1 < len(parts) and parts[i + 1].strip():
+            # 종목명 뒤에 비중
+            data = _find_structured_data(name_part)
+            if data:
+                resolved_tickers.append(data["ticker"])
+                resolved_names.append(data["name"])
+                resolved_weights.append(float(parts[i + 1].strip()))
+                i += 2
+                continue
+        elif name_part:
+            # 비중 없이 종목만 있는 경우
+            data = _find_structured_data(name_part)
+            if data:
+                resolved_tickers.append(data["ticker"])
+                resolved_names.append(data["name"])
+                resolved_weights.append(0)  # 나중에 균등 배분
+        i += 1
+
+    if not resolved_tickers:
+        return "종목을 찾을 수 없습니다. '삼성전자 50%, SK하이닉스 50%' 형식으로 입력해주세요."
+
+    # 비중 없으면 균등 배분
+    if all(w == 0 for w in resolved_weights):
+        resolved_weights = [100 / len(resolved_tickers)] * len(resolved_tickers)
+
+    # 비중 정규화 (합=1)
+    w_sum = sum(resolved_weights)
+    norm_weights = [w / w_sum for w in resolved_weights]
+
+    try:
+        from src.data.technical import simulate_portfolio as _sim
+
+        result = _sim(resolved_tickers, norm_weights, days=days)
+        if not result:
+            return "시뮬레이션 데이터가 부족합니다 (최소 20영업일 필요)."
+
+        p = result["portfolio"]
+        lines = [f"[포트폴리오 시뮬레이션] 기간: {_fmt_date(result['period'].split('~')[0])}"
+                 f" ~ {_fmt_date(result['period'].split('~')[1])}"
+                 f" ({result['data_days']}영업일)\n"]
+
+        # 구성
+        lines.append("**포트폴리오 구성:**")
+        for name, ticker, w in zip(resolved_names, resolved_tickers, norm_weights):
+            lines.append(f"  - {name} ({ticker}): {w * 100:.1f}%")
+
+        # 성과
+        lines.append(f"\n**포트폴리오 성과:**")
+        lines.append(f"  - 총 수익률: {p['total_return'] * 100:+.2f}%")
+        lines.append(f"  - 연환산 수익률: {p['annualized_return'] * 100:+.2f}%")
+        lines.append(f"  - 변동성 (연환산): {p['volatility'] * 100:.2f}%")
+        lines.append(f"  - 샤프 비율: {p['sharpe_ratio']:.2f}")
+        lines.append(f"  - 최대 낙폭(MDD): {p['max_drawdown'] * 100:.2f}%")
+
+        # 개별
+        lines.append(f"\n**개별 종목 수익률:**")
+        for item, name in zip(result["individual"], resolved_names):
+            lines.append(f"  - {name}: {item['total_return'] * 100:+.2f}%")
+
+        lines.append("\n※ 과거 수익률은 미래 수익을 보장하지 않습니다. 참고용 시뮬레이션입니다.")
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.warning(f"포트폴리오 시뮬레이션 실패: {e}")
+        return f"포트폴리오 시뮬레이션에 실패했습니다. (데이터 부족 또는 오류)"
+
+
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
              compare_stocks, get_stock_list,
              get_realtime_price, analyze_sector, get_technical_indicators,
-             get_stock_correlation]
+             get_stock_correlation, simulate_portfolio]
