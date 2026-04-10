@@ -104,7 +104,6 @@ CREATE INDEX IF NOT EXISTS idx_daily_prices_date ON daily_prices(date);
 CREATE INDEX IF NOT EXISTS idx_returns_date ON returns(date);
 CREATE INDEX IF NOT EXISTS idx_holdings_date ON holdings(date);
 CREATE INDEX IF NOT EXISTS idx_instruments_type ON instruments(type);
-CREATE INDEX IF NOT EXISTS idx_instruments_sector ON instruments(sector);
 CREATE INDEX IF NOT EXISTS idx_stock_fundamentals_date ON stock_fundamentals(date);
 """
 
@@ -135,6 +134,8 @@ def _migrate(conn: sqlite3.Connection):
     if "sector" not in cols:
         conn.execute("ALTER TABLE instruments ADD COLUMN sector TEXT DEFAULT ''")
         logger.info("마이그레이션: instruments.sector 컬럼 추가")
+    # sector 인덱스 (컬럼 존재 확인 후 생성)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_instruments_sector ON instruments(sector)")
 
 
 # ── 쓰기: collector 출력 → DB ──────────────────────────────────

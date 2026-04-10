@@ -11,8 +11,9 @@ set -euo pipefail
 # ── 경로 설정 ─────────────────────────────────────────────────
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="/Users/m2222n/Work/.venv/bin/python3"
-ETF_COLLECTOR="$PROJECT_DIR/src/data/collector.py"
-STOCK_COLLECTOR="$PROJECT_DIR/src/data/stock_collector.py"
+# -m 모듈 모드로 실행 (PYTHONPATH 기반 import 안정성 확보)
+ETF_MODULE="src.data.collector"
+STOCK_MODULE="src.data.stock_collector"
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"
 
@@ -33,17 +34,26 @@ cd "$PROJECT_DIR"
 export PYTHONPATH="$PROJECT_DIR"
 
 # ── 네트워크 확인 (KRX DNS 해석 가능한지) ──────────────────
-MAX_RETRY=3
+# Mac 절전 복귀 직후 DNS 미준비 대응: 최대 6회 × 20초 = 2분 대기
+MAX_RETRY=6
+NETWORK_OK=false
 for i in $(seq 1 $MAX_RETRY); do
     if host data.krx.co.kr > /dev/null 2>&1; then
+        NETWORK_OK=true
         break
     fi
     echo "네트워크 대기 중... ($i/$MAX_RETRY)" >> "$LOG_FILE"
-    sleep 10
+    sleep 20
 done
 
+if ! $NETWORK_OK; then
+    echo "=== 네트워크 불가 — 수집 중단: $(date) ===" >> "$LOG_FILE"
+    osascript -e 'display notification "네트워크 연결 실패. 수집 중단." with title "ETF RAG 수집 오류"' 2>/dev/null || true
+    exit 1
+fi
+
 ETF_OK=true
-if $PYTHON "$ETF_COLLECTOR" $DATE_ARG --holdings 100 >> "$LOG_FILE" 2>&1; then
+if $PYTHON -m $ETF_MODULE $DATE_ARG --holdings 100 >> "$LOG_FILE" 2>&1; then
     echo "=== ETF 수집 완료: $(date) ===" >> "$LOG_FILE"
 else
     EXIT_CODE=$?
@@ -55,7 +65,7 @@ fi
 echo "=== 주식 일배치 수집 시작: $(date) ===" >> "$LOG_FILE"
 
 STOCK_OK=true
-if $PYTHON "$STOCK_COLLECTOR" $DATE_ARG >> "$LOG_FILE" 2>&1; then
+if $PYTHON -m $STOCK_MODULE $DATE_ARG >> "$LOG_FILE" 2>&1; then
     echo "=== 주식 수집 완료: $(date) ===" >> "$LOG_FILE"
 else
     EXIT_CODE=$?
