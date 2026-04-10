@@ -467,5 +467,351 @@
     "question_type": "compare",
     "expected_ticker": ["005930", "091160"],
     "asset_type": "mixed"
+  },
+
+  {
+    "question": "삼성전자 RSI가 얼마야?",
+    "ground_truth": "삼성전자의 RSI(상대강도지수) 값을 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 골든크로스 났어?",
+    "ground_truth": "SK하이닉스의 이동평균선 교차(골든크로스/데드크로스) 여부를 확인합니다.",
+    "question_type": "technical",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 200 MACD 분석해줘",
+    "ground_truth": "KODEX 200의 MACD, 시그널, 히스토그램 값을 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "069500",
+    "asset_type": "etf"
+  },
+  {
+    "question": "현대차 볼린저 밴드 어때?",
+    "ground_truth": "현대차의 볼린저 밴드(상단/중단/하단) 값을 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 기술적 분석 해줘",
+    "ground_truth": "삼성전자의 이동평균, RSI, MACD, 볼린저 밴드 등 기술적 지표를 종합 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER 이동평균선 추세가 어때?",
+    "ground_truth": "NAVER의 이동평균선(5/20/60/120일) 배열과 추세를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "035420",
+    "asset_type": "stock"
+  },
+  {
+    "question": "카카오 데드크로스 확인해줘",
+    "ground_truth": "카카오의 이동평균선 교차(데드크로스) 여부를 확인합니다.",
+    "question_type": "technical",
+    "expected_ticker": "035720",
+    "asset_type": "stock"
+  },
+  {
+    "question": "기아 RSI가 과매수야 과매도야?",
+    "ground_truth": "기아의 RSI 값을 기준으로 과매수(70 이상) 또는 과매도(30 이하) 여부를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "000270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "TIGER 미국나스닥100 기술적 지표 알려줘",
+    "ground_truth": "TIGER 미국나스닥100의 기술적 지표(MA, RSI, MACD 등)를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "133690",
+    "asset_type": "etf"
+  },
+  {
+    "question": "LG에너지솔루션 MACD 신호 어때?",
+    "ground_truth": "LG에너지솔루션의 MACD와 시그널 교차 상태를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "373220",
+    "asset_type": "stock"
+  },
+  {
+    "question": "셀트리온 주가 이동평균선 위에 있어?",
+    "ground_truth": "셀트리온의 현재가와 이동평균선(20일/60일) 위치 관계를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "068270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 레버리지 RSI 알려줘",
+    "ground_truth": "KODEX 레버리지의 RSI 값을 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "122630",
+    "asset_type": "etf"
+  },
+  {
+    "question": "한화에어로스페이스 볼린저 밴드 돌파했어?",
+    "ground_truth": "한화에어로스페이스의 현재가와 볼린저 밴드 상단/하단 돌파 여부를 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "012450",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KB금융 골든크로스 나왔나?",
+    "ground_truth": "KB금융의 이동평균선 골든크로스 여부를 확인합니다.",
+    "question_type": "technical",
+    "expected_ticker": "105560",
+    "asset_type": "stock"
+  },
+  {
+    "question": "포스코홀딩스 기술적 분석 부탁해",
+    "ground_truth": "POSCO홀딩스의 기술적 지표를 종합 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성SDI 추세가 상승이야 하락이야?",
+    "ground_truth": "삼성SDI의 이동평균선 배열(정배열/역배열)로 추세를 판단합니다.",
+    "question_type": "technical",
+    "expected_ticker": "006400",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 2차전지산업 기술적 지표 분석해줘",
+    "ground_truth": "KODEX 2차전지산업의 기술적 지표를 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "305720",
+    "asset_type": "etf"
+  },
+  {
+    "question": "현대건설 RSI랑 MACD 알려줘",
+    "ground_truth": "현대건설의 RSI와 MACD 값을 안내합니다.",
+    "question_type": "technical",
+    "expected_ticker": "000720",
+    "asset_type": "stock"
+  },
+
+  {
+    "question": "삼성전자와 SK하이닉스 상관관계가 어때?",
+    "ground_truth": "삼성전자와 SK하이닉스의 주가 상관계수를 안내합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["005930", "000660"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차랑 기아 주가 연동성이 높아?",
+    "ground_truth": "현대차와 기아의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["005380", "000270"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 베타가 얼마야?",
+    "ground_truth": "삼성전자의 시장(KODEX 200) 대비 베타 계수를 안내합니다.",
+    "question_type": "correlation",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER와 카카오 상관계수 알려줘",
+    "ground_truth": "NAVER와 카카오의 주가 상관계수를 안내합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["035420", "035720"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "LG에너지솔루션이랑 삼성SDI 같이 움직여?",
+    "ground_truth": "LG에너지솔루션과 삼성SDI의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["373220", "006400"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 베타 계수 알려줘",
+    "ground_truth": "SK하이닉스의 시장 대비 베타 계수를 안내합니다.",
+    "question_type": "correlation",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자랑 KODEX 200 상관관계는?",
+    "ground_truth": "삼성전자와 KODEX 200의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["005930", "069500"],
+    "asset_type": "mixed"
+  },
+  {
+    "question": "KB금융이랑 신한지주 같이 움직이나?",
+    "ground_truth": "KB금융과 신한지주의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["105560", "055550"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "한화에어로스페이스 베타가 높아?",
+    "ground_truth": "한화에어로스페이스의 베타 계수를 안내합니다.",
+    "question_type": "correlation",
+    "expected_ticker": "012450",
+    "asset_type": "stock"
+  },
+  {
+    "question": "포스코홀딩스랑 현대제철 상관관계 어때?",
+    "ground_truth": "POSCO홀딩스와 현대제철의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["005490", "004020"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "셀트리온이랑 삼성바이오로직스 연관성 알려줘",
+    "ground_truth": "셀트리온과 삼성바이오로직스의 상관관계를 분석합니다.",
+    "question_type": "correlation",
+    "expected_ticker": ["068270", "207940"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "기아 베타 계수가 1보다 커?",
+    "ground_truth": "기아의 베타 계수를 안내하고 시장 대비 민감도를 설명합니다.",
+    "question_type": "correlation",
+    "expected_ticker": "000270",
+    "asset_type": "stock"
+  },
+
+  {
+    "question": "삼성전자 50% SK하이닉스 50%로 포트폴리오 시뮬레이션 해줘",
+    "ground_truth": "삼성전자 50%, SK하이닉스 50% 포트폴리오의 수익률, MDD, 샤프 비율을 안내합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["005930", "000660"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 30% 현대차 30% KODEX 200 40% 백테스트 해줘",
+    "ground_truth": "3종목 포트폴리오의 과거 성과를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["005930", "005380", "069500"],
+    "asset_type": "mixed"
+  },
+  {
+    "question": "반도체 주식으로만 포트폴리오 만들면 어때?",
+    "ground_truth": "반도체 관련 종목으로 포트폴리오를 구성하여 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 200이랑 TIGER 미국S&P500 반반 넣으면 수익률이 어때?",
+    "ground_truth": "KODEX 200 50%, TIGER 미국S&P500 50% 포트폴리오를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["069500", "360750"],
+    "asset_type": "etf"
+  },
+  {
+    "question": "삼성전자 SK하이닉스 NAVER 균등 비중으로 3년 백테스트",
+    "ground_truth": "3종목 균등 비중 포트폴리오의 3년 성과를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["005930", "000660", "035420"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 50% 기아 50% 포트폴리오 MDD가 어떻게 돼?",
+    "ground_truth": "현대차-기아 포트폴리오의 최대 낙폭(MDD)을 안내합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["005380", "000270"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 100% 단일 종목 투자하면 샤프 비율이 어때?",
+    "ground_truth": "삼성전자 단일 종목의 샤프 비율과 변동성을 안내합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "은행주 포트폴리오 시뮬레이션 해줘. KB금융 50% 신한지주 50%",
+    "ground_truth": "KB금융-신한지주 포트폴리오의 수익률과 위험지표를 안내합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["105560", "055550"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 200 60% KODEX 미국S&P500 40%로 2년 시뮬레이션",
+    "ground_truth": "국내+해외 ETF 혼합 포트폴리오의 2년 성과를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["069500", "379800"],
+    "asset_type": "etf"
+  },
+  {
+    "question": "LG에너지솔루션 삼성SDI 포스코홀딩스 균등 비중 백테스트",
+    "ground_truth": "2차전지 관련 3종목 포트폴리오를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["373220", "006400", "005490"],
+    "asset_type": "stock"
+  },
+  {
+    "question": "방어적인 포트폴리오 만들어줘",
+    "ground_truth": "변동성이 낮은 종목으로 포트폴리오를 구성하여 안내합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": null,
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 40% KODEX 200 30% TIGER 미국나스닥100 30% 5년 백테스트",
+    "ground_truth": "주식+ETF 혼합 포트폴리오의 5년 성과를 시뮬레이션합니다.",
+    "question_type": "portfolio",
+    "expected_ticker": ["005930", "069500", "133690"],
+    "asset_type": "mixed"
+  },
+
+  {
+    "question": "골든크로스가 뭐야?",
+    "ground_truth": "골든크로스는 단기 이동평균선이 장기 이동평균선을 아래에서 위로 돌파하는 매수 신호입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "RSI가 뭔가요?",
+    "ground_truth": "RSI(상대강도지수)는 일정 기간 동안 상승/하락의 상대적 강도를 0~100으로 나타낸 기술적 지표입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "MACD는 어떻게 해석해?",
+    "ground_truth": "MACD는 단기·장기 지수이동평균의 차이로, MACD가 시그널 위로 교차하면 매수 신호입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "볼린저 밴드가 뭐야?",
+    "ground_truth": "볼린저 밴드는 이동평균선에 표준편차 밴드를 씌운 지표로, 밴드 폭이 가격 변동성을 나타냅니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "베타 계수가 뭔가요?",
+    "ground_truth": "베타 계수는 시장 대비 개별 종목의 민감도로, 1보다 크면 시장보다 변동이 크고 작으면 방어적입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "샤프 비율이 뭐야?",
+    "ground_truth": "샤프 비율은 위험 대비 초과수익률을 나타내는 지표로, 높을수록 효율적인 투자입니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "MDD가 뭔가요?",
+    "ground_truth": "MDD(Maximum Drawdown)는 최고점 대비 최대 하락폭으로, 투자의 최대 손실 위험을 나타냅니다.",
+    "question_type": "general",
+    "asset_type": "stock"
+  },
+  {
+    "question": "상관계수가 1이면 무슨 뜻이야?",
+    "ground_truth": "상관계수 1은 두 종목이 완전히 같은 방향으로 움직인다는 뜻이며, 분산투자 효과가 없습니다.",
+    "question_type": "general",
+    "asset_type": "stock"
   }
 ]
