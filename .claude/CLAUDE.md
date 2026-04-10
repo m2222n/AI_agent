@@ -21,7 +21,7 @@
 |------|----------------|--------------|
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
-| 데이터 | **pykrx** (ETF 1088 + 주식 KOSPI/KOSDAQ 전종목) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
+| 데이터 | **pykrx** (ETF ~1,088 + 주식 ~3,100 전종목, 12년 보존) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
@@ -83,7 +83,7 @@
 - [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:00 자동 실행
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
-- [x] 5년 백필 완료 (2021-04-10 ~ 2026-04-08, ETF+주식 전종목)
+- [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
 
 **자기 검증:** "내일 실제 ETF 가격이 반영되나?" → No면 실패
 
@@ -237,8 +237,9 @@
 - [x] 자연어 파싱 ("삼성전자 50%, SK하이닉스 50%"), 기간 선택 (6m~5y)
 - [x] 테스트 10개 (시뮬레이션 8 + 도구 2)
 
-**C-6. 평가 데이터셋 확장**
-- [ ] 주식 50개+ 질문 추가 (기술적 지표 질문 포함)
+**C-6. 평가 데이터셋 확장** ✅ 완료 (2026-04-10)
+- [x] 75개 → 124개 (49개 추가: technical 18, correlation 12, portfolio 12, general 7)
+- [x] 8개 질문 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio
 
 ---
 
@@ -253,7 +254,7 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
-│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data)
+│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 12yr)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/상관계수/베타)
@@ -282,10 +283,10 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (75개 질문: ETF 50 + 주식 22 + 혼합 3)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (124개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 279개 (agent 34 + charts 18 + classifier 10 + config 4 + database 22 + loader 21 + prompts 7 + realtime 22 + retriever 28 + sector 14 + stock 22 + technical 55 + ui_features 12)
+├── tests/                  # pytest 279개
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
 │   ├── backfill_historical.py         # 5년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
@@ -335,4 +336,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-10 (Phase C-1~C-5 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타 + 포트폴리오 시뮬레이션, 도구 11개, 테스트 279개 통과)_
+_Last Updated: 2026-04-10 (Phase C-1~C-6 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 평가 124개, 12년 데이터 백필 완료, 도구 11개, 테스트 279개 통과)_

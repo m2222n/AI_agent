@@ -561,9 +561,9 @@ def search_instruments(conn: sqlite3.Connection,
 
 # ── 유지보수 ──────────────────────────────────────────────────
 
-def prune_old_data(conn: sqlite3.Connection, retention_days: int = 3650):
+def prune_old_data(conn: sqlite3.Connection, retention_days: int = 4380):
     """
-    오래된 데이터 삭제 (기본 10년 = 3650일).
+    오래된 데이터 삭제 (기본 12년 = 4380일).
     holdings는 1년만 보존.
     """
     cutoff = (datetime.now() - timedelta(days=retention_days)).strftime("%Y%m%d")

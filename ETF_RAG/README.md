@@ -4,8 +4,8 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-128_Passed-2ea44f?style=for-the-badge)](#)
-[![Hit Rate](https://img.shields.io/badge/Hit_Rate-90.8%25-blue?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-279_Passed-2ea44f?style=for-the-badge)](#)
+[![Hit Rate](https://img.shields.io/badge/Hit_Rate-91.9%25-blue?style=for-the-badge)](#)
 
 ---
 
@@ -14,7 +14,7 @@
 | | ChatGPT | 이 프로젝트 |
 |---|---------|------------|
 | **데이터** | 학습 데이터 기준 (수개월 전) | **오늘의** NAV, 수익률, 거래량 (일배치 수집) |
-| **종목 수** | 학습된 일부만 | KRX ETF **714개** + 주식 전종목 |
+| **종목 수** | 학습된 일부만 | KRX ETF **~1,088개** + 주식 전종목 **~3,100개** |
 | **검색** | 없음 (기억에 의존) | FAISS + BM25 하이브리드 + MMR |
 | **출처** | 없음 | 검색된 ETF/주식 명시 (티커, 관련도) |
 | **비교 분석** | 일반적 답변 | 실데이터 기반 종목 비교 |
@@ -25,7 +25,7 @@
 ## 핵심 기능
 
 ### LangGraph 에이전트 + Function Calling
-- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (`search_etf`, `compare_etfs`, `get_etf_list`, `search_stock`)
+- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (11개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션 등)
 - 검색 결과 부족 시 **자동 재검색** (Conditional Edge, 최대 2회)
 - 토큰 단위 실시간 스트리밍 응답
 
@@ -40,14 +40,19 @@
 - **ETF 이름/티커 직접 매칭** — 정확도 우선 pre-filter
 
 ### 데이터 파이프라인
-- **pykrx** 기반 일배치 수집 (ETF 1,084종목 + 주식 KOSPI/KOSDAQ 전종목)
-- 시세(OHLCV), NAV, 수익률(1일~1년), 보유종목, 괴리율, 추적오차, PER/PBR/EPS
-- **SQLite** 3년 보존 (WAL 모드) + JSON 듀얼 라이트
+- **pykrx** 기반 일배치 수집 (ETF ~1,088종목 + 주식 KOSPI/KOSDAQ ~3,100종목)
+- 시세(OHLCV), NAV, 수익률(1일~1년), 보유종목, 괴리율, 추적오차, PER/PBR/EPS/BPS/DPS
+- **SQLite** 12년 보존 (WAL 모드, 800만 행, 1.5GB) + JSON 듀얼 라이트
 - macOS launchd 매일 18:00 자동 수집
 
+### 정량 분석 도구
+- **기술적 지표**: MA(5/20/60/120), RSI, MACD, 볼린저 밴드, 골든/데드크로스
+- **상관관계/베타**: 종목 간 상관계수, 시장 대비 베타 계수
+- **포트폴리오 시뮬레이션**: 백테스트, MDD, 샤프 비율, 연환산 수익률
+
 ### 정량 평가 (RAGAS)
-- 65개 평가 데이터셋 (ETF 50 + 주식 13 + 혼합 2)
-- **전체 Hit Rate 90.8%** — ETF 88%, 주식 100%, 혼합 100%
+- 124개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
+- **전체 Hit Rate 91.9%** — ETF 88%, 주식 100%, 혼합 100%
 
 ---
 
@@ -79,7 +84,7 @@ flowchart TB
 
     subgraph Data["데이터 파이프라인"]
         KRX["pykrx 일배치<br/>(매일 18:00)"]
-        DB["SQLite DB<br/>(WAL, 3년 보존)"]
+        DB["SQLite DB<br/>(WAL, 12년 보존)"]
         JSON["collected/*.json"]
         Loader["loader.py<br/>(3-tier 우선순위)"]
     end
@@ -108,16 +113,17 @@ flowchart TB
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (4개 도구) |
+| **에이전트** | LangGraph + Function Calling (11개 도구) |
 | **LLM** | GPT-4o / GPT-4o-mini (질문 유형별 라우팅) |
 | **검색** | FAISS + Kiwi BM25 + RRF + MMR |
 | **임베딩** | OpenAI text-embedding-3-small |
-| **데이터** | pykrx (ETF 1,084 + 주식 전종목), SQLite |
+| **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100), SQLite 12년 (800만 행) |
+| **분석** | 기술적 지표 (MA/RSI/MACD/볼린저), 상관관계/베타, 포트폴리오 시뮬레이션 |
 | **한국어** | Kiwi 형태소 분석기 (BM25 토크나이저) |
-| **평가** | RAGAS (65개 데이터셋, Hit Rate 90.8%) |
+| **평가** | RAGAS (124개 데이터셋, Hit Rate 91.9%) |
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 128개 |
+| **테스트** | pytest 279개 |
 
 ---
 
@@ -169,16 +175,18 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py           # 데이터 로드 (SQLite → JSON → 하드코딩 fallback)
-│   │   ├── database.py         # SQLite CRUD (5 테이블, WAL 모드)
+│   │   ├── database.py         # SQLite CRUD (6 테이블, WAL 모드, 12년 보존)
 │   │   ├── collector.py        # pykrx ETF 일배치 수집
 │   │   ├── stock_collector.py  # pykrx 주식 일배치 수집
+│   │   ├── technical.py        # 기술적 지표 (MA/RSI/MACD/볼린저/상관계수/베타)
+│   │   ├── realtime.py         # yfinance 장중 시세 (15분 지연)
 │   │   └── pdf_loader.py       # PDF 파싱 + 청킹 파이프라인
 │   ├── rag/
 │   │   ├── retriever.py        # HybridRetriever (FAISS+BM25+RRF+MMR)
 │   │   └── vectorstore.py      # FAISS 인덱스 생성
 │   ├── llm/
 │   │   ├── agent.py            # LangGraph 에이전트 (라우팅+도구+재검색)
-│   │   ├── tools.py            # Function Calling 도구 4개
+│   │   ├── tools.py            # Function Calling 도구 11개
 │   │   ├── prompts.py          # 질문 유형별 시스템 프롬프트
 │   │   └── classifier.py       # LLM 분류 fallback (키워드 기반)
 │   └── ui/
@@ -187,11 +195,11 @@ ETF_RAG/
 │       └── components.py       # 예시 질문, 피드백 버튼
 │
 ├── eval/
-│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (65개)
+│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (124개, 8개 유형)
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 128개
+├── tests/                      # pytest 279개
 ├── scripts/
 │   ├── daily_collect.sh        # 일배치 수집 스크립트
 │   └── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
@@ -220,15 +228,18 @@ ETF_RAG/
 
 | 유형 | Hit Rate | 질문 수 |
 |------|----------|---------|
-| simple | 93.3% | 30 |
-| compare | 90.0% | 10 |
-| recommend | 92.9% | 14 |
+| simple | 93.3% | 32 |
+| compare | 90.0% | 13 |
+| recommend | 92.9% | 18 |
+| technical | — | 18 |
+| general | 83.3% | 14 |
+| correlation | — | 12 |
+| portfolio | — | 12 |
 | risk | 80.0% | 5 |
-| general | 83.3% | 6 |
-| **전체** | **90.8%** | **65** |
+| **전체** | **91.9%** | **124** |
 
 > ETF 이름 매칭 도입으로 Hit Rate 45% → 88% (+43%p) 개선
-> 주식 확장 후 전체 90.8% 달성
+> 주식 + 정량 분석 도구 확장 후 전체 91.9% 달성 (124개 데이터셋)
 
 ---
 
@@ -251,7 +262,10 @@ ETF_RAG/
 - [x] Phase 1: pykrx 데이터 수집 + SQLite + 일배치 자동화
 - [x] Phase 2: 하이브리드 검색 (FAISS+BM25+RRF+MMR) + RAGAS 평가
 - [x] Phase 3: LangGraph 에이전트 + 모델 라우팅 + 토큰 스트리밍
-- [ ] Phase 4: UI/UX 개편, 비교 차트, KIS OpenAPI 실시간 연동
+- [x] Phase 4: UI/UX 개편, 비교 차트, 실시간 시세 연동
+- [x] Phase A~B: 주식 전종목 확장 + 주식 서비스 MVP
+- [x] Phase C: 정량 분석 (기술적 지표, 상관관계/베타, 포트폴리오 시뮬레이션)
+- [ ] Phase D: 예측 모델 (LSTM/Transformer, 감성 분석)
 
 ---
 
