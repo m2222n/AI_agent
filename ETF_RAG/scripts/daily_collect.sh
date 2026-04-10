@@ -1,6 +1,6 @@
 #!/bin/bash
 # ETF + 주식 일배치 수집 스크립트
-# 매일 장마감 후(18:00) 실행 — launchd 또는 cron으로 등록
+# 매일 장마감 후(18:30) 실행 — launchd 또는 cron으로 등록
 #
 # 사용법:
 #   ./scripts/daily_collect.sh              # 최근 영업일 기준

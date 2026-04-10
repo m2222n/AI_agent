@@ -10,13 +10,13 @@
         <string>/Users/m2222n/Work/Personal/AI_agent/ETF_RAG/scripts/daily_collect.sh</string>
     </array>
 
-    <!-- 매일 18:00 실행 (장마감 후) -->
+    <!-- 매일 18:30 실행 (장마감 15:30 → 결산 ~17:30 → 안전 마진 1시간) -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
         <integer>18</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>30</integer>
     </dict>
 
     <!-- 환경변수 -->

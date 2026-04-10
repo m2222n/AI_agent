@@ -67,7 +67,7 @@
 - [x] retriever.py: 수집 데이터 metadata 호환성 수정 (id/ticker fallback)
 - [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
 - [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
-- [x] **SQLite 데이터베이스** — 5년 보존, WAL 모드, 6테이블 (instruments, daily_prices, returns, holdings, collection_log, stock_fundamentals)
+- [x] **SQLite 데이터베이스** — 12년 보존, WAL 모드, 6테이블 (instruments, daily_prices, returns, holdings, collection_log, stock_fundamentals)
 - [x] loader.py 4-tier 우선순위: SQLite DB → collected/ → deploy/ → 하드코딩 fallback
 - [x] deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적, ~1MB)
 - [x] collector.py 듀얼 라이트: JSON + SQLite 동시 저장
@@ -80,7 +80,9 @@
 
 **1-4. 수집 자동화** ✅ 완료
 - [x] 일배치 셸 스크립트 (`scripts/daily_collect.sh`) — 수집 + 로깅 + 정리
-- [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:00 자동 실행
+- [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:30 자동 실행 (로컬 SQLite DB 업데이트)
+- [x] **GitHub Actions** (`.github/workflows/daily-collect.yml`) — 매일 18:30 KST, deploy/ JSON 갱신 → auto-commit/push → Streamlit Cloud 자동 재배포
+- [x] `scripts/collect_for_deploy.py` — GitHub Actions용 경량 수집 (SQLite 없이 JSON만)
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
 - [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
@@ -287,11 +289,15 @@ ETF_RAG/
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
 ├── tests/                  # pytest 279개
+├── .github/
+│   └── workflows/
+│       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
 ├── scripts/
-│   ├── daily_collect.sh               # 일배치 수집 셸 스크립트
-│   ├── backfill_historical.py         # 5년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
+│   ├── daily_collect.sh               # 일배치 수집 셸 스크립트 (로컬 Mac용)
+│   ├── collect_for_deploy.py          # GitHub Actions용 경량 수집 (deploy/ JSON 전용)
+│   ├── backfill_historical.py         # 12년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
-│   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
+│   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄 (18:30)
 │   └── README_cron.md                 # 자동화 설정 안내
 └── docs/
     └── TODO_deferred.md               # 보류된 작업 목록 (Pinecone, Cohere, KIS, RAGAS)
@@ -336,4 +342,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-10 (Phase C-1~C-6 완료: 기술적 지표 + 밸류에이션 백분위 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 평가 124개, 12년 데이터 백필 완료, 도구 11개, 테스트 279개 통과)_
+_Last Updated: 2026-04-10 (Phase C 완료 + GitHub Actions 자동수집: deploy/ JSON 매일 갱신 → Streamlit Cloud 자동 재배포, launchd 18:30 변경, 도구 11개, 테스트 279개)_
