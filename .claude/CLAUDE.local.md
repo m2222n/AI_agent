@@ -980,5 +980,51 @@
 
 ---
 
-_Last Updated: 2026-04-09_
-_Phase 1~4 + deploy/ 배포 데이터 + 테스트 208개 통과_
+## GitHub Actions 자동수집 (2026-04-10)
+
+### 배경
+- Mac 꺼져 있어도 Streamlit Cloud 앱에 최신 데이터 반영 필요
+- 선택지: 1) 외부 서버 cron, 2) GitHub Actions, 3) Streamlit Cloud scheduled job
+- **GitHub Actions 선택** — 개인 프로젝트에 가장 적합 (무료, 설정 간단, Git 연동 자연스러움)
+
+### 구현
+- **`.github/workflows/daily-collect.yml`**:
+  - 스케줄: 18:30 KST (09:30 UTC), 월~금 (`cron: '30 9 * * 1-5'`)
+  - `workflow_dispatch`로 수동 실행도 가능
+  - `permissions: contents: write` — push 권한 (초기 누락으로 403 에러, 즉시 수정)
+  - 흐름: checkout → Python 3.11 → `pip install pykrx requests` → 수집 → 변경 감지 → commit+push
+- **`scripts/collect_for_deploy.py`** — GitHub Actions용 경량 수집:
+  - SQLite DB 없이 deploy/ JSON만 생성
+  - ETF: 시세/NAV/등락률/수익률 (괴리율/추적오차/보유종목 생략 — deploy용 불필요)
+  - 주식: 시세/시가총액/펀더멘털/업종/수익률 전부 수집
+  - 검증: ETF < 500 또는 주식 < 1000이면 exit 1
+- **launchd**: 18:00 → 18:30으로 변경 (KRX 결산 ~17:30 + 안전 마진 1시간)
+- **GitHub Secrets**: `KRX_ID`, `KRX_PW` 설정 완료
+
+### 동작 흐름
+```
+18:30 KST → GitHub Actions 실행
+  → pykrx KRX 로그인
+  → ETF ~1,088종목 + 주식 ~3,100종목 수집 (~1분 30초)
+  → deploy/etf_data.json, deploy/stock_data.json 업데이트
+  → git commit + push (github-actions[bot])
+  → Streamlit Cloud가 GitHub 변경 감지 → 자동 재배포
+```
+
+### 듀얼 자동수집 체계
+| | GitHub Actions | launchd (로컬) |
+|---|---|---|
+| 대상 | deploy/ JSON (Streamlit Cloud용) | SQLite DB + collected/ JSON |
+| Mac 필요 | 불필요 | 필요 |
+| 시간 | 18:30 KST | 18:30 KST |
+| 데이터 | 시세+펀더멘털 (경량) | 시세+펀더멘털+괴리율+보유종목 (전체) |
+
+### 첫 실행 결과 (수동 트리거)
+- 수집 성공: ETF 1,088 + 주식 3,102종목
+- 첫 시도 push 실패 (403 Permission denied) → `permissions: contents: write` 추가로 해결
+- 재실행 성공: 1분 25초, deploy/ JSON 업데이트 + push → Streamlit Cloud 재배포 확인
+
+---
+
+_Last Updated: 2026-04-10_
+_Phase 0~4 + C + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 11개 + 테스트 279개 통과_
