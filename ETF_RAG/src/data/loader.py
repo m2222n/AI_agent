@@ -153,6 +153,7 @@ def _normalize_stock_collected(raw: dict) -> List[dict]:
             "div": fund.get("div", 0),
             "dps": fund.get("dps", 0),
             "returns": s.get("returns", {}),
+            "financial_summary": s.get("financial_summary"),
         }
         stocks.append(stock)
     return stocks

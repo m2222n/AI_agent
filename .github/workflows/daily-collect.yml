@@ -26,12 +26,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pykrx requests
+          pip install pykrx requests dart-fss
 
       - name: Collect KRX data and update deploy/
         env:
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           python scripts/collect_for_deploy.py
 

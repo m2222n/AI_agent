@@ -1127,6 +1127,33 @@ def get_financial_statements(name_or_ticker: str, quarters: int = 4) -> str:
         fin_data = []
 
     if not fin_data:
+        # deploy 데이터의 financial_summary fallback
+        fs = data.get("financial_summary")
+        if fs and (fs.get("revenue") or fs.get("operating_profit")):
+            fy = fs.get("fiscal_year", "")
+            fq = fs.get("fiscal_quarter", "")
+            rev = fs.get("revenue")
+            op = fs.get("operating_profit")
+            ni = fs.get("net_income")
+            om = fs.get("operating_margin")
+
+            def _fmt(v):
+                if v is None:
+                    return "-"
+                if abs(v) >= 1_0000_0000_0000:
+                    return f"{v / 1_0000_0000_0000:.1f}조"
+                if abs(v) >= 1_0000_0000:
+                    return f"{v / 1_0000_0000:,.0f}억"
+                return f"{v:,}"
+
+            lines = [f"## {name}({ticker}) 최근 분기 재무제표\n"]
+            lines.append("| 분기 | 매출액 | 영업이익 | 순이익 | 영업이익률 |")
+            lines.append("|------|--------|----------|--------|-----------|")
+            om_str = f"{om:+.1f}%" if om is not None else "-"
+            lines.append(f"| {fy}Q{fq} | {_fmt(rev)} | {_fmt(op)} | {_fmt(ni)} | {om_str} |")
+            lines.append(f"\n*deploy 데이터 기준 (최근 1분기만 표시)*")
+            return "\n".join(lines)
+
         return (
             f"{name}({ticker})의 재무제표 데이터가 아직 수집되지 않았습니다.\n"
             f"(OpenDart API 키 설정 후 `python -m src.data.dart_collector`로 수집 가능)"

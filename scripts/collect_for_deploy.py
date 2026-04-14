@@ -17,6 +17,7 @@ import logging
 import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import requests as req
 from pykrx import stock
@@ -324,6 +325,138 @@ def collect_stock_for_deploy(date: str) -> dict:
     return result
 
 
+# ── 재무제표 요약 수집 (DART API, 선택적) ─────────────────────
+
+def collect_financial_summary(stock_data: dict, max_count: int = 50) -> int:
+    """거래대금 상위 종목에 최근 분기 재무 요약을 추가.
+
+    DART_API_KEY가 설정되어 있을 때만 동작.
+    stock_data['stocks'] 각 항목에 'financial_summary' 필드를 추가.
+    """
+    dart_api_key = os.environ.get("DART_API_KEY", "")
+    if not dart_api_key:
+        logger.info("DART_API_KEY 미설정 — 재무제표 요약 생략")
+        return 0
+
+    try:
+        import dart_fss as dart
+        from dart_fss.api.finance import fnltt_singl_acnt
+        dart.set_api_key(dart_api_key)
+    except ImportError:
+        logger.warning("dart-fss 미설치 — 재무제표 요약 생략")
+        return 0
+
+    # 최근 발표 분기 추정 (DART 데이터 지연 ~45일)
+    now = datetime.now()
+    month = now.month
+    if month >= 5:
+        if month >= 8:
+            if month >= 11:
+                year, quarter = now.year, 3
+            else:
+                year, quarter = now.year, 2
+        else:
+            year, quarter = now.year, 1
+    elif month >= 3:
+        year, quarter = now.year - 1, 4
+    else:
+        year, quarter = now.year - 1, 3
+
+    report_codes = {1: "11013", 2: "11012", 3: "11014", 4: "11011"}
+    report_code = report_codes[quarter]
+
+    # corp_code 매핑 다운로드
+    logger.info("DART corp_code 목록 로딩...")
+    try:
+        corp_list = dart.get_corp_list()
+    except Exception as e:
+        logger.warning(f"corp_code 로딩 실패: {e}")
+        return 0
+
+    ticker_to_corp = {}
+    for corp in corp_list.corps:
+        sc = getattr(corp, "stock_code", "") or ""
+        if len(sc) == 6 and sc.isdigit():
+            ticker_to_corp[sc] = corp.corp_code
+
+    # 거래대금 상위 종목 선택
+    stocks_sorted = sorted(
+        stock_data.get("stocks", []),
+        key=lambda s: s.get("ohlcv", {}).get("trade_value", 0),
+        reverse=True,
+    )
+    targets = stocks_sorted[:max_count]
+
+    account_names = {
+        "revenue": ["매출액", "수익(매출액)", "영업수익", "매출"],
+        "operating_profit": ["영업이익", "영업이익(손실)"],
+        "net_income": ["당기순이익", "당기순이익(손실)", "당기순이익(손실)의 귀속"],
+    }
+
+    collected = 0
+    for s in targets:
+        ticker = s["ticker"]
+        corp_code = ticker_to_corp.get(ticker)
+        if not corp_code:
+            continue
+
+        time.sleep(0.5)
+        try:
+            result = fnltt_singl_acnt(
+                corp_code=corp_code,
+                bsns_year=str(year),
+                reprt_code=report_code,
+            )
+        except Exception:
+            continue
+
+        accounts = result.get("list", [])
+        if not accounts:
+            continue
+
+        def extract(target_names):
+            # CFS 우선
+            for acc in accounts:
+                if acc.get("account_nm", "") in target_names and acc.get("fs_div") == "CFS":
+                    amt = acc.get("thstrm_amount", "")
+                    if amt and amt != "-":
+                        try:
+                            return int(amt.replace(",", ""))
+                        except (ValueError, TypeError):
+                            pass
+            # OFS fallback
+            for acc in accounts:
+                if acc.get("account_nm", "") in target_names:
+                    amt = acc.get("thstrm_amount", "")
+                    if amt and amt != "-":
+                        try:
+                            return int(amt.replace(",", ""))
+                        except (ValueError, TypeError):
+                            pass
+            return None
+
+        revenue = extract(account_names["revenue"])
+        op_profit = extract(account_names["operating_profit"])
+        net_income = extract(account_names["net_income"])
+
+        op_margin = None
+        if revenue and revenue != 0 and op_profit is not None:
+            op_margin = round(op_profit / revenue * 100, 2)
+
+        s["financial_summary"] = {
+            "fiscal_year": str(year),
+            "fiscal_quarter": quarter,
+            "revenue": revenue,
+            "operating_profit": op_profit,
+            "net_income": net_income,
+            "operating_margin": op_margin,
+        }
+        collected += 1
+
+    logger.info(f"재무제표 요약: {collected}/{len(targets)}종목 수집 ({year}Q{quarter})")
+    return collected
+
+
 # ── 메인 ─────────────────────────────────────────────────────
 
 def main():
@@ -350,6 +483,10 @@ def main():
 
     # 주식 수집 → deploy/stock_data.json
     stock_data = collect_stock_for_deploy(date)
+
+    # 재무제표 요약 추가 (DART_API_KEY 있을 때만)
+    collect_financial_summary(stock_data, max_count=50)
+
     stock_path = DEPLOY_DIR / "stock_data.json"
     with open(stock_path, "w", encoding="utf-8") as f:
         json.dump(stock_data, f, ensure_ascii=False, indent=2)
