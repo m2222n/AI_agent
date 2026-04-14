@@ -1,0 +1,42 @@
+#!/bin/bash
+# OpenDart 재무제표 전종목 백필 스크립트
+# 매일 19:00에 launchd로 실행, 하루 900건씩 점진적 수집
+# 전종목 완료 시 자동 중단 (수집할 게 없으면 0건으로 끝남)
+#
+# 수집 범위: 2015~현재, 전종목 (거래대금 무관)
+# 예상 소요: ~3,500종목 × 44분기 = ~154,000건, 900건/일 → ~6개월
+
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHON="/Users/m2222n/Work/.venv/bin/python3"
+LOG_DIR="$PROJECT_DIR/logs"
+mkdir -p "$LOG_DIR"
+
+DATE_LABEL=$(date +%Y%m%d)
+LOG_FILE="$LOG_DIR/dart_backfill_${DATE_LABEL}.log"
+
+cd "$PROJECT_DIR"
+export PYTHONPATH="$PROJECT_DIR"
+
+echo "=== DART 재무제표 백필 시작: $(date) ===" >> "$LOG_FILE"
+
+# 네트워크 확인
+if ! host opendart.fss.or.kr > /dev/null 2>&1; then
+    echo "=== 네트워크 불가 — 백필 중단: $(date) ===" >> "$LOG_FILE"
+    exit 1
+fi
+
+# 전종목 백필 (하루 900건 제한, resume 자동)
+# --backfill-all: 전종목 대상, --daily-limit 900: 하루 수집 한도
+if $PYTHON -m scripts.backfill_financials_runner >> "$LOG_FILE" 2>&1; then
+    echo "=== DART 백필 완료: $(date) ===" >> "$LOG_FILE"
+else
+    EXIT_CODE=$?
+    echo "=== DART 백필 실패 (exit code: $EXIT_CODE): $(date) ===" >> "$LOG_FILE"
+    osascript -e "display notification \"DART 재무제표 백필 실패. 로그: $LOG_FILE\" with title \"ETF RAG 백필 오류\"" 2>/dev/null || true
+    exit 1
+fi
+
+# 오래된 로그 정리 (30일)
+find "$LOG_DIR" -name "dart_backfill_*.log" -mtime +30 -delete 2>/dev/null || true
