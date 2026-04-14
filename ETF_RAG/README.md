@@ -5,7 +5,7 @@
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
 [![Tests](https://img.shields.io/badge/Tests-336_Passed-2ea44f?style=for-the-badge)](#)
-[![Hit Rate](https://img.shields.io/badge/Hit_Rate-91.9%25-blue?style=for-the-badge)](#)
+[![Hit Rate](https://img.shields.io/badge/Hit_Rate-95.2%25-blue?style=for-the-badge)](#)
 
 ---
 
@@ -54,7 +54,7 @@
 
 ### 정량 평가 (RAGAS)
 - 146개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
-- **전체 Hit Rate 91.9%** — ETF 88%, 주식 100%, 혼합 100%
+- **전체 Hit Rate 95.2%** — ETF 88%, 주식 100%, 혼합 100%
 
 ---
 
@@ -122,7 +122,7 @@ flowchart TB
 | **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100), SQLite 12년 (800만 행) |
 | **분석** | 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표 |
 | **한국어** | Kiwi 형태소 분석기 (BM25 토크나이저) |
-| **평가** | RAGAS (146개 데이터셋, Hit Rate 91.9%) |
+| **평가** | RAGAS (146개 데이터셋, Hit Rate 95.2%) |
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **배포** | Streamlit Cloud |
 | **테스트** | pytest 336개 |
@@ -240,10 +240,10 @@ ETF_RAG/
 | correlation | — | 12 |
 | portfolio | — | 12 |
 | risk | 80.0% | 5 |
-| **전체** | **91.9%** | **146** |
+| **전체** | **95.2%** | **146** |
 
 > ETF 이름 매칭 도입으로 Hit Rate 45% → 88% (+43%p) 개선
-> 주식 + 정량 분석 도구 확장 후 전체 91.9% 달성 (146개 데이터셋)
+> 주식 + 정량 분석 도구 확장 후 전체 95.2% 달성 (146개 데이터셋)
 
 ---
 
