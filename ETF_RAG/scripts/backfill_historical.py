@@ -40,9 +40,21 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from dotenv import load_dotenv
 load_dotenv(PROJECT_ROOT / ".env")
 
+import io
+import contextlib
+
 from pykrx import stock
 from src.data.collector import ensure_krx_login, REQUEST_DELAY
 from src.data.database import init_db, DB_PATH
+
+
+def _safe_get_ticker_name(getter_fn, ticker: str) -> str:
+    """pykrx ticker_name 조회 시 내부 로깅 에러로 인한 크래시 방어"""
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            return getter_fn(ticker) or ""
+    except BaseException:
+        return ""
 
 logging.basicConfig(
     level=logging.INFO,
@@ -112,7 +124,7 @@ def collect_etf_day(conn: sqlite3.Connection, date: str) -> int:
         now = datetime.now().isoformat()
         etfs = []
         for ticker in tickers:
-            name = stock.get_etf_ticker_name(ticker) or ""
+            name = _safe_get_ticker_name(stock.get_etf_ticker_name, ticker)
             ohlcv_row = df_ohlcv.loc[ticker] if ticker in df_ohlcv.index else None
             change_row = df_change.loc[ticker] if (
                 df_change is not None and ticker in df_change.index
@@ -196,7 +208,7 @@ def collect_stock_day(conn: sqlite3.Connection, date: str) -> int:
         now = datetime.now().isoformat()
         stocks = []
         for ticker, row in df_ohlcv.iterrows():
-            name = stock.get_market_ticker_name(ticker) or ""
+            name = _safe_get_ticker_name(stock.get_market_ticker_name, ticker)
             cap_row = df_cap.loc[ticker] if ticker in df_cap.index else None
 
             s = {

@@ -1,27 +1,90 @@
 """
-기술적 지표 계산 모듈 — SQLite 일봉 데이터 기반
+기술적 지표 계산 모듈 — SQLite 일봉 데이터 기반 (yfinance fallback)
 
 MA(이동평균), RSI, MACD, 볼린저 밴드, 골든/데드크로스 판정,
 일목균형표, 스토캐스틱, CCI, ADX, OBV, ATR 등
 DB에서 OHLCV 시계열을 읽어 계산하고, 도구(tools.py)에서 호출.
+DB 미존재 시 yfinance에서 과거 데이터를 가져옴 (Streamlit Cloud 대응).
 """
 
+import logging
 import sqlite3
 from typing import Optional
 
 from src.data.database import DB_PATH, get_historical_prices
 
+logger = logging.getLogger(__name__)
+
 # KOSPI 대표 ETF (베타 계산 시 시장 벤치마크)
 MARKET_BENCHMARK = "069500"  # KODEX 200
+
+
+def _yfinance_ohlcv(ticker: str, days: int = 250) -> list[dict]:
+    """yfinance에서 과거 OHLCV 데이터 조회 (DB 없을 때 fallback).
+
+    Returns:
+        [{"date": "20260408", "open": ..., "high": ..., "low": ...,
+          "close": ..., "volume": ...}, ...]
+    """
+    try:
+        import yfinance as yf
+        from src.data.realtime import krx_to_yfinance
+        yf_ticker = krx_to_yfinance(ticker, "stock")
+        # days+여유분 (영업일 변환)
+        period_map = {250: "1y", 150: "9mo", 60: "3mo"}
+        period = "1y"
+        for threshold, p in sorted(period_map.items()):
+            if days <= threshold:
+                period = p
+                break
+        if days > 250:
+            period = "2y"
+
+        df = yf.download(yf_ticker, period=period, progress=False, auto_adjust=True)
+        if df.empty:
+            return []
+
+        # MultiIndex 컬럼 처리 (yfinance >= 0.2.31)
+        if isinstance(df.columns, __import__("pandas").MultiIndex):
+            df = df.droplevel("Ticker", axis=1)
+
+        result = []
+        for idx, row in df.iterrows():
+            date_str = idx.strftime("%Y%m%d")
+            c = int(round(float(row["Close"])))
+            h = int(round(float(row["High"])))
+            l = int(round(float(row["Low"])))
+            o = int(round(float(row["Open"])))
+            v = int(float(row["Volume"]))
+            if c > 0 and h > 0 and l > 0:
+                result.append({
+                    "date": date_str, "open": o, "high": h,
+                    "low": l, "close": c, "volume": v,
+                })
+        return result[-days:] if len(result) > days else result
+    except Exception as e:
+        logger.warning(f"yfinance OHLCV 조회 실패 ({ticker}): {e}")
+        return []
+
+
+def _db_available() -> bool:
+    """SQLite DB 파일이 존재하는지 확인."""
+    return DB_PATH.exists()
 
 
 def _get_closes(ticker: str, days: int = 250,
                 conn: Optional[sqlite3.Connection] = None) -> list[dict]:
     """최근 N영업일 종가 조회 (날짜 오름차순).
 
+    DB 미존재 시 yfinance fallback.
+
     Returns:
         [{"date": "20260408", "close": 210500}, ...]
     """
+    if conn is None and not _db_available():
+        ohlcv = _yfinance_ohlcv(ticker, days)
+        return [{"date": d["date"], "close": d["close"]} for d in ohlcv]
+
     should_close = conn is None
     if conn is None:
         conn = sqlite3.connect(str(DB_PATH))
@@ -45,10 +108,15 @@ def _get_ohlcv(ticker: str, days: int = 250,
                conn: Optional[sqlite3.Connection] = None) -> list[dict]:
     """최근 N영업일 OHLCV 조회 (날짜 오름차순).
 
+    DB 미존재 시 yfinance fallback.
+
     Returns:
         [{"date": "20260408", "open": 210000, "high": 212000,
           "low": 209000, "close": 210500, "volume": 1234567}, ...]
     """
+    if conn is None and not _db_available():
+        return _yfinance_ohlcv(ticker, days)
+
     should_close = conn is None
     if conn is None:
         conn = sqlite3.connect(str(DB_PATH))
