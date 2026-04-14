@@ -197,7 +197,7 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
 
     if not enriched:
         return ""
-    return "\n\n[실시간 데이터 요약]\n" + "\n".join(enriched)
+    return "\n\n[구조화 데이터 — 아래 수치는 최신 수집 데이터이므로 답변에 반드시 활용하세요]\n" + "\n".join(enriched)
 
 
 @tool

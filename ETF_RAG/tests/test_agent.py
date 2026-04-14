@@ -473,6 +473,6 @@ def test_search_etf_enrichment(mock_retriever_with_data):
             [{"ticker": "069500", "name": "KODEX 200", "relevance_score": 100.0}],
         )
         result = search_etf.invoke({"query": "KODEX 200 수익률"})
-        assert "실시간 데이터 요약" in result
+        assert "구조화 데이터" in result
         assert "80,800" in result
         assert "NAV" in result
