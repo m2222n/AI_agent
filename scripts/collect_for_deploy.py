@@ -98,17 +98,45 @@ def login_krx() -> bool:
     return error_code == "CD001"
 
 
+# ── 안전한 종목명 조회 ──────────────────────────────────────
+
+def _safe_get_ticker_name(ticker: str) -> str:
+    """pykrx get_market_ticker_name() 안전 래퍼 (logging 에러 방지)."""
+    try:
+        import io, sys
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            name = stock.get_market_ticker_name(ticker)
+        finally:
+            sys.stderr = old_stderr
+        return name or ""
+    except BaseException:
+        return ""
+
+
 # ── 영업일 탐색 ─────────────────────────────────────────────
 
+def _is_weekend(dt: datetime) -> bool:
+    """토요일(5) 또는 일요일(6)인지 확인."""
+    return dt.weekday() >= 5
+
+
 def find_latest_business_day(from_date=None) -> str:
-    """최근 영업일 찾기"""
+    """최근 영업일 찾기 (주말 즉시 스킵 + KRX 실제 시세로 공휴일 대응)."""
     dt = datetime.strptime(from_date, "%Y%m%d") if from_date else datetime.now()
 
     for _ in range(10):
+        # 1단계: 주말이면 즉시 스킵
+        if _is_weekend(dt):
+            dt -= timedelta(days=1)
+            continue
+
         date_str = dt.strftime("%Y%m%d")
         try:
-            tickers = stock.get_etf_ticker_list(date_str)
-            if len(tickers) > 0:
+            # 2단계: 실제 시세 데이터로 영업일 확인 (종가 > 0)
+            df = stock.get_etf_ohlcv_by_ticker(date_str)
+            if not df.empty and (df["종가"] > 0).any():
                 return date_str
         except Exception:
             pass
@@ -215,10 +243,7 @@ def collect_stock_for_deploy(date: str) -> dict:
 
     name_map = {}
     for t in tickers:
-        try:
-            name_map[t] = stock.get_market_ticker_name(t)
-        except Exception:
-            name_map[t] = ""
+        name_map[t] = _safe_get_ticker_name(t)
     logger.info(f"주식 {len(tickers)}종목")
 
     # 시세 일괄

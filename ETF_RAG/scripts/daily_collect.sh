@@ -21,6 +21,13 @@ mkdir -p "$LOG_DIR"
 DATE_LABEL=$(date +%Y%m%d)
 LOG_FILE="$LOG_DIR/collect_${DATE_LABEL}.log"
 
+# ── 주말 체크 (토/일이면 수집 스킵) ──────────────────────────
+DAY_OF_WEEK=$(date +%u)  # 1=월 ... 7=일
+if [ "$DAY_OF_WEEK" -ge 6 ] && [ -z "${1:-}" ]; then
+    echo "=== 주말($(date +%A)) — 수집 스킵: $(date) ===" >> "$LOG_FILE"
+    exit 0
+fi
+
 # ── ETF 수집 ─────────────────────────────────────────────────
 echo "=== ETF 일배치 수집 시작: $(date) ===" >> "$LOG_FILE"
 

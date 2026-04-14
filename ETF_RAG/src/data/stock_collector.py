@@ -46,18 +46,52 @@ RETURN_PERIODS = [
 
 # ── 유틸리티 ──────────────────────────────────────────────────
 
+
+def _safe_get_ticker_name(ticker: str) -> str:
+    """pykrx get_market_ticker_name의 안전한 래퍼.
+
+    pykrx 내부에서 존재하지 않는 종목 조회 시 logging.info(args, kwargs) 호출이
+    Python 로깅 포맷 에러를 발생시켜 프로세스를 크래시시킬 수 있음.
+    """
+    try:
+        import io
+        import sys
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            name = stock.get_market_ticker_name(ticker)
+        finally:
+            sys.stderr = old_stderr
+        return name or ""
+    except BaseException:
+        return ""
+
+
+def _is_weekend(dt: datetime) -> bool:
+    """토요일(5) 또는 일요일(6)인지 확인."""
+    return dt.weekday() >= 5
+
+
 def find_latest_business_day(from_date: Optional[str] = None) -> str:
-    """최근 영업일 찾기. pykrx에서 데이터가 나올 때까지 역순 탐색."""
+    """최근 영업일 찾기.
+
+    1단계: 주말(토/일)이면 API 호출 없이 즉시 스킵 (불필요한 KRX 호출 방지)
+    2단계: 평일이면 실제 시세 데이터로 확인 (공휴일 대응)
+    """
     if from_date:
         dt = datetime.strptime(from_date, "%Y%m%d")
     else:
         dt = datetime.now()
 
     for _ in range(10):
+        if _is_weekend(dt):
+            dt -= timedelta(days=1)
+            continue
+
         date_str = dt.strftime("%Y%m%d")
         try:
-            tickers = stock.get_market_ticker_list(date_str, market="KOSPI")
-            if len(tickers) > 0:
+            df = stock.get_market_ohlcv_by_ticker(date_str, market="KOSPI")
+            if not df.empty and (df["종가"] > 0).any():
                 return date_str
         except Exception:
             pass
@@ -220,10 +254,7 @@ def collect_all(date: str, market: str = "ALL", max_stocks: int = 0) -> dict:
 
     name_map = {}
     for t in tickers:
-        try:
-            name_map[t] = stock.get_market_ticker_name(t)
-        except Exception:
-            name_map[t] = ""
+        name_map[t] = _safe_get_ticker_name(t)
     logger.info(f"주식 {len(tickers)}종목 목록 수집 완료")
 
     # 2) 시세 일괄 수집

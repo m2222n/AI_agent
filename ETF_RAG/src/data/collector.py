@@ -121,18 +121,33 @@ def ensure_krx_login():
 
 # ── 유틸리티 ──────────────────────────────────────────────────
 
+def _is_weekend(dt: datetime) -> bool:
+    """토요일(5) 또는 일요일(6)인지 확인."""
+    return dt.weekday() >= 5
+
+
 def find_latest_business_day(from_date: Optional[str] = None) -> str:
-    """최근 영업일 찾기. pykrx에서 데이터가 나올 때까지 역순 탐색."""
+    """최근 영업일 찾기.
+
+    1단계: 주말(토/일)이면 API 호출 없이 즉시 스킵 (불필요한 KRX 호출 방지)
+    2단계: 평일이면 실제 시세 데이터로 확인 (공휴일 대응)
+    """
     if from_date:
         dt = datetime.strptime(from_date, "%Y%m%d")
     else:
         dt = datetime.now()
 
     for _ in range(10):  # 최대 10일 전까지 탐색
+        # 주말은 API 호출 없이 즉시 스킵
+        if _is_weekend(dt):
+            dt -= timedelta(days=1)
+            continue
+
         date_str = dt.strftime("%Y%m%d")
         try:
-            tickers = stock.get_etf_ticker_list(date_str)
-            if len(tickers) > 0:
+            # 실제 시세 데이터로 영업일 판별 (공휴일도 걸러짐)
+            df = stock.get_etf_ohlcv_by_ticker(date_str)
+            if not df.empty and (df["종가"] > 0).any():
                 return date_str
         except Exception:
             pass
@@ -254,6 +269,28 @@ def collect_etf_deviation(ticker: str, date: str) -> dict:
     return result
 
 
+def _safe_get_ticker_name(ticker: str) -> str:
+    """pykrx get_market_ticker_name의 안전한 래퍼.
+
+    pykrx 내부에서 존재하지 않는 종목 조회 시 logging.info(args, kwargs) 호출이
+    Python 로깅 포맷 에러를 발생시켜 프로세스를 크래시시킬 수 있음 (2026-04-13 장애).
+    BaseException까지 잡고, 추가로 stderr 로깅도 억제.
+    """
+    try:
+        import io
+        import sys
+        # pykrx 내부 logging error가 stderr에 쏟아지는 것 억제
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            name = stock.get_market_ticker_name(ticker)
+        finally:
+            sys.stderr = old_stderr
+        return name or ""
+    except BaseException:
+        return ""
+
+
 def collect_etf_holdings(ticker: str, date: str) -> list[dict]:
     """단일 ETF 보유종목(PDF) 수집
 
@@ -270,10 +307,7 @@ def collect_etf_holdings(ticker: str, date: str) -> list[dict]:
 
         holdings = []
         for stock_ticker, row in df.head(HOLDINGS_TOP_N).iterrows():
-            try:
-                stock_name = stock.get_market_ticker_name(stock_ticker) or ""
-            except Exception:
-                stock_name = ""
+            stock_name = _safe_get_ticker_name(str(stock_ticker))
 
             holdings.append({
                 "stock_ticker": str(stock_ticker),
