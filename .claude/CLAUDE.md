@@ -82,7 +82,7 @@
 - [x] 일배치 셸 스크립트 (`scripts/daily_collect.sh`) — 수집 + 로깅 + 정리
 - [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:30 자동 실행 (로컬 SQLite DB 업데이트)
 - [x] **GitHub Actions** (`.github/workflows/daily-collect.yml`) — 매일 18:30 KST, deploy/ JSON 갱신 → auto-commit/push → Streamlit Cloud 자동 재배포
-- [x] `scripts/collect_for_deploy.py` — GitHub Actions용 경량 수집 (SQLite 없이 JSON만)
+- [x] `scripts/collect_for_deploy.py` — GitHub Actions용 경량 수집 (SQLite 없이 JSON만, 재무제표는 월요일만)
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
 - [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
@@ -231,16 +231,19 @@
 - [x] 프롬프트에 상관관계/베타 해석 기준 추가
 - [x] 테스트 17개 (일간수익률 3 + 상관계수 3 + 베타 3 + 밸류에이션 6 + 도구 2)
 
-**C-4. 재무제표 데이터** ✅ 코드 구현 완료 (API 키 승인 대기)
+**C-4. 재무제표 데이터** ✅ 구현 완료
 - [x] DB 스키마: `dart_corp_codes` + `stock_financials` 2개 테이블 + CRUD 6함수
 - [x] `src/data/dart_collector.py` — OpenDart 수집 모듈 (dart-fss, CFS→OFS fallback, CLI)
 - [x] `get_financial_statements` 도구 추가 (12번째 LangGraph 도구)
 - [x] `_enrich_with_structured_data()` 최근 분기 실적 요약 추가
 - [x] 프롬프트 재무제표 키워드 + 해석 기준 추가
 - [x] 테스트 23개 (test_dart_collector.py)
-- [ ] DART API 키 승인 후 실제 데이터 수집 (`--refresh-codes` → `--test`)
-- [ ] deploy 연동 (stock_data.json에 financial_summary 추가)
-- [ ] 평가 데이터셋 재무제표 질문 추가 (~10개)
+- [x] DART API 키 발급 + 실제 수집 테스트 성공 (7/10 종목, 3개는 2025 미공시)
+- [x] deploy 연동: `collect_for_deploy.py`에 `collect_financial_summary()` 추가 (월요일만 실행)
+- [x] tools.py deploy fallback: DB 없을 때 stock_data.json의 `financial_summary` 사용
+- [x] GitHub Actions: `dart-fss` + `DART_API_KEY` secret 추가
+- [x] 평가 데이터셋 재무제표 질문 10개 추가 (124 → 134개)
+- [x] 10년 백필 진행 (2015~2025, 93종목 283행 수집 중)
 
 **C-5. 포트폴리오 시뮬레이션** ✅ 구현 완료
 - [x] `simulate_portfolio()` — 백테스트 (총수익률, 연환산, MDD, 샤프, 변동성)
@@ -248,8 +251,9 @@
 - [x] 자연어 파싱 ("삼성전자 50%, SK하이닉스 50%"), 기간 선택 (6m~5y)
 - [x] 테스트 10개 (시뮬레이션 8 + 도구 2)
 
-**C-6. 평가 데이터셋 확장** ✅ 완료 (2026-04-10)
+**C-6. 평가 데이터셋 확장** ✅ 완료 (2026-04-10, 04-14 추가)
 - [x] 75개 → 124개 (49개 추가: technical 18, correlation 12, portfolio 12, general 7)
+- [x] 124개 → 134개 (재무제표 10개 추가: simple 6, compare 2, recommend 1, general 1)
 - [x] 8개 질문 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio
 
 ---
@@ -295,7 +299,7 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (124개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (134개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
 ├── tests/                  # pytest 302개

@@ -484,8 +484,12 @@ def main():
     # 주식 수집 → deploy/stock_data.json
     stock_data = collect_stock_for_deploy(date)
 
-    # 재무제표 요약 추가 (DART_API_KEY 있을 때만)
-    collect_financial_summary(stock_data, max_count=50)
+    # 재무제표 요약 추가 (월요일만, DART_API_KEY 있을 때만)
+    # 분기 데이터라 매일 수집 불필요 — 주 1회(월요일)로 충분
+    if datetime.now().weekday() == 0:  # 0 = Monday
+        collect_financial_summary(stock_data, max_count=50)
+    else:
+        logger.info("재무제표 수집 건너뜀 (월요일만 실행)")
 
     stock_path = DEPLOY_DIR / "stock_data.json"
     with open(stock_path, "w", encoding="utf-8") as f:

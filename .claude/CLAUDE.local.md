@@ -1065,12 +1065,33 @@
   - TestDartCollectorHelpers 5개, TestToolsRegistration 2개
 - 기존 4개 파일 ALL_TOOLS assertion 11→12 업데이트
 
-### 미완료 (API 키 승인 대기)
-- DART API 키 승인 후: `python -m src.data.dart_collector --refresh-codes` → `--test`
-- deploy 연동: stock_data.json에 financial_summary 추가
-- 평가 데이터셋: 재무제표 질문 ~10개 추가
+### API 키 발급 + 실제 수집 (2026-04-14)
+- DART API 키 발급 완료: `68cc9bc4...` (.env에 저장, GitHub Secrets 등록)
+- `dart-fss v0.4.15` 사용: `fnltt_singl_acnt()` (30개 요약 항목, CFS+OFS 혼합)
+  - `fs_div` 파라미터 불가 (inspect.signature로 확인) → 응답의 `fs_div` 필드로 CFS/OFS 분류
+  - `_extract_account_value()`: CFS 우선 검색 → OFS fallback
+- 테스트 수집 결과: 10종목 중 7성공, 3실패 (2025 보고서 미공시)
+  - 금융회사(KB금융, 신한지주)는 "매출액" 없음 → revenue=N/A, operating_profit 정상
+- 10년 백필 진행: 2015~2025, ~101종목 × 44분기, 283행 수집 중 (백그라운드)
+  - 2014년 데이터는 OpenDart에 없음 ("조회된 데이타가 없습니다")
+
+### deploy 연동 (2026-04-14)
+- `collect_for_deploy.py`: `collect_financial_summary()` 함수 추가 (~130줄)
+  - 거래대금 상위 50종목에 `financial_summary` 필드 추가
+  - DART corp_code 다운로드 → 매칭 → CFS 우선 재무데이터 추출
+  - **월요일만 실행** (`weekday() == 0`) — 분기 데이터라 매일 불필요
+- `loader.py`: `_normalize_stock_collected()`에 `financial_summary` 필드 전달
+- `tools.py`: DB 데이터 없을 때 deploy JSON의 `financial_summary` fallback 표시
+- GitHub Actions: `dart-fss` pip install + `DART_API_KEY` secret 추가
+
+### eval 데이터셋 (2026-04-14)
+- 124개 → 134개 (재무제표 10개 추가)
+  - simple 6: 삼성전자 매출, SK하이닉스 영업이익률, 현대차 실적, NAVER 매출, LG화학 재무, 카카오 순이익
+  - compare 2: 삼성vs하이닉스 영업이익률, 반도체 실적비교
+  - recommend 1: 영업이익률 높은 주식
+  - general 1: 영업이익률이란
 
 ---
 
 _Last Updated: 2026-04-14_
-_Phase 0~4 + C + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 12개 + 테스트 302개 통과_
+_Phase 0~4 + C-1~C-6 완료 + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 12개 + 테스트 302개 + eval 134개_
