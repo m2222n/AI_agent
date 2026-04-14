@@ -208,7 +208,38 @@
 
 ---
 
-### Phase C: 정량 분석 ← 현재 진행 중
+### Phase D: 기술적 지표 확장 + 차트 이미지 + 예측 응답 ✅ 완료
+> "기술적 분석 차트까지 보여주는 서비스인가?" 에 답할 수 있어야 한다.
+
+**D-1. 기술적 지표 6개 추가** ✅ 구현 완료
+- [x] `_get_ohlcv()` 헬퍼 추가 (OHLCV 전체 조회, _get_closes()와 병행)
+- [x] `calc_stochastic()` — %K/%D, 과매수/과매도 신호
+- [x] `calc_ichimoku()` — 전환선/기준선/선행스팬A·B/치코우/구름대 상태
+- [x] `calc_cci()` — CCI 지표, ±100 기준 신호
+- [x] `calc_adx()` — ADX/+DI/-DI, 추세 강도 판정
+- [x] `calc_obv()` — OBV + 20일 MA, 매집/분산 판정
+- [x] `calc_atr()` — ATR + ATR%, 변동성 수준 판정
+- [x] `get_technical_summary()` 확장 — 6개 지표 추가 반환
+- [x] `get_technical_indicators` 도구 포맷 확장 (6개 지표 출력 섹션)
+- [x] 프롬프트에 6개 지표 키워드 + 해석 기준 추가
+- [x] 테스트 46개 추가 (6개 지표 × ~6-8 + 통합)
+
+**D-2. 기술적 분석 차트 이미지** ✅ 구현 완료
+- [x] `src/data/chart_generator.py` — matplotlib 3단 차트 (가격+MA+볼린저 / RSI / 거래량+MACD)
+- [x] base64 PNG 반환 → structured_data 이벤트 → `st.image()` 렌더링
+- [x] 깔끔한 디자인 (커스텀 컬러, 스파인 제거, 그리드, 주석 라벨)
+- [x] 한글 폰트 fallback (AppleGothic → NanumGothic → sans-serif)
+- [x] `packages.txt` — Streamlit Cloud 한글 폰트 (fonts-nanum)
+- [x] `src/ui/charts.py` — `try_parse_structured_data()` 일반화 (comparison_table + technical_chart)
+
+**D-3. 예측 질문 종합 응답** ✅ 구현 완료
+- [x] 예측/전망 질문 시 `get_technical_indicators` + `get_financial_statements` 함께 사용하도록 프롬프트 안내
+- [x] 응답 구조: 기술적 분석 요약 → 재무제표 요약 → 종합 판단 → 리스크 → 면책
+- [x] 확정적 표현 금지, 데이터 기반 가능성 표현
+
+---
+
+### Phase C: 정량 분석 ✅ 완료
 > "기술적 분석까지 되는 서비스인가?" 에 답할 수 있어야 한다.
 
 **C-1. 기술적 지표** ✅ 구현 완료
@@ -254,6 +285,7 @@
 **C-6. 평가 데이터셋 확장** ✅ 완료 (2026-04-10, 04-14 추가)
 - [x] 75개 → 124개 (49개 추가: technical 18, correlation 12, portfolio 12, general 7)
 - [x] 124개 → 134개 (재무제표 10개 추가: simple 6, compare 2, recommend 1, general 1)
+- [x] 134개 → 146개 (D-1 지표 12개 추가: 스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/예측)
 - [x] 8개 질문 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio
 
 ---
@@ -265,6 +297,7 @@ ETF_RAG/
 ├── app.py                  # Streamlit 진입점 (HybridRetriever 사용)
 ├── config.py               # 설정/경로/상수 관리 (HYBRID_SEARCH, EMBEDDING_MODEL 등)
 ├── requirements.txt
+├── packages.txt            # Streamlit Cloud 시스템 패키지 (fonts-nanum 한글 폰트)
 ├── .env.example
 ├── src/
 │   ├── data/
@@ -272,7 +305,8 @@ ETF_RAG/
 │   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 12yr, dart_corp_codes, stock_financials)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
-│   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/상관계수/베타)
+│   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
+│   │   ├── chart_generator.py  # matplotlib 기술적 분석 차트 (3단: 가격+MA+BB / RSI / 거래량+MACD, base64 PNG)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
@@ -293,16 +327,16 @@ ETF_RAG/
 │   ├── ui/
 │   │   ├── sidebar.py      # render_sidebar()
 │   │   ├── chat.py         # process_question() (structured_data 이벤트 처리 포함)
-│   │   ├── charts.py       # 비교 차트/테이블 렌더링 (try_parse_comparison, render_comparison)
+│   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 기술적 분석 차트 이미지)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응)
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (134개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (146개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 302개
+├── tests/                  # pytest 336개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
@@ -356,4 +390,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-14 (C-4 OpenDart 재무제표 코드 구현 완료, API 키 승인 대기, 도구 12개, 테스트 302개)_
+_Last Updated: 2026-04-14 (Phase D 완료 — 기술적 지표 6개 추가, 차트 이미지 생성, 예측 종합 응답, 도구 12개, 테스트 336개, eval 146개)_

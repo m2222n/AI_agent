@@ -3,7 +3,7 @@ import time
 import streamlit as st
 
 from src.llm.agent import stream_agent
-from src.ui.charts import try_parse_comparison, render_comparison
+from src.ui.charts import try_parse_comparison, render_comparison, try_parse_structured_data, render_structured_data
 from src.utils.logging import log_interaction
 
 QUESTION_TYPE_LABELS = {
@@ -52,10 +52,10 @@ def render_chat_history():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-            # 저장된 비교 데이터가 있으면 차트도 렌더링
+            # 저장된 구조화 데이터가 있으면 차트도 렌더링
             comparison = message.get("comparison_data")
             if comparison:
-                render_comparison(comparison)
+                render_structured_data(comparison)
 
 
 def process_question(question: str, client=None, retriever=None):
@@ -96,7 +96,7 @@ def process_question(question: str, client=None, retriever=None):
                     status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
 
                 elif event["event"] == "structured_data":
-                    parsed = try_parse_comparison(event["data"])
+                    parsed = try_parse_structured_data(event["data"])
                     if parsed:
                         comparison_data = parsed
 
@@ -123,10 +123,10 @@ def process_question(question: str, client=None, retriever=None):
             answer_placeholder.markdown(full_response)
         st.session_state.last_answer = full_response
 
-        # 비교 차트 렌더링
+        # 구조화 데이터 렌더링 (비교 테이블, 기술적 차트 등)
         if comparison_data:
             with chart_placeholder:
-                render_comparison(comparison_data)
+                render_structured_data(comparison_data)
 
         # 메시지 저장 (비교 데이터 포함)
         msg = {"role": "assistant", "content": full_response}

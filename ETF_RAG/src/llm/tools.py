@@ -827,8 +827,9 @@ def _format_sector_analysis(sector: str, stocks: list) -> str:
 
 @tool
 def get_technical_indicators(name_or_ticker: str) -> str:
-    """ETF/주식의 기술적 지표를 분석합니다. 이동평균(MA), RSI, MACD, 볼린저 밴드, 골든크로스/데드크로스 판정 등을 제공합니다.
-    "삼성전자 골든크로스 났어?", "KODEX 200 기술적 분석", "SK하이닉스 RSI" 등의 질문에 사용합니다.
+    """ETF/주식의 기술적 지표를 분석합니다. 이동평균(MA), RSI, MACD, 볼린저 밴드, 골든크로스/데드크로스,
+    스토캐스틱, 일목균형표, CCI, ADX, OBV, ATR 등 종합 기술적 분석을 제공합니다.
+    "삼성전자 골든크로스 났어?", "KODEX 200 기술적 분석", "SK하이닉스 RSI", "삼성전자 일목균형표" 등의 질문에 사용합니다.
 
     Args:
         name_or_ticker: ETF/주식 이름 또는 티커 (예: "삼성전자", "005930", "KODEX 200")
@@ -915,7 +916,57 @@ def get_technical_indicators(name_or_ticker: str) -> str:
         elif bb["pct_b"] < 0:
             lines.append("  - 하단 이탈 (과매도 가능성)")
 
-    return "\n".join(lines)
+    # 스토캐스틱
+    stoch = summary.get("stochastic")
+    if stoch:
+        lines.append(f"\n**스토캐스틱(14,3):** %K {stoch['k']:.1f}, %D {stoch['d']:.1f} — {stoch['signal']}")
+
+    # 일목균형표
+    ichimoku = summary.get("ichimoku")
+    if ichimoku:
+        lines.append(f"\n**일목균형표:**")
+        lines.append(f"  - 전환선: {ichimoku['tenkan']:,}원, 기준선: {ichimoku['kijun']:,}원")
+        lines.append(f"  - 선행스팬1: {ichimoku['senkou_a']:,}원, 선행스팬2: {ichimoku['senkou_b']:,}원")
+        lines.append(f"  - 현재가 **{ichimoku['cloud_status']}** "
+                     f"({'강세 신호' if ichimoku['cloud_status'] == '구름대 위' else '약세 신호' if ichimoku['cloud_status'] == '구름대 아래' else '방향 탐색 중'})")
+
+    # CCI
+    cci = summary.get("cci")
+    if cci:
+        lines.append(f"\n**CCI(20):** {cci['cci']:+.1f} — {cci['signal']} (±100 기준)")
+
+    # ADX
+    adx = summary.get("adx")
+    if adx:
+        di_status = "+DI > -DI (상승 우위)" if adx["plus_di"] > adx["minus_di"] else "-DI > +DI (하락 우위)"
+        lines.append(f"\n**ADX(14):** {adx['adx']:.1f} ({adx['trend_strength']}) — {di_status}")
+
+    # OBV
+    obv = summary.get("obv")
+    if obv:
+        lines.append(f"\n**OBV:** {obv['obv']:,} (20일 MA 대비 **{obv['trend']}** 구간)")
+
+    # ATR
+    atr = summary.get("atr")
+    if atr:
+        lines.append(f"\n**ATR(14):** {atr['atr']:,.0f}원 ({atr['atr_pct']:.1f}%, {atr['volatility']})")
+
+    text_result = "\n".join(lines)
+
+    # 차트 이미지 생성
+    try:
+        from src.data.chart_generator import generate_technical_chart
+        chart_b64 = generate_technical_chart(ticker, name, days=120)
+        if chart_b64:
+            chart_json = json.dumps(
+                {"__type__": "technical_chart", "image_b64": chart_b64, "name": name},
+                ensure_ascii=False,
+            )
+            return f"{chart_json}\n\n---\n\n{text_result}"
+    except Exception as e:
+        logger.warning(f"차트 생성 실패: {e}")
+
+    return text_result
 
 
 def _fmt_date(date_str: str) -> str:

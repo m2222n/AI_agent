@@ -2,8 +2,10 @@
 비교 차트/테이블 렌더링 모듈
 
 compare_etfs 도구가 반환한 구조화 데이터를 Streamlit 테이블 + 바 차트로 시각화.
+기술적 분석 차트(matplotlib 이미지)도 렌더링.
 """
 
+import base64
 import json
 from typing import Optional
 
@@ -13,7 +15,6 @@ import streamlit as st
 def try_parse_comparison(raw: str) -> Optional[dict]:
     """structured_data 이벤트에서 comparison_table JSON 추출"""
     try:
-        # JSON은 첫 줄에 있고 "---" 이후 텍스트가 이어짐
         json_part = raw.split("\n\n---\n\n")[0] if "\n\n---\n\n" in raw else raw
         data = json.loads(json_part)
         if data.get("__type__") == "comparison_table" and data.get("items"):
@@ -21,6 +22,46 @@ def try_parse_comparison(raw: str) -> Optional[dict]:
     except (json.JSONDecodeError, TypeError, KeyError):
         pass
     return None
+
+
+def try_parse_structured_data(raw: str) -> Optional[dict]:
+    """structured_data 이벤트에서 모든 타입의 구조화 데이터 추출.
+
+    지원 타입: comparison_table, technical_chart
+    """
+    try:
+        json_part = raw.split("\n\n---\n\n")[0] if "\n\n---\n\n" in raw else raw
+        data = json.loads(json_part)
+        dtype = data.get("__type__")
+        if dtype == "comparison_table" and data.get("items"):
+            return data
+        if dtype == "technical_chart" and data.get("image_b64"):
+            return data
+    except (json.JSONDecodeError, TypeError, KeyError):
+        pass
+    return None
+
+
+def render_structured_data(data: dict):
+    """구조화 데이터를 타입에 따라 렌더링."""
+    dtype = data.get("__type__")
+    if dtype == "comparison_table":
+        render_comparison(data)
+    elif dtype == "technical_chart":
+        render_technical_chart(data)
+
+
+def render_technical_chart(data: dict):
+    """기술적 분석 차트 이미지 렌더링."""
+    image_b64 = data.get("image_b64")
+    name = data.get("name", "")
+    if not image_b64:
+        return
+    try:
+        image_bytes = base64.b64decode(image_b64)
+        st.image(image_bytes, use_container_width=True)
+    except Exception:
+        pass
 
 
 def render_comparison(data: dict):

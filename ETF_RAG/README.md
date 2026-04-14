@@ -4,7 +4,7 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-279_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-336_Passed-2ea44f?style=for-the-badge)](#)
 [![Hit Rate](https://img.shields.io/badge/Hit_Rate-91.9%25-blue?style=for-the-badge)](#)
 
 ---
@@ -25,7 +25,7 @@
 ## 핵심 기능
 
 ### LangGraph 에이전트 + Function Calling
-- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (11개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션 등)
+- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (12개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션, 재무제표 등)
 - 검색 결과 부족 시 **자동 재검색** (Conditional Edge, 최대 2회)
 - 토큰 단위 실시간 스트리밍 응답
 
@@ -46,12 +46,14 @@
 - macOS launchd 매일 18:00 자동 수집
 
 ### 정량 분석 도구
-- **기술적 지표**: MA(5/20/60/120), RSI, MACD, 볼린저 밴드, 골든/데드크로스
+- **기술적 지표**: MA(5/20/60/120), RSI, MACD, 볼린저 밴드, 골든/데드크로스, 스토캐스틱, 일목균형표, CCI, ADX, OBV, ATR
+- **기술적 분석 차트**: matplotlib 3단 차트 (가격+MA+볼린저 / RSI / 거래량+MACD) — base64 PNG 이미지 자동 생성
 - **상관관계/베타**: 종목 간 상관계수, 시장 대비 베타 계수
 - **포트폴리오 시뮬레이션**: 백테스트, MDD, 샤프 비율, 연환산 수익률
+- **재무제표**: 분기별 매출/영업이익/순이익/마진율/성장률 (OpenDart)
 
 ### 정량 평가 (RAGAS)
-- 124개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
+- 146개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
 - **전체 Hit Rate 91.9%** — ETF 88%, 주식 100%, 혼합 100%
 
 ---
@@ -113,17 +115,17 @@ flowchart TB
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (11개 도구) |
+| **에이전트** | LangGraph + Function Calling (12개 도구) |
 | **LLM** | GPT-4o / GPT-4o-mini (질문 유형별 라우팅) |
 | **검색** | FAISS + Kiwi BM25 + RRF + MMR |
 | **임베딩** | OpenAI text-embedding-3-small |
 | **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100), SQLite 12년 (800만 행) |
-| **분석** | 기술적 지표 (MA/RSI/MACD/볼린저), 상관관계/베타, 포트폴리오 시뮬레이션 |
+| **분석** | 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표 |
 | **한국어** | Kiwi 형태소 분석기 (BM25 토크나이저) |
-| **평가** | RAGAS (124개 데이터셋, Hit Rate 91.9%) |
+| **평가** | RAGAS (146개 데이터셋, Hit Rate 91.9%) |
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 279개 |
+| **테스트** | pytest 336개 |
 
 ---
 
@@ -178,7 +180,8 @@ ETF_RAG/
 │   │   ├── database.py         # SQLite CRUD (6 테이블, WAL 모드, 12년 보존)
 │   │   ├── collector.py        # pykrx ETF 일배치 수집
 │   │   ├── stock_collector.py  # pykrx 주식 일배치 수집
-│   │   ├── technical.py        # 기술적 지표 (MA/RSI/MACD/볼린저/상관계수/베타)
+│   │   ├── technical.py        # 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
+│   │   ├── chart_generator.py  # matplotlib 기술적 분석 차트 (base64 PNG)
 │   │   ├── realtime.py         # yfinance 장중 시세 (15분 지연)
 │   │   └── pdf_loader.py       # PDF 파싱 + 청킹 파이프라인
 │   ├── rag/
@@ -186,7 +189,7 @@ ETF_RAG/
 │   │   └── vectorstore.py      # FAISS 인덱스 생성
 │   ├── llm/
 │   │   ├── agent.py            # LangGraph 에이전트 (라우팅+도구+재검색)
-│   │   ├── tools.py            # Function Calling 도구 11개
+│   │   ├── tools.py            # Function Calling 도구 12개
 │   │   ├── prompts.py          # 질문 유형별 시스템 프롬프트
 │   │   └── classifier.py       # LLM 분류 fallback (키워드 기반)
 │   └── ui/
@@ -195,11 +198,12 @@ ETF_RAG/
 │       └── components.py       # 예시 질문, 피드백 버튼
 │
 ├── eval/
-│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (124개, 8개 유형)
+│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (146개, 8개 유형)
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 279개
+├── tests/                      # pytest 336개
+├── packages.txt                # Streamlit Cloud 시스템 패키지 (한글 폰트)
 ├── scripts/
 │   ├── daily_collect.sh        # 일배치 수집 스크립트
 │   └── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
@@ -236,10 +240,10 @@ ETF_RAG/
 | correlation | — | 12 |
 | portfolio | — | 12 |
 | risk | 80.0% | 5 |
-| **전체** | **91.9%** | **124** |
+| **전체** | **91.9%** | **146** |
 
 > ETF 이름 매칭 도입으로 Hit Rate 45% → 88% (+43%p) 개선
-> 주식 + 정량 분석 도구 확장 후 전체 91.9% 달성 (124개 데이터셋)
+> 주식 + 정량 분석 도구 확장 후 전체 91.9% 달성 (146개 데이터셋)
 
 ---
 
@@ -264,8 +268,9 @@ ETF_RAG/
 - [x] Phase 3: LangGraph 에이전트 + 모델 라우팅 + 토큰 스트리밍
 - [x] Phase 4: UI/UX 개편, 비교 차트, 실시간 시세 연동
 - [x] Phase A~B: 주식 전종목 확장 + 주식 서비스 MVP
-- [x] Phase C: 정량 분석 (기술적 지표, 상관관계/베타, 포트폴리오 시뮬레이션)
-- [ ] Phase D: 예측 모델 (LSTM/Transformer, 감성 분석)
+- [x] Phase C: 정량 분석 (기술적 지표, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표)
+- [x] Phase D: 기술적 지표 확장 (스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지 + 예측 종합 응답
+- [ ] Phase E: 예측 모델 (LSTM/Transformer, 감성 분석)
 
 ---
 

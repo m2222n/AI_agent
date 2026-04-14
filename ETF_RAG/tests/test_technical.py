@@ -13,6 +13,12 @@ from src.data.technical import (
     calc_beta,
     _daily_returns,
     simulate_portfolio,
+    calc_stochastic,
+    calc_ichimoku,
+    calc_cci,
+    calc_adx,
+    calc_obv,
+    calc_atr,
 )
 
 
@@ -181,17 +187,28 @@ class TestCross:
 
 # ── 통합: get_technical_summary (DB 모킹) ────────────────────
 
+def _make_mock_ohlcv(base_close_fn, n=150):
+    """OHLCV 모킹 데이터 생성 헬퍼."""
+    return [
+        {
+            "date": f"2026{i // 30 + 1:02d}{i % 30 + 1:02d}",
+            "open": base_close_fn(i) - 50,
+            "high": base_close_fn(i) + 200,
+            "low": base_close_fn(i) - 200,
+            "close": base_close_fn(i),
+            "volume": 1000000 + i * 10000,
+        }
+        for i in range(n)
+    ]
+
+
 class TestTechnicalSummary:
-    def test_summary_with_mock_closes(self, monkeypatch):
-        """_get_closes를 모킹해서 get_technical_summary 테스트"""
+    def test_summary_with_mock_ohlcv(self, monkeypatch):
+        """_get_ohlcv를 모킹해서 get_technical_summary 테스트"""
         from src.data import technical
 
-        # 100일 상승 데이터
-        mock_data = [
-            {"date": f"2026{i // 30 + 1:02d}{i % 30 + 1:02d}", "close": 50000 + i * 100}
-            for i in range(150)
-        ]
-        monkeypatch.setattr(technical, "_get_closes", lambda ticker, days=250: mock_data)
+        mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
+        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
         result = technical.get_technical_summary("005930")
         assert result is not None
@@ -207,8 +224,8 @@ class TestTechnicalSummary:
         """데이터 부족 시 None 반환"""
         from src.data import technical
 
-        mock_data = [{"date": "20260401", "close": 50000}] * 10
-        monkeypatch.setattr(technical, "_get_closes", lambda ticker, days=250: mock_data)
+        mock_data = _make_mock_ohlcv(lambda i: 50000, n=10)
+        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
         result = technical.get_technical_summary("005930")
         assert result is None
@@ -217,15 +234,45 @@ class TestTechnicalSummary:
         """하락 추세 판정"""
         from src.data import technical
 
-        mock_data = [
-            {"date": f"2026{i // 30 + 1:02d}{i % 30 + 1:02d}", "close": 80000 - i * 100}
-            for i in range(150)
-        ]
-        monkeypatch.setattr(technical, "_get_closes", lambda ticker, days=250: mock_data)
+        mock_data = _make_mock_ohlcv(lambda i: 80000 - i * 100)
+        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
         result = technical.get_technical_summary("005930")
         assert result is not None
         assert result["trend"] == "하락"
+
+    def test_summary_includes_advanced_indicators(self, monkeypatch):
+        """고급 지표 포함 확인"""
+        from src.data import technical
+
+        mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
+        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+
+        result = technical.get_technical_summary("005930")
+        assert result is not None
+        # 고급 지표 키 존재 확인
+        assert "stochastic" in result
+        assert "ichimoku" in result
+        assert "cci" in result
+        assert "adx" in result
+        assert "obv" in result
+        assert "atr" in result
+
+    def test_summary_advanced_not_none(self, monkeypatch):
+        """150일 데이터 → 모든 고급 지표 계산 가능"""
+        from src.data import technical
+
+        mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
+        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+
+        result = technical.get_technical_summary("005930")
+        assert result is not None
+        assert result["stochastic"] is not None
+        assert result["ichimoku"] is not None
+        assert result["cci"] is not None
+        assert result["adx"] is not None
+        assert result["obv"] is not None
+        assert result["atr"] is not None
 
 
 # ── 일간 수익률 테스트 ────────────────────────────────────────
@@ -526,3 +573,296 @@ class TestToolIntegration:
         from src.llm.tools import get_technical_indicators
         result = get_technical_indicators.invoke({"name_or_ticker": "없는종목"})
         assert "찾을 수 없습니다" in result
+
+
+# ── 스토캐스틱 테스트 ─────────────────────────────────────
+
+class TestStochastic:
+    def test_all_up(self):
+        """연속 상승 → %K ≈ 100"""
+        n = 30
+        highs = [50000 + i * 100 + 50 for i in range(n)]
+        lows = [50000 + i * 100 - 50 for i in range(n)]
+        closes = [50000 + i * 100 for i in range(n)]
+        result = calc_stochastic(highs, lows, closes)
+        assert result is not None
+        assert result["k"] > 90
+
+    def test_all_down(self):
+        """연속 하락 → %K ≈ 0"""
+        n = 30
+        highs = [80000 - i * 100 + 50 for i in range(n)]
+        lows = [80000 - i * 100 - 50 for i in range(n)]
+        closes = [80000 - i * 100 for i in range(n)]
+        result = calc_stochastic(highs, lows, closes)
+        assert result is not None
+        assert result["k"] < 10
+
+    def test_range(self):
+        """일반 데이터 → 0~100 범위"""
+        import math
+        n = 30
+        highs = [50000 + int(1000 * math.sin(i * 0.3)) + 200 for i in range(n)]
+        lows = [50000 + int(1000 * math.sin(i * 0.3)) - 200 for i in range(n)]
+        closes = [50000 + int(1000 * math.sin(i * 0.3)) for i in range(n)]
+        result = calc_stochastic(highs, lows, closes)
+        assert result is not None
+        assert 0 <= result["k"] <= 100
+        assert 0 <= result["d"] <= 100
+
+    def test_overbought(self):
+        """%K > 80 → 과매수 신호"""
+        n = 30
+        highs = [50000 + i * 200 + 50 for i in range(n)]
+        lows = [50000 + i * 200 - 50 for i in range(n)]
+        closes = [50000 + i * 200 for i in range(n)]
+        result = calc_stochastic(highs, lows, closes)
+        assert result is not None
+        assert result["signal"] == "과매수"
+
+    def test_insufficient_data(self):
+        assert calc_stochastic([1]*10, [1]*10, [1]*10) is None
+
+
+# ── 일목균형표 테스트 ─────────────────────────────────────
+
+class TestIchimoku:
+    def test_basic(self):
+        """충분한 데이터에서 모든 구성요소 반환"""
+        n = 60
+        highs = [50000 + i * 50 + 200 for i in range(n)]
+        lows = [50000 + i * 50 - 200 for i in range(n)]
+        closes = [50000 + i * 50 for i in range(n)]
+        result = calc_ichimoku(highs, lows, closes)
+        assert result is not None
+        assert all(k in result for k in ["tenkan", "kijun", "senkou_a", "senkou_b", "chikou", "cloud_status"])
+
+    def test_above_cloud(self):
+        """상승 추세 → 구름대 위"""
+        n = 60
+        highs = [50000 + i * 100 + 200 for i in range(n)]
+        lows = [50000 + i * 100 - 200 for i in range(n)]
+        closes = [50000 + i * 100 for i in range(n)]
+        result = calc_ichimoku(highs, lows, closes)
+        assert result is not None
+        assert result["cloud_status"] == "구름대 위"
+
+    def test_below_cloud(self):
+        """하락 추세 → 구름대 아래"""
+        n = 60
+        highs = [80000 - i * 100 + 200 for i in range(n)]
+        lows = [80000 - i * 100 - 200 for i in range(n)]
+        closes = [80000 - i * 100 for i in range(n)]
+        result = calc_ichimoku(highs, lows, closes)
+        assert result is not None
+        assert result["cloud_status"] == "구름대 아래"
+
+    def test_tenkan_kijun_relation(self):
+        """상승 추세에서 전환선 > 기준선"""
+        n = 60
+        highs = [50000 + i * 100 + 200 for i in range(n)]
+        lows = [50000 + i * 100 - 200 for i in range(n)]
+        closes = [50000 + i * 100 for i in range(n)]
+        result = calc_ichimoku(highs, lows, closes)
+        assert result is not None
+        assert result["tenkan"] > result["kijun"]
+
+    def test_insufficient_data(self):
+        assert calc_ichimoku([1]*50, [1]*50, [1]*50) is None
+
+
+# ── CCI 테스트 ────────────────────────────────────────────
+
+class TestCCI:
+    def test_uptrend(self):
+        """상승 추세 → CCI > 0"""
+        n = 30
+        highs = [50000 + i * 200 + 100 for i in range(n)]
+        lows = [50000 + i * 200 - 100 for i in range(n)]
+        closes = [50000 + i * 200 for i in range(n)]
+        result = calc_cci(highs, lows, closes)
+        assert result is not None
+        assert result["cci"] > 0
+
+    def test_downtrend(self):
+        """하락 추세 → CCI < 0"""
+        n = 30
+        highs = [80000 - i * 200 + 100 for i in range(n)]
+        lows = [80000 - i * 200 - 100 for i in range(n)]
+        closes = [80000 - i * 200 for i in range(n)]
+        result = calc_cci(highs, lows, closes)
+        assert result is not None
+        assert result["cci"] < 0
+
+    def test_overbought_signal(self):
+        """강한 상승 → CCI > 100 → 과매수"""
+        n = 30
+        highs = [50000 + i * 500 + 100 for i in range(n)]
+        lows = [50000 + i * 500 - 100 for i in range(n)]
+        closes = [50000 + i * 500 for i in range(n)]
+        result = calc_cci(highs, lows, closes)
+        assert result is not None
+        assert result["signal"] == "과매수"
+
+    def test_constant_price(self):
+        """변동 없음 → CCI = 0"""
+        n = 30
+        result = calc_cci([50000]*n, [50000]*n, [50000]*n)
+        assert result is not None
+        assert result["cci"] == 0.0
+
+    def test_insufficient_data(self):
+        assert calc_cci([1]*10, [1]*10, [1]*10) is None
+
+
+# ── ADX 테스트 ────────────────────────────────────────────
+
+class TestADX:
+    def test_strong_trend(self):
+        """강한 상승 추세 → ADX 높음"""
+        n = 60
+        highs = [50000 + i * 200 + 300 for i in range(n)]
+        lows = [50000 + i * 200 - 100 for i in range(n)]
+        closes = [50000 + i * 200 for i in range(n)]
+        result = calc_adx(highs, lows, closes)
+        assert result is not None
+        assert result["adx"] > 0
+        assert "추세" in result["trend_strength"]
+
+    def test_uptrend_di(self):
+        """상승 추세 → +DI > -DI"""
+        n = 60
+        highs = [50000 + i * 200 + 300 for i in range(n)]
+        lows = [50000 + i * 200 - 100 for i in range(n)]
+        closes = [50000 + i * 200 for i in range(n)]
+        result = calc_adx(highs, lows, closes)
+        assert result is not None
+        assert result["plus_di"] > result["minus_di"]
+
+    def test_downtrend_di(self):
+        """하락 추세 → -DI > +DI"""
+        n = 60
+        highs = [80000 - i * 200 + 100 for i in range(n)]
+        lows = [80000 - i * 200 - 300 for i in range(n)]
+        closes = [80000 - i * 200 for i in range(n)]
+        result = calc_adx(highs, lows, closes)
+        assert result is not None
+        assert result["minus_di"] > result["plus_di"]
+
+    def test_all_keys_present(self):
+        """반환값에 필수 키 포함"""
+        n = 60
+        highs = [50000 + i * 100 + 200 for i in range(n)]
+        lows = [50000 + i * 100 - 200 for i in range(n)]
+        closes = [50000 + i * 100 for i in range(n)]
+        result = calc_adx(highs, lows, closes)
+        assert result is not None
+        assert all(k in result for k in ["adx", "plus_di", "minus_di", "trend_strength"])
+
+    def test_insufficient_data(self):
+        assert calc_adx([1]*20, [1]*20, [1]*20) is None
+
+
+# ── OBV 테스트 ────────────────────────────────────────────
+
+class TestOBV:
+    def test_all_up(self):
+        """연속 상승 → OBV = 누적 거래량"""
+        n = 30
+        closes = [50000 + i * 100 for i in range(n)]
+        volumes = [1000000] * n
+        result = calc_obv(closes, volumes)
+        assert result is not None
+        # 첫날 제외 29일 상승 → OBV = 29 * 1000000
+        assert result["obv"] == 29_000_000
+
+    def test_all_down(self):
+        """연속 하락 → OBV = -누적 거래량"""
+        n = 30
+        closes = [80000 - i * 100 for i in range(n)]
+        volumes = [1000000] * n
+        result = calc_obv(closes, volumes)
+        assert result is not None
+        assert result["obv"] == -29_000_000
+
+    def test_accumulation(self):
+        """OBV > MA20 → 매집"""
+        n = 30
+        closes = [50000 + i * 100 for i in range(n)]
+        volumes = [1000000] * n
+        result = calc_obv(closes, volumes)
+        assert result is not None
+        assert result["trend"] == "매집"
+
+    def test_distribution(self):
+        """OBV < MA20 → 분산"""
+        n = 30
+        closes = [80000 - i * 100 for i in range(n)]
+        volumes = [1000000] * n
+        result = calc_obv(closes, volumes)
+        assert result is not None
+        assert result["trend"] == "분산"
+
+    def test_insufficient_data(self):
+        assert calc_obv([1]*10, [1]*10) is None
+
+    def test_length_mismatch(self):
+        assert calc_obv([1]*30, [1]*20) is None
+
+
+# ── ATR 테스트 ────────────────────────────────────────────
+
+class TestATR:
+    def test_basic(self):
+        """ATR > 0"""
+        n = 30
+        highs = [50000 + i * 100 + 500 for i in range(n)]
+        lows = [50000 + i * 100 - 500 for i in range(n)]
+        closes = [50000 + i * 100 for i in range(n)]
+        result = calc_atr(highs, lows, closes)
+        assert result is not None
+        assert result["atr"] > 0
+
+    def test_constant_price(self):
+        """변동 없음 → ATR ≈ 0"""
+        n = 30
+        result = calc_atr([50000]*n, [50000]*n, [50000]*n)
+        assert result is not None
+        assert result["atr"] == 0
+
+    def test_high_volatility(self):
+        """넓은 range → 높은 ATR%"""
+        n = 30
+        # range가 매우 넓은 데이터 (종가 대비 10% 이상 변동)
+        highs = [50000 + 5000 for _ in range(n)]
+        lows = [50000 - 5000 for _ in range(n)]
+        closes = [50000] * n
+        result = calc_atr(highs, lows, closes)
+        assert result is not None
+        assert result["atr_pct"] > 3
+        assert result["volatility"] == "높은 변동성"
+
+    def test_low_volatility(self):
+        """좁은 range → 낮은 ATR%"""
+        n = 30
+        highs = [50000 + 100 for _ in range(n)]
+        lows = [50000 - 100 for _ in range(n)]
+        closes = [50000] * n
+        result = calc_atr(highs, lows, closes)
+        assert result is not None
+        assert result["atr_pct"] < 1
+        assert result["volatility"] == "낮은 변동성"
+
+    def test_atr_pct_calculation(self):
+        """ATR% = ATR / 현재가 * 100"""
+        n = 30
+        highs = [50000 + 1000 for _ in range(n)]
+        lows = [50000 - 1000 for _ in range(n)]
+        closes = [50000] * n
+        result = calc_atr(highs, lows, closes)
+        assert result is not None
+        expected_pct = result["atr"] / 50000 * 100
+        assert abs(result["atr_pct"] - expected_pct) < 0.1
+
+    def test_insufficient_data(self):
+        assert calc_atr([1]*10, [1]*10, [1]*10) is None
