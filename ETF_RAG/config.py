@@ -83,6 +83,15 @@ LLM_TIMEOUT = 60
 MAX_HISTORY_MESSAGES = 10
 
 # Realtime price settings (yfinance)
+# DART (OpenDart 재무제표 API)
+DART_API_KEY = os.getenv("DART_API_KEY", "")
+DART_COLLECTION = {
+    "request_delay": 0.5,           # API 호출 간격 (초)
+    "max_daily_requests": 900,      # 일일 안전 한도 (무료 10,000)
+    "min_trade_value": 1_000_000_000,  # 거래대금 10억 이상 종목만 수집
+    "backfill_years": 3,            # 백필 기간 (년)
+}
+
 REALTIME_PRICE = {
     "cache_ttl": 300,           # 캐시 TTL (초) — 5분
     "market_open": "09:00",     # 장 시작 (KST)

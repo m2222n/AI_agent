@@ -139,7 +139,7 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`) — 11개:
+- [x] Function Calling 도구 정의 (`tools.py`) — 12개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
@@ -151,6 +151,7 @@
   - `get_technical_indicators`: 기술적 지표 분석 (MA/RSI/MACD/볼린저/골든크로스)
   - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
   - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성)
+  - `get_financial_statements`: 분기별 재무제표 (매출/영업이익/순이익/마진/성장률, OpenDart)
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -230,8 +231,16 @@
 - [x] 프롬프트에 상관관계/베타 해석 기준 추가
 - [x] 테스트 17개 (일간수익률 3 + 상관계수 3 + 베타 3 + 밸류에이션 6 + 도구 2)
 
-**C-4. 재무제표 데이터** (외부 API 필요)
-- [ ] OpenDart API 연동 (분기 매출/영업이익/순이익)
+**C-4. 재무제표 데이터** ✅ 코드 구현 완료 (API 키 승인 대기)
+- [x] DB 스키마: `dart_corp_codes` + `stock_financials` 2개 테이블 + CRUD 6함수
+- [x] `src/data/dart_collector.py` — OpenDart 수집 모듈 (dart-fss, CFS→OFS fallback, CLI)
+- [x] `get_financial_statements` 도구 추가 (12번째 LangGraph 도구)
+- [x] `_enrich_with_structured_data()` 최근 분기 실적 요약 추가
+- [x] 프롬프트 재무제표 키워드 + 해석 기준 추가
+- [x] 테스트 23개 (test_dart_collector.py)
+- [ ] DART API 키 승인 후 실제 데이터 수집 (`--refresh-codes` → `--test`)
+- [ ] deploy 연동 (stock_data.json에 financial_summary 추가)
+- [ ] 평가 데이터셋 재무제표 질문 추가 (~10개)
 
 **C-5. 포트폴리오 시뮬레이션** ✅ 구현 완료
 - [x] `simulate_portfolio()` — 백테스트 (총수익률, 연환산, MDD, 샤프, 변동성)
@@ -256,12 +265,13 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
-│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 12yr)
+│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 12yr, dart_corp_codes, stock_financials)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/상관계수/베타)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
+│   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
@@ -272,7 +282,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 11개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 12개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -288,7 +298,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (124개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 279개
+├── tests/                  # pytest 302개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
@@ -342,4 +352,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-10 (Phase C 완료 + GitHub Actions 자동수집: deploy/ JSON 매일 갱신 → Streamlit Cloud 자동 재배포, launchd 18:30 변경, 도구 11개, 테스트 279개)_
+_Last Updated: 2026-04-14 (C-4 OpenDart 재무제표 코드 구현 완료, API 키 승인 대기, 도구 12개, 테스트 302개)_

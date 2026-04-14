@@ -1026,5 +1026,51 @@
 
 ---
 
-_Last Updated: 2026-04-10_
-_Phase 0~4 + C + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 11개 + 테스트 279개 통과_
+---
+
+## C-4 OpenDart 재무제표 데이터 구현 (2026-04-14)
+
+### 설계 배경
+- pykrx에서 수집하는 PER/PBR/EPS/DIV만으로는 밸류에이션 분석 깊이 부족
+- OpenDart API (무료 10,000건/일)로 분기별 매출/영업이익/순이익/마진율/성장률 추가
+- dart-fss v0.4.15 라이브러리 사용 (fnltt_singl_acnt() 저수준 API)
+
+### DB 스키마 (database.py)
+- **`dart_corp_codes`** 테이블: DART 8자리 corp_code ↔ 주식 6자리 ticker 매핑
+- **`stock_financials`** 테이블: 분기 재무제표 (PK: ticker + fiscal_year + fiscal_quarter)
+  - revenue, operating_profit, net_income, operating_margin, net_margin, revenue_growth_yoy, op_growth_yoy
+- CRUD 6함수: upsert_corp_codes, get_corp_code, get_all_corp_codes, upsert_financial_data, get_financial_data, get_latest_financial_summary
+- 3개 인덱스 추가
+
+### dart_collector.py (신규)
+- `refresh_corp_codes(conn)`: dart-fss corp_code 목록 → DB (KOSPI/KOSDAQ만)
+- `collect_single_financial(corp_code, year, quarter)`: 단일 기업 분기 재무제표
+  - 연결(CFS) 우선 → 별도(OFS) fallback
+  - 매출액/영업이익/당기순이익 추출 (여러 계정명 변형 대응)
+  - 반기보고서(11012)는 누적치 → Q1 빼서 Q2 단독 계산
+- `collect_batch_financials()`: 거래대금 상위 종목 배치 수집 (0.5초 딜레이)
+- `backfill_financials()`: 3년 백필 (resume 지원)
+- CLI: `--refresh-codes`, `--backfill`, `--year`, `--quarter`, `--test`, `--max`
+
+### 도구 추가 (tools.py)
+- **`get_financial_statements(name_or_ticker, quarters=4)`**: 12번째 LangGraph 도구
+  - DB 조회 → 분기별 마크다운 표 (매출/영업이익/순이익/마진/YoY)
+  - DB 데이터 없으면 안내 메시지 반환
+- `_enrich_with_structured_data()`: 주식 검색 시 최근 분기 실적 한 줄 요약 자동 추가
+- 프롬프트(prompts.py): 재무제표 키워드 + 해석 기준 (영업이익률 10%+ 양호, 20%+ 우수)
+
+### 테스트: 302개 전체 통과 (기존 279 + 신규 23)
+- test_dart_collector.py 23개:
+  - TestCorpCodes 5개, TestFinancialData 10개, TestDbStatsIncludesNewTables 1개
+  - TestDartCollectorHelpers 5개, TestToolsRegistration 2개
+- 기존 4개 파일 ALL_TOOLS assertion 11→12 업데이트
+
+### 미완료 (API 키 승인 대기)
+- DART API 키 승인 후: `python -m src.data.dart_collector --refresh-codes` → `--test`
+- deploy 연동: stock_data.json에 financial_summary 추가
+- 평가 데이터셋: 재무제표 질문 ~10개 추가
+
+---
+
+_Last Updated: 2026-04-14_
+_Phase 0~4 + C + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 12개 + 테스트 302개 통과_

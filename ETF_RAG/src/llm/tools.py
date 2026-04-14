@@ -153,6 +153,38 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
 
         enriched.append(line)
 
+        # 최근 분기 실적 추가 (DB에서 조회)
+        if "per" in data and ticker:
+            try:
+                from src.data.database import get_latest_financial_summary, get_connection
+                fin_conn = get_connection()
+                fin = get_latest_financial_summary(fin_conn, ticker)
+                fin_conn.close()
+                if fin:
+                    fy = fin.get("fiscal_year", "")
+                    fq = fin.get("fiscal_quarter", "")
+                    rev = fin.get("revenue")
+                    op = fin.get("operating_profit")
+                    om = fin.get("operating_margin")
+                    rg = fin.get("revenue_growth_yoy")
+                    parts = [f"최근 실적({fy}Q{fq})"]
+                    if rev:
+                        if abs(rev) >= 1_0000_0000_0000:
+                            parts.append(f"매출 {rev / 1_0000_0000_0000:.1f}조")
+                        else:
+                            parts.append(f"매출 {rev / 1_0000_0000:,.0f}억")
+                    if op is not None and om is not None:
+                        if abs(op) >= 1_0000_0000_0000:
+                            parts.append(f"영업이익 {op / 1_0000_0000_0000:.1f}조(마진 {om:.1f}%)")
+                        else:
+                            parts.append(f"영업이익 {op / 1_0000_0000:,.0f}억(마진 {om:.1f}%)")
+                    if rg is not None:
+                        parts.append(f"매출 YoY {rg:+.1f}%")
+                    if len(parts) > 1:
+                        enriched.append("  " + ", ".join(parts))
+            except Exception:
+                pass  # 재무 데이터 없으면 조용히 무시
+
         # 보유종목 정보 추가 (ETF)
         holdings = data.get("holdings", [])
         if holdings:
@@ -1063,8 +1095,83 @@ def simulate_portfolio(tickers_and_weights: str, period: str = "1y") -> str:
         return f"포트폴리오 시뮬레이션에 실패했습니다. (데이터 부족 또는 오류)"
 
 
+@tool
+def get_financial_statements(name_or_ticker: str, quarters: int = 4) -> str:
+    """기업의 분기별 재무제표(매출액, 영업이익, 당기순이익)를 조회합니다.
+    실적, 매출, 영업이익, 순이익, 영업이익률, 성장률 관련 질문에 사용합니다.
+
+    Args:
+        name_or_ticker: 기업명 또는 종목코드 (예: "삼성전자", "005930")
+        quarters: 조회할 분기 수 (기본 4분기)
+    """
+    # 종목 식별
+    data = _stock_data_index.get(name_or_ticker) or _stock_data_index.get(name_or_ticker.lower())
+    if not data:
+        # 부분 매칭
+        for key, val in _stock_data_index.items():
+            if name_or_ticker.lower() in key:
+                data = val
+                break
+    if not data:
+        return f"'{name_or_ticker}'에 대한 종목 정보를 찾을 수 없습니다."
+
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+
+    try:
+        from src.data.database import get_financial_data, get_connection
+        conn = get_connection()
+        fin_data = get_financial_data(conn, ticker, quarters=quarters)
+        conn.close()
+    except Exception:
+        fin_data = []
+
+    if not fin_data:
+        return (
+            f"{name}({ticker})의 재무제표 데이터가 아직 수집되지 않았습니다.\n"
+            f"(OpenDart API 키 설정 후 `python -m src.data.dart_collector`로 수집 가능)"
+        )
+
+    # 포맷팅
+    lines = [f"## {name}({ticker}) 분기별 재무제표\n"]
+    lines.append("| 분기 | 매출액 | 영업이익 | 순이익 | 영업이익률 | 매출 YoY | 영업이익 YoY |")
+    lines.append("|------|--------|----------|--------|-----------|----------|-------------|")
+
+    for d in fin_data:
+        year = d.get("fiscal_year", "")
+        q = d.get("fiscal_quarter", "")
+
+        rev = d.get("revenue")
+        op = d.get("operating_profit")
+        ni = d.get("net_income")
+        om = d.get("operating_margin")
+        rg = d.get("revenue_growth_yoy")
+        og = d.get("op_growth_yoy")
+
+        def fmt_amount(v):
+            if v is None:
+                return "-"
+            if abs(v) >= 1_0000_0000_0000:
+                return f"{v / 1_0000_0000_0000:.1f}조"
+            if abs(v) >= 1_0000_0000:
+                return f"{v / 1_0000_0000:,.0f}억"
+            return f"{v:,}"
+
+        def fmt_pct(v):
+            if v is None:
+                return "-"
+            return f"{v:+.1f}%"
+
+        lines.append(
+            f"| {year}Q{q} | {fmt_amount(rev)} | {fmt_amount(op)} | "
+            f"{fmt_amount(ni)} | {fmt_pct(om)} | {fmt_pct(rg)} | {fmt_pct(og)} |"
+        )
+
+    return "\n".join(lines)
+
+
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
              compare_stocks, get_stock_list,
              get_realtime_price, analyze_sector, get_technical_indicators,
-             get_stock_correlation, simulate_portfolio]
+             get_stock_correlation, simulate_portfolio, get_financial_statements]
