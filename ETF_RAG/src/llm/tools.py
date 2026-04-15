@@ -1248,8 +1248,129 @@ def get_financial_statements(name_or_ticker: str, quarters: int = 4) -> str:
     return "\n".join(lines)
 
 
+@tool
+def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
+    """종목의 가격 전망을 기술적 분석 + 펀더멘털 분석 + 통계 모델로 종합 예측합니다.
+    상승/횡보/하락 시나리오별 확률, 신뢰도 등급, 리스크 요인을 제공합니다.
+    "삼성전자 앞으로 어떨까", "SK하이닉스 전망", "KODEX 200 1개월 예측", "삼성전자 오를까" 등의 질문에 사용합니다.
+
+    Args:
+        name_or_ticker: ETF/주식 이름 또는 티커 (예: "삼성전자", "005930", "KODEX 200")
+        horizon: 예측 기간 ("1w": 1주, "2w": 2주, "1m": 1개월, "3m": 3개월). 기본값 1m
+    """
+    data = _find_structured_data(name_or_ticker)
+    if not data:
+        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+
+    # 기술적 요약 조회
+    try:
+        from src.data.technical import get_technical_summary
+        summary = get_technical_summary(ticker)
+    except Exception as e:
+        logger.warning(f"기술적 지표 조회 실패: {e}")
+        summary = None
+
+    # 예측 모델 실행
+    try:
+        from src.data.predictor import build_price_outlook
+        outlook = build_price_outlook(
+            ticker, name, horizon=horizon,
+            summary=summary, structured_data=data,
+        )
+    except Exception as e:
+        logger.error(f"가격 전망 생성 실패: {e}")
+        return f"'{name}'의 가격 전망 분석에 실패했습니다. ({type(e).__name__})"
+
+    # 포맷팅
+    horizon_labels = {"1w": "1주", "2w": "2주", "1m": "1개월", "3m": "3개월"}
+    h_label = horizon_labels.get(outlook["horizon"], outlook["horizon"])
+    price = outlook.get("current_price", 0)
+
+    lines = [f"[{name} ({ticker})] 가격 전망 분석 — {h_label} ({outlook['horizon_days']}영업일)\n"]
+
+    if price:
+        lines.append(f"**현재가:** {price:,}원\n")
+
+    # 종합 점수
+    cs = outlook["composite_score"]
+    if cs > 0.3:
+        outlook_label = "강세 전망"
+    elif cs > 0.1:
+        outlook_label = "약한 강세"
+    elif cs > -0.1:
+        outlook_label = "중립"
+    elif cs > -0.3:
+        outlook_label = "약한 약세"
+    else:
+        outlook_label = "약세 전망"
+    lines.append(f"**종합 판단:** {outlook_label} (점수: {cs:+.3f}, 신뢰도: {outlook['confidence_grade']}등급)\n")
+
+    # 시나리오별 확률
+    scenarios = outlook["scenarios"]
+    lines.append("**시나리오별 확률:**")
+    bull = scenarios["bullish"]
+    lines.append(f"  📈 상승: {bull['probability']*100:.0f}% (목표 {bull['target_return']:+.1f}%) — {bull['description']}")
+    neut = scenarios["neutral"]
+    lines.append(f"  ➡️ 횡보: {neut['probability']*100:.0f}% (예상 {neut['target_return']:+.1f}%)")
+    bear = scenarios["bearish"]
+    lines.append(f"  📉 하락: {bear['probability']*100:.0f}% (목표 {bear['target_return']:+.1f}%) — {bear['description']}")
+
+    # 기술적 분석 요약
+    tech = outlook["technical"]
+    lines.append(f"\n**기술적 분석:** {tech['signal']} (점수: {tech['score']:+.3f})")
+    for f in tech["key_factors"]:
+        lines.append(f"  {f}")
+
+    # 펀더멘털 분석 요약
+    fund = outlook["fundamental"]
+    lines.append(f"\n**펀더멘털 분석:** {fund['signal']} (점수: {fund['score']:+.3f})")
+    for f in fund["key_factors"]:
+        lines.append(f"  {f}")
+
+    # 통계 모델
+    stat = outlook["statistical"]
+    lines.append(f"\n**통계 모델:**")
+    lines.append(f"  - 예측 수익률: {stat['predicted_return']:+.2f}% "
+                 f"(신뢰구간: {stat['confidence_interval'][0]:+.2f}% ~ {stat['confidence_interval'][1]:+.2f}%)")
+    lines.append(f"  - 과거 유사 패턴 승률: {stat['historical_win_rate']*100:.0f}% "
+                 f"(표본 {stat['historical_sample_count']}건)")
+    lines.append(f"  - 모델 설명력: R²={stat['model_r2']:.4f} ({stat['model_reliability']})")
+
+    # 리스크 요인
+    risks = outlook.get("risk_factors", [])
+    if risks:
+        lines.append(f"\n**리스크 요인:**")
+        for r in risks:
+            lines.append(f"  {r}")
+
+    # 면책
+    lines.append(f"\n⚠️ 본 분석은 과거 데이터 기반 통계적 참고 자료이며, 미래 수익을 보장하지 않습니다. "
+                 f"투자 판단은 본인의 책임입니다.")
+
+    text_result = "\n".join(lines)
+
+    # 차트도 함께 제공
+    try:
+        from src.data.chart_generator import generate_technical_chart
+        chart_b64 = generate_technical_chart(ticker, name, days=120)
+        if chart_b64:
+            chart_json = json.dumps(
+                {"__type__": "technical_chart", "image_b64": chart_b64, "name": name},
+                ensure_ascii=False,
+            )
+            return f"{chart_json}\n\n---\n\n{text_result}"
+    except Exception as e:
+        logger.warning(f"차트 생성 실패: {e}")
+
+    return text_result
+
+
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
              compare_stocks, get_stock_list,
              get_realtime_price, analyze_sector, get_technical_indicators,
-             get_stock_correlation, simulate_portfolio, get_financial_statements]
+             get_stock_correlation, simulate_portfolio, get_financial_statements,
+             predict_price_outlook]

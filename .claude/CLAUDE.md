@@ -141,7 +141,7 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`) — 12개:
+- [x] Function Calling 도구 정의 (`tools.py`) — 13개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
@@ -154,6 +154,7 @@
   - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
   - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성)
   - `get_financial_statements`: 분기별 재무제표 (매출/영업이익/순이익/마진/성장률, OpenDart)
+  - `predict_price_outlook`: 3축 가격 전망 (기술적+펀더멘털+통계 모델, 시나리오별 확률)
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -312,6 +313,7 @@ ETF_RAG/
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
+│   │   ├── predictor.py    # 3축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+히스토리컬아날로그)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
@@ -322,7 +324,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
-│   │   ├── tools.py        # Function Calling 도구 12개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 13개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -335,10 +337,10 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (146개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (154개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 336개
+├── tests/                  # pytest 374개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
@@ -392,4 +394,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-14 (Phase D 완료 + 답변 품질 개선 — Hit Rate 95.2%, 수집기 버그 수정, 프롬프트 5차 개선, 도구 12개, 테스트 336개, eval 146개)_
+_Last Updated: 2026-04-15 (가격 전망 모델 추가 — predict_price_outlook 도구, 도구 13개, 테스트 374개, eval 154개)_

@@ -97,6 +97,16 @@ elif ! $ETF_OK || ! $STOCK_OK; then
     fi
 fi
 
+# ── 수집 검증 + 누락 자동 보충 ────────────────────────────────
+# 최근 5영업일 중 누락된 날짜를 감지하고 자동으로 재수집
+echo "=== 수집 검증+보충 시작: $(date) ===" >> "$LOG_FILE"
+if $PYTHON scripts/verify_and_recover.py --days 5 >> "$LOG_FILE" 2>&1; then
+    echo "=== 검증+보충 완료: $(date) ===" >> "$LOG_FILE"
+else
+    echo "=== 검증+보충 실패 (누락 데이터 존재): $(date) ===" >> "$LOG_FILE"
+    osascript -e "display notification \"수집 데이터 누락 감지. 로그: $LOG_FILE\" with title \"ETF RAG 수집 경고\"" 2>/dev/null || true
+fi
+
 # ── 오래된 수집 파일 정리 (30일 이상) ─────────────────────────
 COLLECTED_DIR="$PROJECT_DIR/src/data/collected"
 if [ -d "$COLLECTED_DIR" ]; then

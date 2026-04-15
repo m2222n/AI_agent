@@ -34,7 +34,21 @@ jobs:
           KRX_PW: ${{ secrets.KRX_PW }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
-          python scripts/collect_for_deploy.py
+          # 최대 3회 재시도 (KRX 간헐적 장애 대응)
+          for attempt in 1 2 3; do
+            echo "=== 수집 시도 $attempt/3 ==="
+            if python scripts/collect_for_deploy.py; then
+              echo "수집 성공"
+              break
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "실패 — 60초 후 재시도"
+              sleep 60
+            else
+              echo "3회 모두 실패"
+              exit 1
+            fi
+          done
 
       - name: Check for changes
         id: changes

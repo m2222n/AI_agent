@@ -174,7 +174,7 @@ def test_analyze_sector_no_holdings_data():
 
 def test_all_tools_includes_sector():
     """ALL_TOOLS에 analyze_sector 포함 (8개)"""
-    assert len(ALL_TOOLS) == 12
+    assert len(ALL_TOOLS) == 13
     names = [t.name for t in ALL_TOOLS]
     assert "analyze_sector" in names
 

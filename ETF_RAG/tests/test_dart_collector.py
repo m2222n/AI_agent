@@ -217,7 +217,7 @@ class TestDartCollectorHelpers:
 class TestToolsRegistration:
     def test_all_tools_count(self):
         from src.llm.tools import ALL_TOOLS
-        assert len(ALL_TOOLS) == 12
+        assert len(ALL_TOOLS) == 13
 
     def test_financial_tool_in_list(self):
         from src.llm.tools import ALL_TOOLS
