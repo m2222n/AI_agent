@@ -4,8 +4,8 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-336_Passed-2ea44f?style=for-the-badge)](#)
-[![Hit Rate](https://img.shields.io/badge/Hit_Rate-95.2%25-blue?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-404_Passed-2ea44f?style=for-the-badge)](#)
+[![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 ---
 
@@ -25,8 +25,9 @@
 ## 핵심 기능
 
 ### LangGraph 에이전트 + Function Calling
-- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (12개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션, 재무제표 등)
+- LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (13개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션, 재무제표, 가격 전망 등)
 - 검색 결과 부족 시 **자동 재검색** (Conditional Edge, 최대 2회)
+- **CoV (Chain of Verification)** — 비교/추천/위험 질문 시 도구 결과 대조 검증
 - 토큰 단위 실시간 스트리밍 응답
 
 ### 모델 라우팅 (비용 최적화)
@@ -34,27 +35,29 @@
 - 복잡 질문 (비교 분석, 추천, 위험) → **GPT-4o** (정확도 우선)
 
 ### 하이브리드 검색
-- **FAISS** (OpenAI `text-embedding-3-small`) + **Kiwi BM25** (한국어 형태소 분석)
+- **FAISS** (OpenAI `text-embedding-3-small`, 디스크 캐싱) + **Kiwi BM25** (한국어 형태소 분석)
 - **RRF** (Reciprocal Rank Fusion) 결합 — dense 70% + sparse 30%
 - **MMR** (Maximal Marginal Relevance) — Jaccard 유사도 기반 다양성 확보
-- **ETF 이름/티커 직접 매칭** — 정확도 우선 pre-filter
+- **4단계 이름 매칭**: 정확 매칭 → 접두어 매칭 → 부분 키워드 매칭 → 한글 별칭 매핑
 
 ### 데이터 파이프라인
 - **pykrx** 기반 일배치 수집 (ETF ~1,088종목 + 주식 KOSPI/KOSDAQ ~3,100종목)
 - 시세(OHLCV), NAV, 수익률(1일~1년), 보유종목, 괴리율, 추적오차, PER/PBR/EPS/BPS/DPS
-- **SQLite** 12년 보존 (WAL 모드, 800만 행, 1.5GB) + JSON 듀얼 라이트
-- macOS launchd 매일 18:00 자동 수집
+- **OpenDart** 분기 재무제표 (매출/영업이익/순이익/마진/YoY 성장률, 전종목 백필 진행 중)
+- **SQLite** 12년 보존 (WAL 모드, 800만+ 행, 1.5GB) + JSON 듀얼 라이트
+- **듀얼 자동 수집**: GitHub Actions (deploy/ JSON → Streamlit Cloud 재배포) + macOS launchd (로컬 DB)
 
 ### 정량 분석 도구
 - **기술적 지표**: MA(5/20/60/120), RSI, MACD, 볼린저 밴드, 골든/데드크로스, 스토캐스틱, 일목균형표, CCI, ADX, OBV, ATR
 - **기술적 분석 차트**: matplotlib 3단 차트 (가격+MA+볼린저 / RSI / 거래량+MACD) — base64 PNG 이미지 자동 생성
+- **가격 전망**: 3축 종합 분석 (기술적 스코어 + 펀더멘털 스코어 + Ridge 회귀/히스토리컬 아날로그), 시나리오별 확률
 - **상관관계/베타**: 종목 간 상관계수, 시장 대비 베타 계수
 - **포트폴리오 시뮬레이션**: 백테스트, MDD, 샤프 비율, 연환산 수익률
 - **재무제표**: 분기별 매출/영업이익/순이익/마진율/성장률 (OpenDart)
 
 ### 정량 평가 (RAGAS)
-- 146개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
-- **전체 Hit Rate 95.2%** — ETF 88%, 주식 100%, 혼합 100%
+- 162개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
+- **전체 Hit Rate 100%** (162/162) — 4단계 이름 매칭 + eval 데이터셋 보정으로 달성
 
 ---
 
@@ -68,12 +71,13 @@ flowchart TB
     end
 
     subgraph Agent["LangGraph Agent"]
-        Classify["LLM 질문 분류<br/>(gpt-4o-mini)"]
+        Classify["LLM 질문 분류<br/>(Structured Output)"]
         Router{"모델 라우팅"}
         Mini["GPT-4o-mini<br/>simple · general"]
         Full["GPT-4o<br/>compare · recommend · risk"]
-        Tools["Function Calling"]
+        Tools["Function Calling<br/>(13개 도구)"]
         Retry{"결과 충분?"}
+        CoV["CoV 검증<br/>(비교/추천/위험)"]
     end
 
     subgraph Search["하이브리드 검색"]
@@ -85,10 +89,10 @@ flowchart TB
     end
 
     subgraph Data["데이터 파이프라인"]
-        KRX["pykrx 일배치<br/>(매일 18:00)"]
+        KRX["pykrx + OpenDart<br/>(매일 18:30)"]
         DB["SQLite DB<br/>(WAL, 12년 보존)"]
-        JSON["collected/*.json"]
-        Loader["loader.py<br/>(3-tier 우선순위)"]
+        Actions["GitHub Actions<br/>(deploy/ JSON)"]
+        Loader["loader.py<br/>(4-tier 우선순위)"]
     end
 
     Input --> Classify --> Router
@@ -96,16 +100,18 @@ flowchart TB
     Router -->|compare, recommend, risk| Full
     Mini --> Tools
     Full --> Tools
-    Tools -->|search_etf<br/>compare_etfs<br/>get_etf_list<br/>search_stock| Match
+    Tools -->|search_etf · compare_etfs<br/>search_stock · get_etf_list| Match
+    Tools -->|get_technical_indicators<br/>get_financial_statements<br/>predict_price_outlook| DB
     Match --> Dense & Sparse
     Dense & Sparse --> RRF --> MMR
     MMR --> Retry
     Retry -->|부족| Tools
-    Retry -->|충분| Stream
+    Retry -->|충분| CoV --> Stream
 
-    KRX --> DB & JSON
+    KRX --> DB
+    KRX --> Actions
     DB --> Loader
-    JSON --> Loader
+    Actions --> Loader
     Loader --> Dense & Sparse
 ```
 
@@ -115,17 +121,18 @@ flowchart TB
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (12개 도구) |
+| **에이전트** | LangGraph + Function Calling (13개 도구) + CoV 검증 + Structured Output |
 | **LLM** | GPT-4o / GPT-4o-mini (질문 유형별 라우팅) |
-| **검색** | FAISS + Kiwi BM25 + RRF + MMR |
+| **검색** | FAISS (디스크 캐싱) + Kiwi BM25 + RRF + MMR + 4단계 이름 매칭 |
 | **임베딩** | OpenAI text-embedding-3-small |
-| **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100), SQLite 12년 (800만 행) |
-| **분석** | 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표 |
+| **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100) + OpenDart 재무제표, SQLite 12년 (800만+ 행) |
+| **분석** | 기술적 지표 11종 + 차트 이미지 + 가격 전망 모델 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 |
 | **한국어** | Kiwi 형태소 분석기 (BM25 토크나이저) |
-| **평가** | RAGAS (146개 데이터셋, Hit Rate 95.2%) |
+| **평가** | RAGAS (162개 데이터셋, Hit Rate 100%) |
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
+| **자동 수집** | GitHub Actions (deploy/ JSON) + macOS launchd (로컬 DB) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 336개 |
+| **테스트** | pytest 404개 |
 
 ---
 
@@ -182,6 +189,8 @@ ETF_RAG/
 │   │   ├── stock_collector.py  # pykrx 주식 일배치 수집
 │   │   ├── technical.py        # 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
 │   │   ├── chart_generator.py  # matplotlib 기술적 분석 차트 (base64 PNG)
+│   │   ├── dart_collector.py    # OpenDart 분기 재무제표 수집
+│   │   ├── predictor.py        # 3축 가격 전망 모델
 │   │   ├── realtime.py         # yfinance 장중 시세 (15분 지연)
 │   │   └── pdf_loader.py       # PDF 파싱 + 청킹 파이프라인
 │   ├── rag/
@@ -189,7 +198,7 @@ ETF_RAG/
 │   │   └── vectorstore.py      # FAISS 인덱스 생성
 │   ├── llm/
 │   │   ├── agent.py            # LangGraph 에이전트 (라우팅+도구+재검색)
-│   │   ├── tools.py            # Function Calling 도구 12개
+│   │   ├── tools.py            # Function Calling 도구 13개
 │   │   ├── prompts.py          # 질문 유형별 시스템 프롬프트
 │   │   └── classifier.py       # LLM 분류 fallback (키워드 기반)
 │   └── ui/
@@ -198,11 +207,11 @@ ETF_RAG/
 │       └── components.py       # 예시 질문, 피드백 버튼
 │
 ├── eval/
-│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (146개, 8개 유형)
+│   ├── eval_dataset.json       # RAGAS 평가 데이터셋 (162개, 8개 유형)
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 336개
+├── tests/                      # pytest 404개
 ├── packages.txt                # Streamlit Cloud 시스템 패키지 (한글 폰트)
 ├── scripts/
 │   ├── daily_collect.sh        # 일배치 수집 스크립트
@@ -232,18 +241,17 @@ ETF_RAG/
 
 | 유형 | Hit Rate | 질문 수 |
 |------|----------|---------|
-| simple | 93.3% | 32 |
-| compare | 90.0% | 13 |
-| recommend | 92.9% | 18 |
-| technical | — | 18 |
-| general | 83.3% | 14 |
-| correlation | — | 12 |
-| portfolio | — | 12 |
-| risk | 80.0% | 5 |
-| **전체** | **95.2%** | **146** |
+| simple | 100% | 38 |
+| compare | 100% | 15 |
+| recommend | 100% | 20 |
+| technical | 100% | 45 |
+| general | 100% | 15 |
+| correlation | 100% | 12 |
+| portfolio | 100% | 12 |
+| risk | 100% | 5 |
+| **전체** | **100%** | **162** |
 
-> ETF 이름 매칭 도입으로 Hit Rate 45% → 88% (+43%p) 개선
-> 주식 + 정량 분석 도구 확장 후 전체 95.2% 달성 (146개 데이터셋)
+> Hit Rate 개선 이력: 45% → 75% (이름 매칭) → 88% (에이전트) → 95.2% (프롬프트 개선) → **100%** (4단계 매칭 + eval 보정)
 
 ---
 
@@ -270,7 +278,9 @@ ETF_RAG/
 - [x] Phase A~B: 주식 전종목 확장 + 주식 서비스 MVP
 - [x] Phase C: 정량 분석 (기술적 지표, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표)
 - [x] Phase D: 기술적 지표 확장 (스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지 + 예측 종합 응답
-- [ ] Phase E: 예측 모델 (LSTM/Transformer, 감성 분석)
+- [x] 가격 전망 모델 (3축: 기술적+펀더멘털+Ridge 회귀), CoV 검증, FAISS persist, Structured Output
+- [x] Hit Rate 100% (162개 eval, 4단계 이름 매칭)
+- [ ] Phase E: 예측 모델 고도화 (LSTM/Transformer, 감성 분석)
 
 ---
 
