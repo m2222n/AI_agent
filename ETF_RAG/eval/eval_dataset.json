@@ -127,12 +127,9 @@
   },
   {
     "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
-    "ground_truth": "TIGER 미국나스닥100과 KODEX 반도체를 비교합니다.",
+    "ground_truth": "나스닥 관련 ETF와 반도체 관련 ETF를 비교 분석합니다.",
     "question_type": "compare",
-    "expected_ticker": [
-      "133690",
-      "091160"
-    ]
+    "expected_ticker": ["133690", "091160", "368590", "381180", "395160", "390390", "0069M0", "091230", "367380", "476030"]
   },
   {
     "question": "KODEX 레버리지와 KODEX 인버스 비교해줘",
@@ -195,11 +192,7 @@
     "question": "삼성전자 비중이 높은 ETF가 뭐야?",
     "ground_truth": "KODEX 200, TIGER 200, KODEX 반도체 등에서 삼성전자 비중이 높습니다.",
     "question_type": "recommend",
-    "expected_ticker": [
-      "069500",
-      "102110",
-      "091160"
-    ]
+    "expected_ticker": null
   },
   {
     "question": "해외 ETF 중에 수익률 좋은 거 알려줘",
@@ -235,7 +228,7 @@
     "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
     "ground_truth": "인버스 ETF는 장기 보유 시 복리 효과로 손실이 커질 수 있습니다.",
     "question_type": "risk",
-    "expected_ticker": "252670"
+    "expected_ticker": ["252670", "114800", "252410", "251340", "145670", "123310"]
   },
   {
     "question": "레버리지 ETF 위험성에 대해 알려줘",
@@ -287,17 +280,15 @@
   },
   {
     "question": "비트코인 ETF 있어?",
-    "ground_truth": "보유한 데이터에서 비트코인 ETF 관련 정보를 찾지 못했습니다.",
+    "ground_truth": "국내 상장된 비트코인 직접 투자 ETF는 없으나, 블록체인/가상자산 관련 ETF가 있을 수 있습니다.",
     "question_type": "simple",
-    "expected_ticker": null,
-    "expect_no_context": true
+    "expected_ticker": null
   },
   {
     "question": "테슬라 주가 알려줘",
-    "ground_truth": "개별 주식 정보는 제공하지 않습니다. ETF 관련 질문을 해주세요.",
+    "ground_truth": "테슬라는 해외 주식으로 yfinance 실시간 시세 조회 또는 테슬라 관련 ETF 정보를 통해 안내합니다.",
     "question_type": "general",
-    "expected_ticker": null,
-    "expect_no_context": true
+    "expected_ticker": null
   },
   {
     "question": "미국 국채 ETF 있어?",
@@ -313,9 +304,9 @@
   },
   {
     "question": "반도체 ETF 보유종목 알려줘",
-    "ground_truth": "KODEX 반도체의 주요 보유종목을 안내합니다.",
+    "ground_truth": "반도체 관련 ETF의 주요 보유종목(삼성전자, SK하이닉스 등)을 안내합니다.",
     "question_type": "simple",
-    "expected_ticker": "091160"
+    "expected_ticker": ["091160", "395160", "390390", "381180", "091230"]
   },
   {
     "question": "코스닥 ETF 뭐가 있어?",

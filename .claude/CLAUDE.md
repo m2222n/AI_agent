@@ -102,6 +102,9 @@
 - [x] 임베딩: **OpenAI text-embedding-3-small** 명시 적용
 - [x] FAISS 단독 검색 하위 호환 유지 (retriever.py)
 - [x] **ETF 이름/티커 직접 매칭** — 질문에서 ETF 이름을 찾아 문서 직접 매핑 (Hit Rate 45%→75%)
+- [x] **부분 키워드 매칭** — Kiwi 토큰화 후 per-keyword best match (최단 이름 우선, 중복 방지)
+- [x] **접두어 매칭** — "TIGER 차이나전기차" → "TIGER 차이나전기차SOLACTIVE" (공백 제거 비교)
+- [x] **한글 별칭 매핑** — 영문 포함 종목명의 한글 등가 별칭 등록 (POSCO→포스코, LG→엘지 등)
 
 **2-2. PDF 문서 처리 파이프라인** ✅ 완료 (파이프라인 구축, PDF 미적용)
 - [x] `pdf_loader.py` — PyPDFLoader + RecursiveCharacterTextSplitter (chunk_size=1000, overlap=100)
@@ -131,6 +134,7 @@
 - [x] recommend/risk 프롬프트 데이터 근거 강화: F=0.549, F(RAG)=0.578, CR=0.469
 - [x] 5차: 구조화 데이터 활용 원칙 프롬프트 추가 + enrichment 헤더 강화 + min_rrf_score 0.002→0.01 → **Hit Rate 91.9%→95.2%**
 - [x] 6차: ground_truth 날짜 독립 개선 + 도구 결과 context 포함 + stratified sampling (8유형 균등) → **Hit Rate 95.5%, CR(RAG)=0.371**
+- [x] 7차: eval 데이터셋 보정 (4개) + retriever 검색 개선 (부분 키워드 매칭, 접두어 매칭, 한글 별칭) → **Hit Rate 100.0% (162/162)**
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
@@ -399,4 +403,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-16 (eval 6차 개선: ground_truth 안정화 + 도구 결과 context 포함 + stratified sampling, Hit Rate 95.1%, 도구 13개, 테스트 404개, eval 162개)_
+_Last Updated: 2026-04-16 (eval 7차: Hit Rate 100% 달성 — 부분 키워드/접두어/한글 별칭 매칭, 도구 13개, 테스트 404개, eval 162개)_

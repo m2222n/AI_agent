@@ -51,6 +51,17 @@ def tokenize_korean(text: str) -> List[str]:
 class HybridRetriever:
     """FAISS(dense) + BM25(sparse) 하이브리드 검색기"""
 
+    # 영문→한글 별칭 (종목명에 영문이 포함된 경우의 한글 표기)
+    _NAME_ALIASES = {
+        "posco": "포스코",
+        "lg": "엘지",
+        "sk": "에스케이",
+        "sdi": "에스디아이",
+        "dx": "디엑스",
+        "hd": "에이치디",
+        "ks": "케이에스",
+    }
+
     def __init__(self, vectorstore: FAISS, documents: List[Document]):
         self.vectorstore = vectorstore
         self.documents = documents
@@ -62,7 +73,12 @@ class HybridRetriever:
             name = doc.metadata.get("name", "")
             ticker = doc.metadata.get("ticker", "")
             if name:
-                self._name_index[name.lower()] = i
+                name_lower = name.lower()
+                self._name_index[name_lower] = i
+                # 영문→한글 별칭도 등록 (POSCO홀딩스 → 포스코홀딩스)
+                alias = self._make_korean_alias(name_lower)
+                if alias and alias != name_lower:
+                    self._name_index[alias] = i
             if ticker:
                 self._ticker_index[ticker] = i
 
@@ -76,13 +92,28 @@ class HybridRetriever:
             f"sparse_weight={HYBRID_SEARCH['sparse_weight']}"
         )
 
+    @classmethod
+    def _make_korean_alias(cls, name: str) -> Optional[str]:
+        """영문 포함 종목명의 한글 별칭 생성.
+        예: 'posco홀딩스' → '포스코홀딩스'"""
+        result = name
+        changed = False
+        for eng, kor in cls._NAME_ALIASES.items():
+            if eng in result:
+                result = result.replace(eng, kor)
+                changed = True
+        return result if changed else None
+
     def _match_etf_by_name(self, query: str) -> List[Tuple[Document, float]]:
         """질문에서 ETF 이름/티커를 찾아 직접 매칭.
 
-        전략: 실제 ETF 이름 목록을 질문 텍스트에 대해 매칭.
-        긴 이름부터 매칭하여 "KODEX 200선물인버스2X"가 "KODEX 200"보다 먼저 매칭.
+        전략:
+        1. 6자리 티커 직접 매칭 (score=1.0)
+        2. ETF 전체 이름이 쿼리에 포함 (score=1.0, 긴 이름 우선)
+        3. 쿼리 키워드가 ETF 이름에 포함 — 부분 매칭 (score=0.8)
+           예: "반도체" → "KODEX 반도체", "나스닥" → "TIGER 미국나스닥100"
 
-        반환: 매칭된 [(Document, 1.0), ...] — 매칭 시 최고 점수 부여
+        반환: 매칭된 [(Document, score), ...]
         """
         q_lower = query.lower()
         matched = []
@@ -96,7 +127,7 @@ class HybridRetriever:
                 matched.append((self.documents[idx], 1.0))
                 seen_tickers.add(ticker)
 
-        # 2) ETF 이름 매칭 — 긴 이름부터 시도 (greedy matching)
+        # 2) ETF 전체 이름 매칭 — 긴 이름부터 시도 (greedy matching)
         sorted_names = sorted(self._name_index.keys(), key=len, reverse=True)
         for doc_name in sorted_names:
             if doc_name in q_lower:
@@ -105,6 +136,56 @@ class HybridRetriever:
                 if ticker not in seen_tickers:
                     matched.append((self.documents[idx], 1.0))
                     seen_tickers.add(ticker)
+
+        # 2b) 접두사 매칭 — 쿼리 내 연속 단어가 ETF 이름의 시작 부분과 일치
+        #     "TIGER 차이나전기차 ETF" → "TIGER 차이나전기차SOLACTIVE" 매칭
+        if not matched:
+            q_words = q_lower.split()
+            for w_count in range(min(3, len(q_words)), 0, -1):
+                if matched:
+                    break
+                prefix = " ".join(q_words[:w_count])
+                if len(prefix) < 5:
+                    continue
+                for doc_name in sorted_names:
+                    # doc_name이 prefix로 시작하거나, 공백 없는 버전으로 비교
+                    if (doc_name.startswith(prefix)
+                            or doc_name.replace(" ", "").startswith(prefix.replace(" ", ""))):
+                        idx = self._name_index[doc_name]
+                        ticker = self.documents[idx].metadata.get("ticker", "")
+                        if ticker not in seen_tickers:
+                            matched.append((self.documents[idx], 0.95))
+                            seen_tickers.add(ticker)
+                            break  # prefix 길이별로 1개만
+
+        # 3) 부분 매칭 — 쿼리의 주요 키워드가 ETF 이름에 포함되는지
+        #    정확 매칭이 없을 때만 시도 (너무 많은 결과 방지)
+        if not matched:
+            # 쿼리에서 의미있는 키워드 추출 (2글자 이상, 일반어 제외)
+            _STOP_WORDS = {"etf", "알리", "최근", "성과", "보유", "종목",
+                           "투자", "좋", "위험", "어때", "알려"}
+            query_keywords = []
+            for token in tokenize_korean(query):
+                t = token.lower()
+                if len(t) >= 2 and t not in _STOP_WORDS:
+                    query_keywords.append(t)
+
+            # 이름이 짧은 순으로 정렬 → 대표 ETF 우선 (KODEX 반도체 > KODEX AI반도체핵심장비)
+            names_by_short = sorted(self._name_index.keys(), key=len)
+
+            # 키워드별로 대표 1개씩 매칭 (각 키워드의 최단 이름 ETF)
+            kw_matched = {}  # keyword → (doc, score)
+            for doc_name in names_by_short:
+                for kw in query_keywords:
+                    if kw in doc_name and kw not in kw_matched:
+                        idx = self._name_index[doc_name]
+                        ticker = self.documents[idx].metadata.get("ticker", "")
+                        if ticker not in seen_tickers:
+                            kw_matched[kw] = (self.documents[idx], 0.8)
+                            seen_tickers.add(ticker)
+                            break
+
+            matched.extend(kw_matched.values())
 
         if matched:
             logger.info(f"ETF 이름 매칭: {[d.metadata['name'] for d, _ in matched]}")
