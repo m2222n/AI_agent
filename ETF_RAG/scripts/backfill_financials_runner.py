@@ -1,12 +1,12 @@
 """
-DART 재무제표 전종목 점진적 백필 — 매일 900건씩
+DART 재무제표 전종목 점진적 백필 — 매일 9500건씩
 
 전종목(거래대금 무관)을 2015년부터 현재까지 수집.
 이미 수집된 건은 자동 스킵(resume). 하루 한도 도달 시 중단.
 다음 날 이어서 수집.
 
 사용법:
-    python -m scripts.backfill_financials_runner           # 매일 900건
+    python -m scripts.backfill_financials_runner           # 매일 9500건
     python -m scripts.backfill_financials_runner --limit 100  # 테스트
     python -m scripts.backfill_financials_runner --status   # 진행 상황
 """
@@ -40,12 +40,15 @@ def get_all_stock_tickers(conn) -> list:
     return [r["ticker"] for r in rows]
 
 
-def get_all_quarters(start_year: int = 2015) -> list:
+def get_all_quarters(start_year: int = 2015, end_year: int = None) -> list:
     """수집 대상 (year, quarter) 목록 생성."""
     from src.data.dart_collector import _get_latest_quarter
 
     latest_year, latest_q = _get_latest_quarter()
     latest_year = int(latest_year)
+
+    if end_year is not None:
+        latest_year = min(latest_year, end_year)
 
     quarters = []
     for year in range(start_year, latest_year + 1):
@@ -83,11 +86,13 @@ def show_status(conn):
     print(f"전체 주식: {total_stocks}종목")
     print(f"DART 매핑 가능: {mappable}종목")
     print(f"수집 대상 (종목×분기): {total_possible}건")
-    print(f"예상 남은 건수: ~{total_possible - total_rows}건")
-    print(f"예상 남은 일수 (900건/일): ~{(total_possible - total_rows) // 900}일")
+    remaining = total_possible - total_rows
+    print(f"예상 남은 건수: ~{remaining}건")
+    print(f"예상 남은 일수 (9500건/일): ~{remaining // 9500}일")
 
 
-def run_daily_backfill(conn, daily_limit: int = 900):
+def run_daily_backfill(conn, daily_limit: int = 9500,
+                       start_year: int = 2015, end_year: int = None):
     """하루치 백필 실행 — daily_limit 건 수집 후 중단."""
     from src.data.database import (
         get_all_corp_codes, upsert_financial_data, get_financial_data,
@@ -104,7 +109,15 @@ def run_daily_backfill(conn, daily_limit: int = 900):
         return 0
 
     tickers = get_all_stock_tickers(conn)
-    quarters = get_all_quarters()
+    quarters = get_all_quarters(start_year=start_year, end_year=end_year)
+
+    # 이미 수집된 (ticker, year, quarter) 셋을 미리 로드 — DB 반복 조회 방지
+    existing_set = set()
+    for row in conn.execute(
+        "SELECT ticker, fiscal_year, fiscal_quarter FROM stock_financials"
+    ).fetchall():
+        existing_set.add((row[0], row[1], row[2]))
+    logger.info(f"이미 수집된 데이터: {len(existing_set)}건")
 
     logger.info(f"전종목 백필: {len(tickers)}종목 × {len(quarters)}분기, 일일 한도 {daily_limit}건")
 
@@ -127,17 +140,14 @@ def run_daily_backfill(conn, daily_limit: int = 900):
                 skipped += 1
                 continue
 
-            # 이미 수집된 데이터 스킵
-            existing = get_financial_data(conn, ticker, quarters=100)
-            already_exists = any(
-                d["fiscal_year"] == year and d["fiscal_quarter"] == quarter
-                for d in existing
-            )
-            if already_exists:
+            # 이미 수집된 데이터 스킵 (메모리 셋 조회 — O(1))
+            if (ticker, year, quarter) in existing_set:
                 skipped += 1
                 continue
 
             # API 호출
+            if api_calls == 0:
+                logger.info(f"첫 API 호출 시작: {ticker} {year} Q{quarter}")
             result = collect_single_financial(corp_code, year, quarter, request_delay)
             api_calls += 1
 
@@ -157,9 +167,10 @@ def run_daily_backfill(conn, daily_limit: int = 900):
                 **growth,
             }
             upsert_financial_data(conn, [row])
+            existing_set.add((ticker, year, quarter))
             collected += 1
 
-            if api_calls % 100 == 0:
+            if api_calls % 50 == 0:
                 logger.info(
                     f"  진행: API {api_calls}/{daily_limit} "
                     f"(수집 {collected}, 스킵 {skipped}, 실패 {failed})"
@@ -174,8 +185,12 @@ def run_daily_backfill(conn, daily_limit: int = 900):
 
 def main():
     parser = argparse.ArgumentParser(description="DART 전종목 점진적 백필")
-    parser.add_argument("--limit", type=int, default=9000,
-                        help="일일 수집 한도 (기본 9000)")
+    parser.add_argument("--limit", type=int, default=9500,
+                        help="일일 수집 한도 (기본 9500)")
+    parser.add_argument("--start-year", type=int, default=2015,
+                        help="수집 시작 연도 (기본 2015)")
+    parser.add_argument("--end-year", type=int, default=None,
+                        help="수집 종료 연도 (기본: 최신)")
     parser.add_argument("--status", action="store_true",
                         help="진행 상황만 출력")
     args = parser.parse_args()
@@ -191,7 +206,10 @@ def main():
         return
 
     start = time.time()
-    collected = run_daily_backfill(conn, daily_limit=args.limit)
+    collected = run_daily_backfill(
+        conn, daily_limit=args.limit,
+        start_year=args.start_year, end_year=args.end_year,
+    )
     elapsed = time.time() - start
 
     logger.info(f"오늘 수집: {collected}건, 소요시간: {elapsed:.0f}초")

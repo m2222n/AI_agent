@@ -130,12 +130,13 @@
 - [x] RAGAS 평가 context에 구조화 데이터 포함: F=0.529, AR=0.341, CR=0.492(+0.156)
 - [x] recommend/risk 프롬프트 데이터 근거 강화: F=0.549, F(RAG)=0.578, CR=0.469
 - [x] 5차: 구조화 데이터 활용 원칙 프롬프트 추가 + enrichment 헤더 강화 + min_rrf_score 0.002→0.01 → **Hit Rate 91.9%→95.2%**
+- [x] 6차: ground_truth 날짜 독립 개선 + 도구 결과 context 포함 + stratified sampling (8유형 균등) → **Hit Rate 95.5%, CR(RAG)=0.371**
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
 ---
 
-### Phase 3: 에이전트 + LLM 응답 품질 ← 현재 단계
+### Phase 3: 에이전트 + LLM 응답 품질 ✅ 완료
 > "ChatGPT보다 나은 점이 있나?" 에 답할 수 있어야 한다.
 
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
@@ -171,7 +172,9 @@
 - [x] 프롬프트 개선: 데이터에 없는 항목(수수료, 위험등급, 배당정책) 출력 방지
 - [x] 프롬프트 개선: general 질문에 금융 지식 활용 허용
 - [x] 보유종목(상위 10개) 구조화 데이터 enrichment 추가
-- [ ] Hallucination 방어: CoV 검증 (추후)
+- [x] Hallucination 방어: CoV 검증 — LangGraph verify 노드 (compare/recommend/risk 질문, 도구 결과 대조 검증)
+- [x] Structured Output 적용 — Pydantic `QuestionClassification` + `with_structured_output()` (LLM 분류 JSON 강제)
+- [x] FAISS 디스크 캐싱 — `save_local/load_local` + MD5 해시 기반 캐시 무효화 (냉부팅 시 임베딩 재호출 방지)
 - [x] 대화 히스토리 토큰 관리 (tiktoken 카운팅, _trim_history)
 - [x] 비교 질문 시 표/차트 자동 생성 (structured_data 이벤트 + charts.py)
 - [x] 검색 결과 캐싱 (@st.cache_data, ttl=1h)
@@ -277,7 +280,7 @@
 - [x] tools.py deploy fallback: DB 없을 때 stock_data.json의 `financial_summary` 사용
 - [x] GitHub Actions: `dart-fss` + `DART_API_KEY` secret 추가
 - [x] 평가 데이터셋 재무제표 질문 10개 추가 (124 → 134개)
-- [x] 10년 백필 진행 (2015~2025, 93종목 283행 수집 중)
+- [x] 전종목 백필 진행 중 (DART corp_code 있는 3,342종목, 일 9,500건 제한, ~7-10일 소요)
 
 **C-5. 포트폴리오 시뮬레이션** ✅ 구현 완료
 - [x] `simulate_portfolio()` — 백테스트 (총수익률, 연환산, MDD, 샤프, 변동성)
@@ -289,6 +292,8 @@
 - [x] 75개 → 124개 (49개 추가: technical 18, correlation 12, portfolio 12, general 7)
 - [x] 124개 → 134개 (재무제표 10개 추가: simple 6, compare 2, recommend 1, general 1)
 - [x] 134개 → 146개 (D-1 지표 12개 추가: 스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/예측)
+- [x] 146개 → 154개 (가격 전망 모델 8개 추가)
+- [x] 154개 → 162개 (예측/전망 ETF+주식 8개 추가, ground_truth 안정화)
 - [x] 8개 질문 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio
 
 ---
@@ -320,10 +325,10 @@ ETF_RAG/
 │   │   ├── deploy/         # 배포용 데이터 (Git 추적, Streamlit Cloud용)
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
-│   │   ├── vectorstore.py  # create_vectorstore(), get_embeddings() — text-embedding-3-small
+│   │   ├── vectorstore.py  # create_vectorstore() — FAISS persist (MD5 해시 캐시) + text-embedding-3-small
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
-│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색)
+│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output)
 │   │   ├── tools.py        # Function Calling 도구 13개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
@@ -337,10 +342,10 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (154개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 374개
+├── tests/                  # pytest 404개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
@@ -394,4 +399,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-15 (가격 전망 모델 추가 — predict_price_outlook 도구, 도구 13개, 테스트 374개, eval 154개)_
+_Last Updated: 2026-04-16 (eval 6차 개선: ground_truth 안정화 + 도구 결과 context 포함 + stratified sampling, Hit Rate 95.1%, 도구 13개, 테스트 404개, eval 162개)_

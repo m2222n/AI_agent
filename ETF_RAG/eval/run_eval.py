@@ -167,8 +167,25 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
 
     from src.llm.agent import run_agent
 
-    # 샘플링
-    eval_items = dataset[:sample_size] if sample_size else dataset
+    # 샘플링 — stratified: 각 question_type에서 균등하게 추출
+    if sample_size and sample_size < len(dataset):
+        from collections import defaultdict
+        import random
+        random.seed(42)
+        by_type = defaultdict(list)
+        for item in dataset:
+            by_type[item["question_type"]].append(item)
+        per_type = max(1, sample_size // len(by_type))
+        eval_items = []
+        for qt, items in sorted(by_type.items()):
+            eval_items.extend(random.sample(items, min(per_type, len(items))))
+        # 부족분 채우기
+        remaining = [x for x in dataset if x not in eval_items]
+        random.shuffle(remaining)
+        eval_items.extend(remaining[:max(0, sample_size - len(eval_items))])
+        eval_items = eval_items[:sample_size]
+    else:
+        eval_items = dataset
 
     samples = []
     per_question_details = []
@@ -181,19 +198,62 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
         logger.info(f"  [{i+1}/{len(eval_items)}] {question[:50]}...")
 
         # 1. 에이전트로 답변 생성 (실제 서비스와 동일 경로)
+        #    도구 호출 결과를 context로 추출하기 위해 full state 사용
+        #    차트 생성 비활성화 (base64가 context를 초과시킴)
+        tool_contexts = []
         try:
-            result = run_agent(question)
-            answer = result["answer"]
-            question_type = result["question_type"]
-            model_used = result["model"]
+            import src.data.chart_generator as _cg
+            _cg_orig = _cg.generate_technical_chart
+            _cg.generate_technical_chart = lambda *a, **kw: None
+
+            from src.llm.agent import (
+                get_agent, classify_with_llm, build_system_prompt,
+                COMPLEX_TYPES, AgentState,
+            )
+            from langchain_core.messages import (
+                SystemMessage, HumanMessage, AIMessage, ToolMessage,
+            )
+
+            agent = get_agent()
+            question_type = classify_with_llm(question)
+            system_prompt = build_system_prompt(question_type)
+            messages = [SystemMessage(content=system_prompt), HumanMessage(content=question)]
+            initial_state: AgentState = {
+                "messages": messages,
+                "question_type": question_type,
+                "tool_call_count": 0,
+            }
+            final_state = agent.invoke(initial_state)
+
+            # 최종 답변 추출
+            answer = ""
+            for msg in reversed(final_state["messages"]):
+                if isinstance(msg, AIMessage) and not msg.tool_calls:
+                    answer = msg.content
+                    break
+
+            model_used = "gpt-4o" if question_type in COMPLEX_TYPES else "gpt-4o-mini"
+
+            # 도구 호출 결과를 context로 추출
+            for msg in final_state["messages"]:
+                if isinstance(msg, ToolMessage) and msg.content:
+                    tool_contexts.append(msg.content)
+
+            # 차트 함수 복원
+            _cg.generate_technical_chart = _cg_orig
+
         except Exception as e:
             logger.error(f"  에이전트 오류: {e}")
             answer = f"오류: {e}"
             question_type = "unknown"
             model_used = "error"
+            try:
+                _cg.generate_technical_chart = _cg_orig
+            except Exception:
+                pass
 
-        # 2. 검색 컨텍스트 추출 (RAGAS Faithfulness 평가용)
-        #    에이전트가 실제로 보는 것과 동일하게 구조화 데이터도 포함
+        # 2. 검색 컨텍스트 + 도구 호출 결과 통합
+        #    에이전트가 실제로 본 정보 = RAG 검색 + 구조화 데이터 + 도구 호출 결과
         from src.llm.tools import _enrich_with_structured_data, _etf_data_index, _stock_data_index
 
         if asset_type == "stock" and stock_retriever:
@@ -216,13 +276,22 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
             context, sources = retrieve_relevant_docs(etf_retriever, question)
             enriched = _enrich_with_structured_data(sources or [], _etf_data_index)
 
-        # 구조화 데이터를 context에 합산 (에이전트가 LLM에 전달하는 것과 동일)
+        # 구조화 데이터를 context에 합산
         if context and enriched:
             context = context + enriched
         elif enriched:
             context = enriched
 
-        retrieved_contexts = [context] if context else ["관련 문서 없음"]
+        # 도구 호출 결과를 context에 추가 (에이전트가 실제로 본 전체 정보)
+        all_contexts = []
+        if context:
+            all_contexts.append(context)
+        for tc in tool_contexts:
+            # JSON 구조화 데이터(차트 등)는 제외, 텍스트만 포함
+            if tc and not tc.startswith("{\"__type__\""):
+                all_contexts.append(tc[:3000])  # 도구 결과는 3000자 제한
+
+        retrieved_contexts = all_contexts if all_contexts else ["관련 문서 없음"]
 
         # 3. RAGAS SingleTurnSample 생성
         sample = SingleTurnSample(
@@ -291,15 +360,21 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
                     if val is not None and not (isinstance(val, float) and val != val):
                         per_question_details[i][col] = round(float(val), 3)
 
-        # general 유형 제외 Faithfulness (RAG 전용 — general은 LLM 지식 질문)
-        rag_faith = [
-            per_question_details[i].get("faithfulness")
-            for i in range(len(per_question_details))
-            if per_question_details[i].get("question_type") != "general"
-            and per_question_details[i].get("faithfulness") is not None
-        ]
+        # general 유형 제외 (RAG 전용 — general은 LLM 지식 질문이므로 CR/F 평가 부적합)
+        rag_types = [i for i in range(len(per_question_details))
+                     if per_question_details[i].get("question_type") != "general"]
+
+        rag_faith = [per_question_details[i].get("faithfulness")
+                     for i in rag_types
+                     if per_question_details[i].get("faithfulness") is not None]
         if rag_faith:
             scores["faithfulness_rag_only"] = round(sum(rag_faith) / len(rag_faith), 3)
+
+        rag_cr = [per_question_details[i].get("context_recall")
+                  for i in rag_types
+                  if per_question_details[i].get("context_recall") is not None]
+        if rag_cr:
+            scores["context_recall_rag_only"] = round(sum(rag_cr) / len(rag_cr), 3)
     except Exception as e:
         logger.warning(f"결과 추출 실패: {e}")
 

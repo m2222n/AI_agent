@@ -1,13 +1,13 @@
 [
   {
     "question": "KODEX 200 ETF의 오늘 종가는 얼마야?",
-    "ground_truth": "KODEX 200의 종가는 82,770원입니다.",
+    "ground_truth": "KODEX 200(069500)의 종가, 등락률, 거래대금, NAV, 기초지수, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 현재 가격 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "069500"
   },
   {
     "question": "KODEX 반도체 ETF 수익률 알려줘",
-    "ground_truth": "KODEX 반도체의 1일 수익률은 +1.90%입니다.",
+    "ground_truth": "KODEX 반도체(091160)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 최근 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "091160"
   },
@@ -25,19 +25,19 @@
   },
   {
     "question": "KODEX 200 등락률이 얼마야?",
-    "ground_truth": "KODEX 200의 등락률은 +2.72%입니다.",
+    "ground_truth": "KODEX 200(069500)의 종가, 등락률 데이터를 기반으로 당일 등락률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "069500"
   },
   {
     "question": "KODEX 200선물인버스2X 수익률은?",
-    "ground_truth": "KODEX 200선물인버스2X의 1일 수익률은 -5.17%입니다.",
+    "ground_truth": "KODEX 200선물인버스2X(252670)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "252670"
   },
   {
     "question": "TIGER 미국나스닥100 수익률이 어때?",
-    "ground_truth": "TIGER 미국나스닥100의 1일 수익률은 +0.22%입니다.",
+    "ground_truth": "TIGER 미국나스닥100(133690)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "133690"
   },
@@ -55,7 +55,7 @@
   },
   {
     "question": "KODEX 인버스 수익률이 어때?",
-    "ground_truth": "KODEX 인버스의 1일 수익률은 -2.65%입니다.",
+    "ground_truth": "KODEX 인버스(114800)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "114800"
   },
@@ -67,7 +67,7 @@
   },
   {
     "question": "KODEX 코스닥150 수익률은?",
-    "ground_truth": "KODEX 코스닥150의 1일 수익률은 -1.85%입니다.",
+    "ground_truth": "KODEX 코스닥150(229200)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "229200"
   },
@@ -79,7 +79,7 @@
   },
   {
     "question": "KODEX 미국S&P500 수익률 어때?",
-    "ground_truth": "KODEX 미국S&P500의 1일 수익률은 +0.16%입니다.",
+    "ground_truth": "KODEX 미국S&P500(379800)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 수익률 정보를 제공합니다.",
     "question_type": "simple",
     "expected_ticker": "379800"
   },
@@ -910,62 +910,62 @@
   },
   {
     "question": "삼성전자 최근 분기 매출이랑 영업이익 알려줘",
-    "ground_truth": "삼성전자의 2024년 연간 매출은 약 300.9조원, 영업이익은 약 32.7조원입니다.",
+    "ground_truth": "삼성전자의 최근 분기/연간 매출과 영업이익을 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "005930",
     "asset_type": "stock"
   },
   {
     "question": "SK하이닉스 영업이익률 추이 어때?",
-    "ground_truth": "SK하이닉스의 최근 영업이익률은 약 35.45%로 매우 우수한 수준입니다.",
+    "ground_truth": "SK하이닉스의 최근 영업이익률 추이를 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "000660",
     "asset_type": "stock"
   },
   {
     "question": "현대차 실적 보여줘",
-    "ground_truth": "현대자동차의 2024년 연간 매출은 약 175.2조원, 영업이익은 약 14.2조원, 영업이익률은 8.13%입니다.",
+    "ground_truth": "현대자동차의 최근 매출, 영업이익, 영업이익률을 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "005380",
     "asset_type": "stock"
   },
   {
     "question": "NAVER 매출 성장률이 어떻게 돼?",
-    "ground_truth": "NAVER의 최근 매출은 약 10.7조원이며 영업이익률은 18.43%입니다.",
+    "ground_truth": "NAVER의 최근 매출과 매출 성장률을 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "035420",
     "asset_type": "stock"
   },
   {
     "question": "삼성전자랑 SK하이닉스 영업이익률 비교해줘",
-    "ground_truth": "삼성전자 영업이익률은 약 10.88%, SK하이닉스는 약 35.45%로 SK하이닉스가 훨씬 높습니다.",
+    "ground_truth": "삼성전자와 SK하이닉스의 영업이익률을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": "005930",
     "asset_type": "stock"
   },
   {
     "question": "영업이익률이 높은 주식 추천해줘",
-    "ground_truth": "영업이익률이 높은 종목으로는 SK하이닉스(35.45%), NAVER(18.43%) 등이 있습니다.",
+    "ground_truth": "영업이익률이 높은 종목을 안내합니다.",
     "question_type": "recommend",
     "asset_type": "stock"
   },
   {
     "question": "LG화학 재무제표 분석해줘",
-    "ground_truth": "LG화학의 2024년 매출은 약 48.9조원, 영업이익은 약 0.9조원으로 영업이익률은 1.87%입니다.",
+    "ground_truth": "LG화학의 최근 매출, 영업이익, 영업이익률을 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "051910",
     "asset_type": "stock"
   },
   {
     "question": "카카오 순이익이 얼마야?",
-    "ground_truth": "카카오의 최근 매출은 약 7.9조원, 영업이익률은 5.85%입니다.",
+    "ground_truth": "카카오의 최근 매출과 순이익을 안내합니다.",
     "question_type": "simple",
     "expected_ticker": "035720",
     "asset_type": "stock"
   },
   {
     "question": "반도체 관련 종목 실적 비교해줘",
-    "ground_truth": "삼성전자 영업이익률 10.88%, SK하이닉스 35.45%로 반도체 기업들의 수익성이 높습니다.",
+    "ground_truth": "삼성전자, SK하이닉스 등 반도체 종목의 영업이익률을 비교합니다.",
     "question_type": "compare",
     "asset_type": "mixed"
   },
@@ -1113,5 +1113,61 @@
     "ground_truth": "삼성전자, SK하이닉스 등 주요 반도체 종목의 기술적 분석과 실적을 종합하여 섹터 전망을 분석합니다.",
     "question_type": "recommend",
     "asset_type": "mixed"
+  },
+  {
+    "question": "TIGER 미국나스닥100 ETF 향후 전망은?",
+    "ground_truth": "TIGER 미국나스닥100의 기술적 분석과 통계 모델 기반으로 시나리오별 확률(상승/횡보/하락)과 리스크를 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "133690",
+    "asset_type": "etf"
+  },
+  {
+    "question": "기아 3개월 전망 분석해줘",
+    "ground_truth": "기아의 기술적 분석(MA/RSI/MACD 등) + 펀더멘털(매출/영업이익률/성장률) + 통계 모델을 종합하여 3개월 가격 전망과 신뢰도를 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "000270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "셀트리온 주가 1주일 뒤에 오를까?",
+    "ground_truth": "셀트리온의 1주 전망을 기술적 신호 + 펀더멘털 + 통계 모델로 종합 분석하여 상승/하락 가능성과 리스크 요인을 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "068270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "포스코홀딩스 앞으로 어떻게 될까?",
+    "ground_truth": "POSCO홀딩스의 기술적 분석 + 재무 실적 + 통계 모델을 종합하여 시나리오별 확률과 리스크 요인을 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 2차전지산업 ETF 전망이 어때?",
+    "ground_truth": "KODEX 2차전지산업 ETF의 기술적 분석과 통계 모델 기반으로 가격 전망과 시나리오별 확률을 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "305720",
+    "asset_type": "etf"
+  },
+  {
+    "question": "KB금융 지금 사도 돼?",
+    "ground_truth": "KB금융의 기술적 상태(추세/모멘텀/변동성)와 펀더멘털(영업이익률/성장률)을 분석하여 투자 참고 의견과 리스크를 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "105560",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성SDI 6개월 뒤 주가 예측해줘",
+    "ground_truth": "삼성SDI의 6개월 가격 전망을 기술적 분석 + 재무제표 + Ridge 회귀 모델로 종합 분석하여 시나리오별 확률과 신뢰도 등급을 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "006400",
+    "asset_type": "stock"
+  },
+  {
+    "question": "한화에어로스페이스 투자 전망 알려줘",
+    "ground_truth": "한화에어로스페이스의 기술적 지표 + 재무 실적 + 통계 모델을 종합하여 가격 전망, 시나리오별 확률, 리스크 요인을 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "012450",
+    "asset_type": "stock"
   }
 ]
