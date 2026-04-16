@@ -1,10 +1,11 @@
 #!/bin/bash
 # OpenDart 재무제표 전종목 백필 스크립트
-# 매일 19:00에 launchd로 실행, 하루 900건씩 점진적 수집
+# 매일 19:00에 launchd로 실행, 하루 9,500건씩 점진적 수집
 # 전종목 완료 시 자동 중단 (수집할 게 없으면 0건으로 끝남)
+# 200건 연속 실패 시 API 한도 소진으로 간주, 조기 종료
 #
 # 수집 범위: 2015~현재, 전종목 (거래대금 무관)
-# 예상 소요: ~3,500종목 × 44분기 = ~154,000건, 900건/일 → ~6개월
+# 예상 소요: ~3,500종목 × 44분기 = ~154,000건, 9,500건/일 → ~11일
 
 set -euo pipefail
 
@@ -27,8 +28,8 @@ if ! host opendart.fss.or.kr > /dev/null 2>&1; then
     exit 1
 fi
 
-# 전종목 백필 (하루 900건 제한, resume 자동)
-# --backfill-all: 전종목 대상, --daily-limit 900: 하루 수집 한도
+# 전종목 백필 (하루 9,500건 제한, resume 자동)
+# 기본값: --limit 9500 (backfill_financials_runner.py 참조)
 if $PYTHON -m scripts.backfill_financials_runner >> "$LOG_FILE" 2>&1; then
     echo "=== DART 백필 완료: $(date) ===" >> "$LOG_FILE"
 else

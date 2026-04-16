@@ -125,6 +125,8 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
     skipped = 0
     failed = 0
     api_calls = 0  # API 호출 횟수 (스킵 제외)
+    consecutive_failures = 0  # 연속 실패 카운터
+    MAX_CONSECUTIVE_FAILURES = 200  # 200건 연속 실패 시 API 한도 소진 간주
 
     for year, quarter in quarters:
         for ticker in tickers:
@@ -153,7 +155,18 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
 
             if result is None:
                 failed += 1
+                consecutive_failures += 1
+                # 연속 실패가 임계치 초과 시 API 한도 소진으로 간주하고 조기 종료
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    logger.warning(
+                        f"연속 {MAX_CONSECUTIVE_FAILURES}건 실패 — API 한도 소진 추정, 조기 종료. "
+                        f"API {api_calls}, 수집 {collected}, 스킵 {skipped}, 실패 {failed}"
+                    )
+                    return collected
                 continue
+
+            # 성공 시 연속 실패 카운터 리셋
+            consecutive_failures = 0
 
             # YoY 성장률
             growth = _calc_yoy_growth(conn, ticker, year, quarter, result)
@@ -170,7 +183,7 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
             existing_set.add((ticker, year, quarter))
             collected += 1
 
-            if api_calls % 50 == 0:
+            if api_calls % 50 == 0 or (api_calls <= 50 and api_calls % 10 == 0):
                 logger.info(
                     f"  진행: API {api_calls}/{daily_limit} "
                     f"(수집 {collected}, 스킵 {skipped}, 실패 {failed})"
