@@ -146,29 +146,27 @@
 ## TODO: 부트캠프 내용 → 프로젝트 적용
 
 ### Phase 1에서 적용 (Day 2 - PDF/데이터)
-- [ ] PyPDFLoader로 ETF 투자설명서 PDF 로딩 파이프라인 구축 (→ #11)
-- [ ] tiktoken 기반 토큰 카운트 함수 추가 (→ #6)
+- [x] PyPDFLoader로 ETF 투자설명서 PDF 로딩 파이프라인 구축 (→ #11) — `pdf_loader.py` 구현 완료
+- [x] tiktoken 기반 토큰 카운트 함수 추가 (→ #6) — `_trim_history()` + PDF 청킹에 적용
 
 ### Phase 2에서 적용 (Day 2 - RAG 고도화, 핵심)
-- [ ] FAISS → ChromaDB 마이그레이션 (→ #5)
-  - persist_directory로 영속성 확보
-  - Streamlit Cloud에서 SQLite 버전 호환 재확인
-- [ ] RecursiveCharacterTextSplitter 적용 (chunk_size=1000, overlap=100) (→ #6)
+- [x] FAISS persist 구현 (→ #5) — `save_local/load_local` + 해시 기반 캐시 무효화 (ChromaDB 대신 FAISS 유지)
+- [x] RecursiveCharacterTextSplitter 적용 (chunk_size=1000, overlap=100) (→ #6) — `pdf_loader.py`에 적용
 - [ ] 임베딩 모델 비교 실험: OpenAI vs BGE-M3 (한국어 특화) (→ #7)
-- [ ] retriever.py에 MMR 검색 적용 (similarity_search → mmr, fetch_k=10, k=3) (→ #8)
-- [ ] Hybrid Search 구현 (BM25 + Dense Vector) (→ #9)
-- [ ] Re-ranking 적용 (Cross-encoder) (→ #9)
+- [x] retriever.py에 MMR 검색 적용 (→ #8) — `HybridRetriever`에 Jaccard 기반 MMR 구현
+- [x] Hybrid Search 구현 (BM25 + Dense Vector) (→ #9) — `FAISS + Kiwi BM25 + RRF` 구현
+- [ ] Re-ranking 적용 (Cross-encoder / Cohere Rerank) (→ #9)
 
 ### Phase 3에서 적용 (Day 1+2 종합)
-- [ ] Structured Output 적용 - LLM 응답을 JSON 스키마로 강제 (Day 1 → #2)
-- [ ] CoV (Chain of Verification) 할루시네이션 방어 로직 추가 (Day 1 → #3)
-- [ ] 부정 제약(Negative Constraints) prompts.py에 보강 (Day 1 → #4)
-- [ ] LangGraph 전환 검토 - 검색 부족 시 재검색 순환 구조 (Day 2 → #10)
+- [x] Structured Output 적용 - LLM 분류에 Pydantic 스키마 강제 (Day 1 → #2) — `classify_with_llm()` 적용
+- [x] CoV (Chain of Verification) 할루시네이션 방어 (Day 1 → #3) — LangGraph verify 노드 추가 (compare/recommend/risk)
+- [x] 부정 제약(Negative Constraints) prompts.py에 보강 (Day 1 → #4) — 수치 근거 필수, 허위 생성 금지 등 적용
+- [x] LangGraph 전환 (Day 2 → #10) — `agent.py` 에이전트 그래프 + 도구 13개 + CoV 검증
 
 ### 검토 후 결정
-- [ ] Self-Consistency (다수결) - 비용 대비 효과 검토 (Day 1)
-- [ ] 멀티 페르소나 - ETF 비교 질문에 다관점 분석 적용 (Day 1)
-- [ ] LangGraph 본격 도입 시점 - Phase 3 이후 복잡 워크플로우 필요 시 (Day 2)
+- [ ] Self-Consistency (다수결) - 비용 대비 효과 검토 (Day 1) → 보류 (CoV로 대체)
+- [ ] 멀티 페르소나 - ETF 비교 질문에 다관점 분석 적용 (Day 1) → 보류
+- [x] LangGraph 본격 도입 — 완료 (에이전트 + CoV 검증 그래프)
 - [ ] Azure OpenAI 백엔드 지원 - 현재 불필요, 기업 환경 대응 필요 시 재검토 (Day 1)
 
 ---
@@ -180,16 +178,16 @@
 > 소스코드: `/Users/m2222n/Work/Personal/Semiconductor_LLM/`
 
 ### Phase 1에서 적용 (외부 API 연동)
-- [ ] 실시간 ETF 데이터 API 호출 시 에러 핸들링 패턴 적용 (→ 아래 #14)
+- [x] 실시간 ETF 데이터 API 호출 시 에러 핸들링 패턴 적용 (→ #14) — timeout/retry/rate limit 구현 완료
 
 ### Phase 3에서 적용 (핵심 - Function Calling + Multi-Tool Agent)
-- [ ] Function Calling으로 질문 분류 전환: classifier.py 키워드 매칭 → LLM이 도구 자동 선택 (→ #12, #13)
-- [ ] Multi-Tool Agent 구조: RAG 검색 + 실시간 API + 로컬 계산을 하나의 에이전트에서 통합 (→ #13)
-- [ ] 구조화 데이터(가격/수익률)와 비구조화 데이터(투자설명서) 통합 응답 구현 (→ #13)
+- [x] Function Calling으로 질문 분류 전환 (→ #12, #13) — LangGraph + 도구 13개 + Structured Output 분류
+- [x] Multi-Tool Agent 구조 (→ #13) — RAG 검색 + yfinance + pykrx + DART + 기술적 지표 + 포트폴리오 + 예측 통합
+- [x] 구조화 데이터 + 비구조화 데이터 통합 응답 (→ #13) — `_enrich_with_structured_data()` 구현
 
 ### 검토 후 결정
 - [ ] Async 병렬 API 호출 (`asyncio.gather()`) - 복수 API 동시 호출로 응답 속도 개선 (→ #15)
-- [ ] Microsoft Agent Framework → LangGraph가 더 적합, Azure 종속성 없이 동일 패턴 구현 가능
+- [x] Microsoft Agent Framework → LangGraph 채택 완료 (Azure 종속성 없음)
 
 #### 12. Function Calling / Tool Use 패턴 (Semiconductor_LLM: 01, 04)
 - OpenAI Function Calling의 2-call agent loop:

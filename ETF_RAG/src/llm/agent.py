@@ -6,12 +6,14 @@ LangGraph 기반 ETF 에이전트
 2. 도구 실행 → 검색 결과 반환
 3. 검색 결과 부족 시 재검색 (최대 1회)
 4. 최종 답변 생성
+5. (CoV) 복잡 질문 시 답변 검증 → 수정
 
 모델 라우팅:
 - 단순 질문 (simple, general) → GPT-4o-mini (비용 절감)
 - 복잡 질문 (compare, recommend, risk) → GPT-4o
 """
 
+import json
 import logging
 import operator
 from typing import Annotated, Sequence, TypedDict
@@ -26,6 +28,7 @@ from langchain_core.messages import (
 )
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
+from pydantic import BaseModel, Field
 
 from src.llm.tools import ALL_TOOLS
 from src.llm.prompts import build_system_prompt
@@ -46,6 +49,9 @@ class AgentState(TypedDict):
 
 # 복잡한 질문 유형 → GPT-4o
 COMPLEX_TYPES = {"compare", "recommend", "risk"}
+
+# CoV 적용 대상 질문 유형
+COV_TYPES = {"compare", "recommend", "risk"}
 
 _models = {}
 
@@ -81,30 +87,63 @@ def _get_classifier():
     return _classifier_model
 
 
+# ── Structured Output 스키마 ──────────────────────────────
+
+class QuestionClassification(BaseModel):
+    """질문 유형 분류 결과 (Structured Output)"""
+    question_type: str = Field(
+        description="질문 유형: simple, compare, recommend, risk, general 중 하나"
+    )
+
+
+_structured_classifier = None
+
+
+def _get_structured_classifier():
+    """Structured Output 분류기 반환 (캐싱)"""
+    global _structured_classifier
+    if _structured_classifier is None:
+        base = ChatOpenAI(model="gpt-4o-mini", temperature=0, timeout=15)
+        _structured_classifier = base.with_structured_output(QuestionClassification)
+    return _structured_classifier
+
+
 def classify_with_llm(question: str) -> str:
-    """LLM으로 질문 유형 분류 (키워드 classifier 대체)"""
-    prompt = f"""다음 질문을 분류하세요. 반드시 아래 5가지 중 하나만 답하세요.
+    """LLM으로 질문 유형 분류 (Structured Output + 키워드 fallback)"""
+    prompt = f"""다음 질문을 분류하세요. 반드시 아래 5가지 중 하나를 선택합니다.
 
-- simple: 특정 ETF의 가격, 수익률, NAV, 거래량 등 단순 정보 질문
-- compare: 두 개 이상의 ETF를 비교하는 질문
-- recommend: ETF 추천, 카테고리 탐색, 목록 요청
+- simple: 특정 ETF/주식의 가격, 수익률, NAV, 거래량 등 단순 정보 질문
+- compare: 두 개 이상의 ETF/주식을 비교하는 질문
+- recommend: ETF/주식 추천, 카테고리 탐색, 목록 요청
 - risk: 투자 위험, 변동성, 손실 가능성 질문
-- general: ETF 일반 개념, 용어 설명
+- general: ETF/주식 일반 개념, 용어 설명
 
-질문: {question}
-분류:"""
+질문: {question}"""
+
+    valid_types = {"simple", "compare", "recommend", "risk", "general"}
 
     try:
-        result = _get_classifier().invoke([HumanMessage(content=prompt)])
+        # Structured Output으로 분류 (JSON 스키마 강제)
+        result = _get_structured_classifier().invoke([HumanMessage(content=prompt)])
+        qtype = result.question_type.strip().lower()
+        if qtype in valid_types:
+            return qtype
+        # 유효하지 않은 유형이면 general fallback
+        logger.warning(f"Structured Output 유효하지 않은 유형: {qtype}")
+        return "general"
+    except Exception as e:
+        logger.warning(f"Structured Output 분류 실패, 기존 방식 시도: {e}")
+
+    # fallback: 기존 텍스트 파싱 방식
+    try:
+        result = _get_classifier().invoke([HumanMessage(content=prompt + "\n분류:")])
         answer = result.content.strip().lower()
-        valid_types = {"simple", "compare", "recommend", "risk", "general"}
-        # 응답에서 유효한 유형 추출
         for vt in valid_types:
             if vt in answer:
                 return vt
         return "general"
-    except Exception as e:
-        logger.warning(f"LLM 분류 실패, 키워드 fallback: {e}")
+    except Exception as e2:
+        logger.warning(f"LLM 분류 실패, 키워드 fallback: {e2}")
         from src.llm.classifier import classify_question_type
         return classify_question_type(question)
 
@@ -178,6 +217,112 @@ def call_tools(state: AgentState) -> dict:
     }
 
 
+# ── CoV (Chain of Verification) ──────────────────────────
+
+def _extract_tool_evidence(messages: Sequence[BaseMessage]) -> str:
+    """메시지에서 도구 결과(ToolMessage)를 수집하여 검증 근거로 반환"""
+    evidence_parts = []
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            # 구조화 데이터 JSON은 제외 (비교 테이블 등)
+            content = msg.content
+            if '"__type__"' in content:
+                # JSON 앞의 텍스트 부분만 추출
+                parts = content.split("---")
+                content = parts[-1] if len(parts) > 1 else content[:500]
+            evidence_parts.append(content[:1000])  # 각 도구 결과 최대 1000자
+    return "\n---\n".join(evidence_parts)
+
+
+def verify_answer(state: AgentState) -> dict:
+    """
+    CoV: 최종 답변의 수치/주장이 도구 결과와 일치하는지 검증.
+    불일치 발견 시 수정된 답변을 반환.
+    """
+    messages = list(state["messages"])
+
+    # 최종 답변 찾기
+    answer = ""
+    for msg in reversed(messages):
+        if isinstance(msg, AIMessage) and not msg.tool_calls and msg.content:
+            answer = msg.content
+            break
+
+    if not answer:
+        return {"messages": []}
+
+    # 도구 결과 수집
+    evidence = _extract_tool_evidence(messages)
+    if not evidence:
+        return {"messages": []}
+
+    # 검증 프롬프트
+    verify_prompt = f"""당신은 금융 데이터 검증 전문가입니다.
+아래 [답변]에 포함된 수치(가격, 수익률, PER, PBR, 시가총액, 거래량 등)가
+[도구 결과]의 데이터와 일치하는지 검증하세요.
+
+[도구 결과]
+{evidence[:3000]}
+
+[답변]
+{answer}
+
+검증 규칙:
+1. 답변의 수치가 도구 결과에 있는 수치와 다르면 "불일치"
+2. 도구 결과에 없는 수치를 답변이 만들어냈으면 "허위"
+3. 모든 수치가 일치하면 "통과"
+
+결과를 아래 형식으로 답하세요:
+- 판정: 통과 / 수정필요
+- 문제점: (수정필요인 경우만) 불일치/허위 수치를 구체적으로 나열
+- 수정 답변: (수정필요인 경우만) 도구 결과의 정확한 수치로 수정한 전체 답변"""
+
+    try:
+        classifier = _get_classifier()
+        result = classifier.invoke([HumanMessage(content=verify_prompt)])
+        verification = result.content
+
+        if "통과" in verification and "수정필요" not in verification:
+            logger.info("CoV 검증 통과")
+            return {"messages": []}
+
+        # 수정 필요 — 수정된 답변 추출
+        logger.info("CoV 검증: 수정 필요 감지")
+
+        # "수정 답변:" 이후의 텍스트를 추출
+        if "수정 답변:" in verification:
+            revised = verification.split("수정 답변:", 1)[1].strip()
+            if len(revised) > 50:  # 의미 있는 길이의 수정 답변이 있을 때만
+                logger.info(f"CoV 수정 적용 ({len(revised)}자)")
+                return {"messages": [AIMessage(content=revised)]}
+
+        # 수정 답변 추출 실패 시 — 별도 LLM 호출로 수정
+        revise_prompt = f"""아래 검증 결과를 바탕으로 답변을 수정하세요.
+원래 답변의 구조와 톤은 유지하되, 잘못된 수치만 도구 결과의 정확한 값으로 교체하세요.
+
+[검증 결과]
+{verification}
+
+[도구 결과]
+{evidence[:2000]}
+
+[원래 답변]
+{answer}
+
+수정된 답변:"""
+
+        revised_result = classifier.invoke([HumanMessage(content=revise_prompt)])
+        revised = revised_result.content.strip()
+        if len(revised) > 50:
+            logger.info(f"CoV 2차 수정 적용 ({len(revised)}자)")
+            return {"messages": [AIMessage(content=revised)]}
+
+    except Exception as e:
+        logger.warning(f"CoV 검증 실패 (무시): {e}")
+
+    return {"messages": []}
+
+
 # ── 라우팅 함수 ───────────────────────────────────────────
 
 def should_call_tools(state: AgentState) -> str:
@@ -195,30 +340,65 @@ def should_call_tools(state: AgentState) -> str:
     return "end"
 
 
+def should_verify(state: AgentState) -> str:
+    """최종 답변 후 CoV 검증이 필요한지 판단"""
+    last_message = state["messages"][-1]
+    question_type = state["question_type"]
+
+    # 최종 답변(tool_calls 없는 AIMessage)이고, CoV 대상 유형이면 검증
+    if (isinstance(last_message, AIMessage)
+            and not last_message.tool_calls
+            and last_message.content
+            and question_type in COV_TYPES):
+        # 도구 호출이 있었는지 확인 (도구 없이 답변한 경우는 스킵)
+        has_tool_results = any(
+            isinstance(msg, ToolMessage) for msg in state["messages"]
+        )
+        if has_tool_results:
+            return "verify"
+
+    return "end"
+
+
 # ── 그래프 빌드 ───────────────────────────────────────────
 
 def build_graph() -> StateGraph:
-    """LangGraph 에이전트 그래프 구성"""
+    """LangGraph 에이전트 그래프 구성 (CoV 포함)"""
     graph = StateGraph(AgentState)
 
     # 노드 추가
     graph.add_node("agent", call_model)
     graph.add_node("tools", call_tools)
+    graph.add_node("verify", verify_answer)
 
     # 진입점
     graph.set_entry_point("agent")
 
-    # 조건부 엣지: agent → tools 또는 END
+    # agent → tools / verify(최종답변) / END
     graph.add_conditional_edges(
         "agent",
-        should_call_tools,
-        {"tools": "tools", "end": END},
+        _route_after_agent,
+        {"tools": "tools", "verify": "verify", "end": END},
     )
 
     # tools → agent (도구 결과를 LLM에 전달)
     graph.add_edge("tools", "agent")
 
+    # verify → END
+    graph.add_edge("verify", END)
+
     return graph.compile()
+
+
+def _route_after_agent(state: AgentState) -> str:
+    """agent 노드 후 라우팅: tools / verify / end"""
+    # 먼저 도구 호출 여부 확인
+    tool_route = should_call_tools(state)
+    if tool_route == "tools":
+        return "tools"
+
+    # 도구 호출 아니면 검증 여부 확인
+    return should_verify(state)
 
 
 # ── 에이전트 실행 ─────────────────────────────────────────
@@ -231,7 +411,7 @@ def get_agent():
     global _compiled_graph
     if _compiled_graph is None:
         _compiled_graph = build_graph()
-        logger.info("LangGraph 에이전트 빌드 완료")
+        logger.info("LangGraph 에이전트 빌드 완료 (CoV 포함)")
     return _compiled_graph
 
 
@@ -329,6 +509,7 @@ def stream_agent(question: str, chat_history: list = None):
 
     final_answer = ""
     model_used = "gpt-4o" if question_type in COMPLEX_TYPES else "gpt-4o-mini"
+    cov_applied = False
 
     try:
         # 두 모드 동시 사용: messages(토큰 스트리밍) + updates(도구 호출 감지)
@@ -350,8 +531,17 @@ def stream_agent(question: str, chat_history: list = None):
                         continue
                     # 텍스트 토큰 누적
                     if msg_chunk.content:
-                        final_answer += msg_chunk.content
-                        yield {"event": "token", "data": final_answer}
+                        if node == "verify":
+                            # CoV 수정 답변이 오면 기존 답변 대체
+                            if not cov_applied:
+                                cov_applied = True
+                                final_answer = ""
+                                yield {"event": "cov_revision", "data": "검증 수정 적용 중..."}
+                            final_answer += msg_chunk.content
+                            yield {"event": "token", "data": final_answer}
+                        else:
+                            final_answer += msg_chunk.content
+                            yield {"event": "token", "data": final_answer}
 
             elif mode == "updates":
                 # 노드별 상태 업데이트 (도구 호출/결과 감지용)
@@ -370,6 +560,15 @@ def stream_agent(question: str, chat_history: list = None):
                             if isinstance(msg, AIMessage) and msg.tool_calls:
                                 for tc in msg.tool_calls:
                                     yield {"event": "tool_call", "data": {"name": tc["name"], "args": tc["args"]}}
+                    elif node_name == "verify":
+                        for msg in node_output.get("messages", []):
+                            if isinstance(msg, AIMessage) and msg.content:
+                                # CoV 수정 답변으로 대체
+                                if not cov_applied:
+                                    cov_applied = True
+                                    final_answer = msg.content
+                                    yield {"event": "cov_revision", "data": "검증 수정 완료"}
+                                    yield {"event": "token", "data": final_answer}
 
     except Exception as e:
         logger.error(f"에이전트 스트리밍 오류: {e}")
@@ -378,4 +577,9 @@ def stream_agent(question: str, chat_history: list = None):
             final_answer = error_msg
         yield {"event": "error", "data": error_msg}
 
-    yield {"event": "done", "data": {"answer": final_answer, "model": model_used, "question_type": question_type}}
+    yield {"event": "done", "data": {
+        "answer": final_answer,
+        "model": model_used,
+        "question_type": question_type,
+        "cov_applied": cov_applied,
+    }}

@@ -39,7 +39,6 @@ def main():
     parser = argparse.ArgumentParser(description="재무제표 전체 백필 (2015~2025)")
     parser.add_argument("--start", type=int, default=2015, help="시작 연도")
     parser.add_argument("--end", type=int, default=2025, help="종료 연도")
-    parser.add_argument("--max", type=int, default=3000, help="분기당 최대 종목 수")
     parser.add_argument("--delay", type=float, default=0.2, help="API 요청 간격 (초)")
     args = parser.parse_args()
 
@@ -61,17 +60,14 @@ def main():
         logger.error("corp_code 매핑이 없습니다. --refresh-codes를 먼저 실행하세요.")
         return
 
-    # 대상 종목: 거래대금 상위
+    # 대상 종목: DART corp_code가 있는 전체 주식 (현재 상장 종목)
     rows = conn.execute("""
-        SELECT p.ticker FROM daily_prices p
-        JOIN instruments i ON p.ticker = i.ticker
-        WHERE i.type = 'stock' AND p.trade_value >= 1000000000
-        AND p.date = (SELECT MAX(date) FROM daily_prices
-                      WHERE ticker = p.ticker)
-        GROUP BY p.ticker
-        ORDER BY MAX(p.trade_value) DESC
-        LIMIT ?
-    """, (args.max,)).fetchall()
+        SELECT DISTINCT i.ticker
+        FROM instruments i
+        JOIN dart_corp_codes d ON i.ticker = d.ticker
+        WHERE i.type = 'stock'
+        ORDER BY i.ticker
+    """).fetchall()
     tickers = [r["ticker"] for r in rows]
     logger.info(f"대상 종목: {len(tickers)}개")
 

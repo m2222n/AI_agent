@@ -48,7 +48,7 @@ def init_retriever():
     """하이브리드 검색기 초기화 + 에이전트 도구 주입 (ETF + 주식)"""
     etf_data = load_etf_data()
     documents = create_documents(etf_data)
-    vectorstore = _create_vectorstore(documents)
+    vectorstore = _create_vectorstore(documents, prefix="etf")
     etf_retriever = HybridRetriever(vectorstore, documents)
 
     # 주식 retriever (데이터 있을 때만)
@@ -56,7 +56,7 @@ def init_retriever():
     stock_retriever = None
     if stock_data:
         stock_documents = create_stock_documents(stock_data)
-        stock_vectorstore = _create_vectorstore(stock_documents)
+        stock_vectorstore = _create_vectorstore(stock_documents, prefix="stock")
         stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
 
     # LangGraph 도구에 retriever + 원본 데이터 주입 (구조화 비교용)
