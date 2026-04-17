@@ -13,7 +13,7 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -28,16 +28,48 @@ jobs:
         run: |
           pip install pykrx requests dart-fss
 
-      - name: Collect KRX data and update deploy/
+      # ── DB 다운로드 (Release asset에서) ──────────────────────
+      - name: Download DB from latest release
+        id: download_db
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DB_DIR="ETF_RAG/src/data"
+          mkdir -p "$DB_DIR"
+
+          # 최신 release에서 DB 다운로드
+          if gh release download db-latest \
+              --pattern "etf_rag.db.zst" \
+              --dir /tmp \
+              --clobber 2>/dev/null; then
+            echo "DB 다운로드 성공"
+            # zstd 압축 해제
+            sudo apt-get install -y zstd > /dev/null 2>&1
+            zstd -d /tmp/etf_rag.db.zst -o "$DB_DIR/etf_rag.db" --force
+            ls -lh "$DB_DIR/etf_rag.db"
+            echo "db_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "DB release 없음 — DB 수집 건너뜀"
+            echo "db_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 데이터 수집 (deploy JSON + DB) ──────────────────────
+      - name: Collect KRX data
         env:
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}/ETF_RAG:${{ github.workspace }}/scripts
         run: |
           # 최대 3회 재시도 (KRX 간헐적 장애 대응)
+          SKIP_DB_FLAG=""
+          if [ "${{ steps.download_db.outputs.db_exists }}" != "true" ]; then
+            SKIP_DB_FLAG="--skip-db"
+          fi
+
           for attempt in 1 2 3; do
             echo "=== 수집 시도 $attempt/3 ==="
-            if python scripts/collect_for_deploy.py; then
+            if python scripts/collect_full.py $SKIP_DB_FLAG; then
               echo "수집 성공"
               break
             fi
@@ -50,6 +82,33 @@ jobs:
             fi
           done
 
+      # ── DB 업로드 (Release asset으로) ───────────────────────
+      - name: Upload DB to release
+        if: steps.download_db.outputs.db_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DB_FILE="ETF_RAG/src/data/etf_rag.db"
+          if [ -f "$DB_FILE" ]; then
+            sudo apt-get install -y zstd > /dev/null 2>&1
+            zstd -19 "$DB_FILE" -o /tmp/etf_rag.db.zst --force
+            COMPRESSED_SIZE=$(du -h /tmp/etf_rag.db.zst | cut -f1)
+            echo "DB 압축 완료: $COMPRESSED_SIZE"
+
+            # release가 없으면 생성
+            if ! gh release view db-latest > /dev/null 2>&1; then
+              gh release create db-latest \
+                --title "SQLite DB (자동 업데이트)" \
+                --notes "매일 GitHub Actions에서 자동 업데이트되는 SQLite DB" \
+                --latest=false
+            fi
+
+            # asset 업로드 (기존 파일 덮어쓰기)
+            gh release upload db-latest /tmp/etf_rag.db.zst --clobber
+            echo "DB 업로드 완료"
+          fi
+
+      # ── deploy/ JSON 커밋 ───────────────────────────────────
       - name: Check for changes
         id: changes
         run: |
