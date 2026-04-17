@@ -103,19 +103,25 @@ def _extract_account_value(accounts: list, target_names: list) -> Optional[int]:
     return None
 
 
+# collect_single_financial 반환값 구분용 센티넬
+NO_DATA = "NO_DATA"  # 정상적으로 데이터가 없음 (해당 분기 공시 없음)
+
+
 def collect_single_financial(corp_code: str, year: str, quarter: int,
-                             request_delay: float = 0.5) -> Optional[dict]:
+                             request_delay: float = 0.5):
     """
     단일 기업의 특정 분기 재무제표 수집.
 
     Returns:
-        {revenue, operating_profit, net_income, operating_margin, net_margin} or None
+        dict: 성공 시 {revenue, operating_profit, ...}
+        "NO_DATA": 정상적으로 데이터 없음 (해당 분기 공시 없음)
+        None: API 오류 (rate limit, 네트워크 등)
     """
     from dart_fss.api.finance import fnltt_singl_acnt
 
     report_code = REPORT_CODES.get(quarter)
     if not report_code:
-        return None
+        return NO_DATA
 
     time.sleep(request_delay)
 
@@ -127,12 +133,18 @@ def collect_single_financial(corp_code: str, year: str, quarter: int,
             reprt_code=report_code,
         )
     except Exception as e:
+        error_str = str(e).lower()
+        # rate limit / 인증 오류는 진짜 API 에러
+        if "limited" in error_str or "429" in error_str or "unauthorized" in error_str:
+            logger.warning(f"API 오류: {corp_code} {year}Q{quarter} — {e}")
+            return None
+        # 그 외(데이터 없음 등)는 정상 — 013 에러코드 = "조회된 데이터가 없습니다"
         logger.debug(f"재무제표 없음: {corp_code} {year}Q{quarter} — {e}")
-        return None
+        return NO_DATA
 
     accounts = result.get("list", [])
     if not accounts:
-        return None
+        return NO_DATA
 
     revenue = _extract_account_value(accounts, ACCOUNT_NAMES["revenue"])
     op_profit = _extract_account_value(accounts, ACCOUNT_NAMES["operating_profit"])
@@ -282,7 +294,7 @@ def collect_batch_financials(conn, year: str, quarter: int,
             continue
 
         result = collect_single_financial(corp_code, year, quarter, request_delay)
-        if result is None:
+        if result is None or result == NO_DATA:
             failed += 1
             continue
 

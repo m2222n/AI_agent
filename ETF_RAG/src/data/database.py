@@ -693,20 +693,13 @@ def get_latest_financial_summary(conn: sqlite3.Connection,
 
 def prune_old_data(conn: sqlite3.Connection, retention_days: int = 4380):
     """
-    오래된 데이터 삭제 (기본 12년 = 4380일).
-    holdings는 1년만 보존.
+    오래된 데이터 정리.
+    - daily_prices, returns, stock_fundamentals: 영구 보존 (KRX 슬라이딩 윈도우로 재수집 불가)
+    - holdings: 1년만 보존 (용량 관리)
     """
-    cutoff = (datetime.now() - timedelta(days=retention_days)).strftime("%Y%m%d")
     holdings_cutoff = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
     with conn:
-        for table in ["daily_prices", "returns", "stock_fundamentals"]:
-            deleted = conn.execute(
-                f"DELETE FROM {table} WHERE date < ?", (cutoff,)
-            ).rowcount
-            if deleted:
-                logger.info(f"{table}에서 {deleted}행 삭제 ({cutoff} 이전)")
-
         deleted = conn.execute(
             "DELETE FROM holdings WHERE date < ?", (holdings_cutoff,)
         ).rowcount

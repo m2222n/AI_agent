@@ -87,7 +87,7 @@ MAX_HISTORY_MESSAGES = 10
 DART_API_KEY = os.getenv("DART_API_KEY", "")
 DART_COLLECTION = {
     "request_delay": 0.5,           # API 호출 간격 (초)
-    "max_daily_requests": 900,      # 일일 안전 한도 (무료 10,000)
+    "max_daily_requests": 39000,    # 일일 안전 한도 (실제 40,000)
     "min_trade_value": 1_000_000_000,  # 거래대금 10억 이상 종목만 수집
     "backfill_years": 3,            # 백필 기간 (년)
 }

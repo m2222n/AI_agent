@@ -1,14 +1,14 @@
 """
-DART 재무제표 전종목 점진적 백필 — 매일 9500건씩
+DART 재무제표 전종목 점진적 백필 — 매일 39,000건씩 (DART 한도 40,000)
 
 전종목(거래대금 무관)을 2015년부터 현재까지 수집.
-이미 수집된 건은 자동 스킵(resume). 하루 한도 도달 시 중단.
-다음 날 이어서 수집.
+이미 수집된 건과 '데이터 없음' 확인된 건은 자동 스킵(resume).
+하루 한도 도달 시 중단. 다음 날 이어서 수집.
 
 사용법:
-    python -m scripts.backfill_financials_runner           # 매일 9500건
+    python -m scripts.backfill_financials_runner            # 매일 39,000건
     python -m scripts.backfill_financials_runner --limit 100  # 테스트
-    python -m scripts.backfill_financials_runner --status   # 진행 상황
+    python -m scripts.backfill_financials_runner --status    # 진행 상황
 """
 
 import sys
@@ -27,6 +27,20 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+def _ensure_no_data_table(conn):
+    """'데이터 없음' 확인 기록 테이블 생성 (재시도 방지용)."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS financials_no_data (
+            ticker TEXT NOT NULL,
+            fiscal_year TEXT NOT NULL,
+            fiscal_quarter INTEGER NOT NULL,
+            checked_at TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY (ticker, fiscal_year, fiscal_quarter)
+        )
+    """)
+    conn.commit()
 
 
 def get_all_stock_tickers(conn) -> list:
@@ -77,18 +91,23 @@ def show_status(conn):
     corp_codes = get_all_corp_codes(conn)
 
     quarters = get_all_quarters()
-    # 매핑 가능한 종목만 카운트
     mappable = sum(1 for t in get_all_stock_tickers(conn) if t in corp_codes)
     total_possible = mappable * len(quarters)
 
+    # no_data 테이블 확인
+    _ensure_no_data_table(conn)
+    no_data_rows = cur.execute("SELECT COUNT(*) FROM financials_no_data").fetchone()[0]
+    checked = total_rows + no_data_rows
+    remaining = total_possible - checked
+
     print(f"=== DART 재무제표 백필 현황 ===")
     print(f"수집 완료: {total_rows}행, {total_tickers}종목")
+    print(f"데이터 없음 확인: {no_data_rows}건")
     print(f"전체 주식: {total_stocks}종목")
     print(f"DART 매핑 가능: {mappable}종목")
     print(f"수집 대상 (종목×분기): {total_possible}건")
-    remaining = total_possible - total_rows
-    print(f"예상 남은 건수: ~{remaining}건")
-    print(f"예상 남은 일수 (9500건/일): ~{remaining // 9500}일")
+    print(f"확인 완료: {checked}건 ({checked / total_possible * 100:.1f}%)")
+    print(f"미확인 남은 건수: ~{remaining}건")
 
 
 def run_daily_backfill(conn, daily_limit: int = 9500,
@@ -98,7 +117,7 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
         get_all_corp_codes, upsert_financial_data, get_financial_data,
     )
     from src.data.dart_collector import (
-        collect_single_financial, _calc_yoy_growth, REPORT_CODES,
+        collect_single_financial, _calc_yoy_growth, REPORT_CODES, NO_DATA,
     )
     from config import DART_COLLECTION
 
@@ -117,23 +136,32 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
         "SELECT ticker, fiscal_year, fiscal_quarter FROM stock_financials"
     ).fetchall():
         existing_set.add((row[0], row[1], row[2]))
-    logger.info(f"이미 수집된 데이터: {len(existing_set)}건")
 
+    # "데이터 없음" 확인된 건도 스킵 대상에 추가 (no_data 테이블)
+    _ensure_no_data_table(conn)
+    no_data_set = set()
+    for row in conn.execute(
+        "SELECT ticker, fiscal_year, fiscal_quarter FROM financials_no_data"
+    ).fetchall():
+        no_data_set.add((row[0], row[1], row[2]))
+
+    logger.info(f"이미 수집된 데이터: {len(existing_set)}건, 데이터 없음 확인: {len(no_data_set)}건")
     logger.info(f"전종목 백필: {len(tickers)}종목 × {len(quarters)}분기, 일일 한도 {daily_limit}건")
 
     collected = 0
     skipped = 0
-    failed = 0
+    no_data_count = 0
+    api_errors = 0
     api_calls = 0  # API 호출 횟수 (스킵 제외)
-    consecutive_failures = 0  # 연속 실패 카운터
-    MAX_CONSECUTIVE_FAILURES = 200  # 200건 연속 실패 시 API 한도 소진 간주
+    consecutive_api_errors = 0  # 진짜 API 오류만 카운트
+    MAX_CONSECUTIVE_API_ERRORS = 50  # 50건 연속 API 오류 시 한도 소진 간주
 
     for year, quarter in quarters:
         for ticker in tickers:
             if api_calls >= daily_limit:
                 logger.info(
                     f"일일 한도 도달 ({daily_limit}건) — "
-                    f"수집 {collected}, 스킵 {skipped}, 실패 {failed}"
+                    f"수집 {collected}, 스킵 {skipped}, 데이터없음 {no_data_count}, API오류 {api_errors}"
                 )
                 return collected
 
@@ -142,8 +170,9 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
                 skipped += 1
                 continue
 
-            # 이미 수집된 데이터 스킵 (메모리 셋 조회 — O(1))
-            if (ticker, year, quarter) in existing_set:
+            # 이미 수집된 데이터 또는 데이터 없음 확인된 건 스킵
+            key = (ticker, year, quarter)
+            if key in existing_set or key in no_data_set:
                 skipped += 1
                 continue
 
@@ -154,19 +183,33 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
             api_calls += 1
 
             if result is None:
-                failed += 1
-                consecutive_failures += 1
-                # 연속 실패가 임계치 초과 시 API 한도 소진으로 간주하고 조기 종료
-                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                # 진짜 API 에러 (rate limit 등)
+                api_errors += 1
+                consecutive_api_errors += 1
+                if consecutive_api_errors >= MAX_CONSECUTIVE_API_ERRORS:
                     logger.warning(
-                        f"연속 {MAX_CONSECUTIVE_FAILURES}건 실패 — API 한도 소진 추정, 조기 종료. "
-                        f"API {api_calls}, 수집 {collected}, 스킵 {skipped}, 실패 {failed}"
+                        f"연속 {MAX_CONSECUTIVE_API_ERRORS}건 API 오류 — 한도 소진 추정, 조기 종료. "
+                        f"API {api_calls}, 수집 {collected}, 데이터없음 {no_data_count}, API오류 {api_errors}"
                     )
                     return collected
                 continue
 
-            # 성공 시 연속 실패 카운터 리셋
-            consecutive_failures = 0
+            if result == NO_DATA:
+                # 정상적으로 데이터 없음 — 기록하여 다음번에 스킵
+                no_data_count += 1
+                no_data_set.add(key)
+                conn.execute(
+                    "INSERT OR IGNORE INTO financials_no_data (ticker, fiscal_year, fiscal_quarter) VALUES (?, ?, ?)",
+                    (ticker, year, quarter),
+                )
+                if no_data_count % 500 == 0:
+                    conn.commit()
+                # 데이터 없음은 API 에러가 아니므로 연속 에러 카운터 리셋
+                consecutive_api_errors = 0
+                continue
+
+            # 수집 성공
+            consecutive_api_errors = 0
 
             # YoY 성장률
             growth = _calc_yoy_growth(conn, ticker, year, quarter, result)
@@ -180,26 +223,29 @@ def run_daily_backfill(conn, daily_limit: int = 9500,
                 **growth,
             }
             upsert_financial_data(conn, [row])
-            existing_set.add((ticker, year, quarter))
+            existing_set.add(key)
             collected += 1
 
-            if api_calls % 50 == 0 or (api_calls <= 50 and api_calls % 10 == 0):
+            if api_calls % 500 == 0 or (api_calls <= 100 and api_calls % 50 == 0):
                 logger.info(
                     f"  진행: API {api_calls}/{daily_limit} "
-                    f"(수집 {collected}, 스킵 {skipped}, 실패 {failed})"
+                    f"(수집 {collected}, 데이터없음 {no_data_count}, API오류 {api_errors}, 스킵 {skipped})"
                 )
+
+    # 최종 커밋
+    conn.commit()
 
     logger.info(
         f"전종목 백필 완료! 더 이상 수집할 데이터 없음 — "
-        f"수집 {collected}, 스킵 {skipped}, 실패 {failed}"
+        f"수집 {collected}, 데이터없음 {no_data_count}, API오류 {api_errors}, 스킵 {skipped}"
     )
     return collected
 
 
 def main():
     parser = argparse.ArgumentParser(description="DART 전종목 점진적 백필")
-    parser.add_argument("--limit", type=int, default=9500,
-                        help="일일 수집 한도 (기본 9500)")
+    parser.add_argument("--limit", type=int, default=39000,
+                        help="일일 수집 한도 (기본 39000, DART 실제 한도 40000)")
     parser.add_argument("--start-year", type=int, default=2015,
                         help="수집 시작 연도 (기본 2015)")
     parser.add_argument("--end-year", type=int, default=None,
