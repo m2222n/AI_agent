@@ -429,7 +429,7 @@ class TestBuildPriceOutlook:
         }
         summary = {"close": 50000, "data_days": 100, "ma": {}, "cross": {}}
 
-        for h, expected_days in [("1w", 5), ("2w", 10), ("1m", 20), ("3m", 60)]:
+        for h, expected_days in [("1w", 5), ("2w", 10), ("1m", 20), ("3m", 60), ("6m", 120), ("1y", 240)]:
             result = build_price_outlook("005930", "삼성전자", h, summary)
             assert result["horizon_days"] == expected_days
 
@@ -481,6 +481,8 @@ class TestHorizonMap:
         assert HORIZON_MAP["2w"] == 10
         assert HORIZON_MAP["1m"] == 20
         assert HORIZON_MAP["3m"] == 60
+        assert HORIZON_MAP["6m"] == 120
+        assert HORIZON_MAP["1y"] == 240
 
 
 # ── _empty_statistical 테스트 ──
@@ -492,3 +494,152 @@ class TestEmptyStatistical:
         assert result["predicted_return"] == 0.0
         assert result["model_r2"] == 0.0
         assert result["historical_analog"]["sample_count"] == 0
+
+
+# ── EMA 헬퍼 테스트 ──
+
+class TestCalcEmaAt:
+    """_calc_ema_at 테스트"""
+
+    def test_constant_series(self):
+        """상수 시계열 → EMA = 상수"""
+        from src.data.predictor import _calc_ema_at
+        closes = [100.0] * 50
+        assert abs(_calc_ema_at(closes, 49, 12) - 100.0) < 0.01
+
+    def test_trending_up(self):
+        """상승 시계열 → EMA < 최근 가격 (후행)"""
+        from src.data.predictor import _calc_ema_at
+        closes = [float(1000 + i * 10) for i in range(50)]
+        ema = _calc_ema_at(closes, 49, 12)
+        assert ema < closes[49]
+        assert ema > closes[30]  # 너무 뒤처지지 않음
+
+    def test_ema12_vs_ema26(self):
+        """상승 추세에서 EMA(12) > EMA(26) (단기 EMA가 더 빠르게 반응)"""
+        from src.data.predictor import _calc_ema_at
+        closes = [float(1000 + i * 10) for i in range(60)]
+        ema12 = _calc_ema_at(closes, 59, 12)
+        ema26 = _calc_ema_at(closes, 59, 26)
+        assert ema12 > ema26
+
+    def test_different_from_sma(self):
+        """EMA ≠ SMA (변동 시계열에서)"""
+        from src.data.predictor import _calc_ema_at
+        import math
+        closes = [100 + 10 * math.sin(i * 0.3) for i in range(60)]
+        ema = _calc_ema_at(closes, 59, 12)
+        sma = sum(closes[48:60]) / 12
+        assert ema != sma  # 정확히 같을 수 없음
+
+
+# ── Bootstrap CI 테스트 ──
+
+class TestBootstrapCI:
+    """_bootstrap_ci 테스트"""
+
+    def test_basic_ci(self):
+        """CI가 예측값을 포함"""
+        from src.data.predictor import _bootstrap_ci
+        residuals = [r * 0.1 for r in range(-50, 51)]
+        lo, hi = _bootstrap_ci(5.0, residuals)
+        assert lo < 5.0 < hi
+
+    def test_narrow_residuals_narrow_ci(self):
+        """잔차 작으면 CI도 좁음"""
+        from src.data.predictor import _bootstrap_ci
+        small_residuals = [0.01 * i for i in range(-10, 11)]
+        large_residuals = [1.0 * i for i in range(-10, 11)]
+        lo_s, hi_s = _bootstrap_ci(0.0, small_residuals)
+        lo_l, hi_l = _bootstrap_ci(0.0, large_residuals)
+        assert (hi_s - lo_s) < (hi_l - lo_l)
+
+    def test_few_residuals_fallback(self):
+        """잔차 10개 미만이면 std 기반 fallback"""
+        from src.data.predictor import _bootstrap_ci
+        residuals = [1.0, -1.0, 0.5]
+        lo, hi = _bootstrap_ci(3.0, residuals)
+        assert lo < 3.0
+        assert hi > 3.0
+
+    def test_symmetric_residuals(self):
+        """대칭 잔차 → CI 대략 대칭"""
+        from src.data.predictor import _bootstrap_ci
+        import random
+        random.seed(42)
+        residuals = [r * 0.5 for r in range(-100, 101)]
+        lo, hi = _bootstrap_ci(0.0, residuals)
+        # 대략 대칭 (완벽하진 않음 — 리샘플링 노이즈)
+        assert abs(abs(lo) - abs(hi)) < 5.0
+
+
+# ── 장기 예측 기간 테스트 ──
+
+class TestLongHorizon:
+    """6m/1y 장기 예측 테스트"""
+
+    @patch("src.data.predictor._get_financials")
+    @patch("src.data.predictor._calc_statistical_prediction")
+    def test_6m_horizon(self, mock_stat, mock_fin):
+        from src.data.predictor import build_price_outlook
+        mock_fin.return_value = []
+        mock_stat.return_value = {
+            "predicted_return": 8.0,
+            "confidence_interval": (2.0, 14.0),
+            "historical_analog": {"sample_count": 10, "win_rate": 0.6},
+            "model_r2": 0.06,
+        }
+        summary = {"close": 50000, "data_days": 300, "ma": {}, "cross": {}}
+        result = build_price_outlook("005930", "삼성전자", "6m", summary)
+        assert result["horizon_days"] == 120
+        assert result["horizon"] == "6m"
+
+    @patch("src.data.predictor._get_financials")
+    @patch("src.data.predictor._calc_statistical_prediction")
+    def test_1y_horizon(self, mock_stat, mock_fin):
+        from src.data.predictor import build_price_outlook
+        mock_fin.return_value = []
+        mock_stat.return_value = {
+            "predicted_return": 12.0,
+            "confidence_interval": (0.0, 24.0),
+            "historical_analog": {"sample_count": 8, "win_rate": 0.55},
+            "model_r2": 0.04,
+        }
+        summary = {"close": 50000, "data_days": 500, "ma": {}, "cross": {}}
+        result = build_price_outlook("005930", "삼성전자", "1y", summary)
+        assert result["horizon_days"] == 240
+        assert result["horizon"] == "1y"
+
+
+# ── 시나리오 win_rate 반영 테스트 ──
+
+class TestScenarioWinRate:
+    """히스토리컬 win_rate 반영 테스트"""
+
+    def test_high_win_rate_boosts_bullish(self):
+        from src.data.predictor import _calc_scenarios
+        stat_high_wr = {
+            "predicted_return": 0.0,
+            "confidence_interval": (-3, 3),
+            "historical_analog": {"sample_count": 30, "win_rate": 0.8},
+        }
+        stat_low_wr = {
+            "predicted_return": 0.0,
+            "confidence_interval": (-3, 3),
+            "historical_analog": {"sample_count": 30, "win_rate": 0.2},
+        }
+        result_high = _calc_scenarios(0.0, stat_high_wr)
+        result_low = _calc_scenarios(0.0, stat_low_wr)
+        assert result_high["bullish"]["probability"] > result_low["bullish"]["probability"]
+
+    def test_low_sample_ignores_win_rate(self):
+        """표본 < 10이면 win_rate 무시"""
+        from src.data.predictor import _calc_scenarios
+        stat = {
+            "predicted_return": 0.0,
+            "confidence_interval": (-3, 3),
+            "historical_analog": {"sample_count": 3, "win_rate": 0.9},
+        }
+        result = _calc_scenarios(0.0, stat)
+        # win_rate 미반영 → 중립에 가까움
+        assert abs(result["bullish"]["probability"] - result["bearish"]["probability"]) < 0.15

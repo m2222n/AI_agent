@@ -865,6 +865,9 @@ def simulate_portfolio(tickers: list[str], weights: list[float],
             "total_return": round(ret, 4),
         })
 
+    # 벤치마크 (KODEX 200) 비교
+    benchmark = _calc_benchmark(common_dates, port_daily)
+
     return {
         "portfolio": {
             "total_return": round(total_return, 4),
@@ -873,7 +876,93 @@ def simulate_portfolio(tickers: list[str], weights: list[float],
             "sharpe_ratio": round(sharpe, 2),
             "max_drawdown": round(max_dd, 4),
         },
+        "benchmark": benchmark,
         "individual": individual,
         "period": f"{common_dates[0]}~{common_dates[-1]}",
         "data_days": trading_days,
+    }
+
+
+BENCHMARK_TICKER = "069500"  # KODEX 200
+
+
+def _calc_benchmark(common_dates: list, port_daily: list) -> Optional[dict]:
+    """벤치마크(KODEX 200) 동일 기간 성과 비교.
+
+    Returns:
+        {"ticker": str, "name": str, "total_return": float,
+         "annualized_return": float, "volatility": float,
+         "sharpe_ratio": float, "max_drawdown": float,
+         "alpha": float, "tracking_error": float}
+        또는 데이터 부족 시 None
+    """
+    bm_data = _get_closes(BENCHMARK_TICKER, days=len(common_dates) + 10)
+    if len(bm_data) < 20:
+        return None
+
+    bm_map = {d["date"]: d["close"] for d in bm_data}
+
+    # 공통 날짜 필터
+    bm_closes = []
+    valid_dates = []
+    for d in common_dates:
+        if d in bm_map:
+            bm_closes.append(bm_map[d])
+            valid_dates.append(d)
+
+    if len(bm_closes) < 20:
+        return None
+
+    bm_daily = _daily_returns(bm_closes)
+    n = min(len(bm_daily), len(port_daily))
+    if n < 10:
+        return None
+
+    bm_daily = bm_daily[:n]
+
+    # 벤치마크 wealth
+    bm_wealth = [1.0]
+    for r in bm_daily:
+        bm_wealth.append(bm_wealth[-1] * (1 + r))
+
+    bm_total = bm_wealth[-1] - 1
+    bm_ann = (bm_wealth[-1] ** (250 / n) - 1
+              if n > 0 and bm_wealth[-1] > 0 else 0.0)
+
+    bm_mean = sum(bm_daily) / n
+    bm_var = sum((r - bm_mean) ** 2 for r in bm_daily) / n
+    bm_vol = (bm_var ** 0.5) * (250 ** 0.5)
+    bm_sharpe = (bm_ann - 0.035) / bm_vol if bm_vol > 0 else 0.0
+
+    # MDD
+    peak = bm_wealth[0]
+    bm_mdd = 0.0
+    for w in bm_wealth:
+        if w > peak:
+            peak = w
+        dd = (w - peak) / peak
+        if dd < bm_mdd:
+            bm_mdd = dd
+
+    # 알파 (포트폴리오 초과 수익률)
+    port_ann = sum(port_daily[:n]) / n * 250
+    bm_ann_simple = bm_mean * 250
+    alpha = port_ann - bm_ann_simple
+
+    # 트래킹 에러 (초과 수익률의 표준편차)
+    excess = [p - b for p, b in zip(port_daily[:n], bm_daily)]
+    ex_mean = sum(excess) / n
+    te_var = sum((e - ex_mean) ** 2 for e in excess) / n
+    tracking_error = (te_var ** 0.5) * (250 ** 0.5)
+
+    return {
+        "ticker": BENCHMARK_TICKER,
+        "name": "KODEX 200",
+        "total_return": round(bm_total, 4),
+        "annualized_return": round(bm_ann, 4),
+        "volatility": round(bm_vol, 4),
+        "sharpe_ratio": round(bm_sharpe, 2),
+        "max_drawdown": round(bm_mdd, 4),
+        "alpha": round(alpha, 4),
+        "tracking_error": round(tracking_error, 4),
     }

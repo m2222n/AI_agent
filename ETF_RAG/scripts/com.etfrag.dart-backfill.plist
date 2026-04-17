@@ -10,9 +10,12 @@
         <string>/Users/m2222n/Work/Personal/AI_agent/ETF_RAG/scripts/backfill_financials.sh</string>
     </array>
 
-    <!-- 매일 19:00 실행 (기존 수집 18:30 이후, DART 백필) -->
+    <!-- 매주 월요일 19:00 실행 (기존 수집 18:30 이후, DART 재무제표 주간 갱신) -->
+    <!-- 백필 완료 후에는 신규 공시만 스캔하므로 주 1회 충분 -->
     <key>StartCalendarInterval</key>
     <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
         <key>Hour</key>
         <integer>19</integer>
         <key>Minute</key>

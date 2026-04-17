@@ -150,6 +150,16 @@ def render_comparison(data: dict):
             df = pd.DataFrame(chart_data).set_index("기간")
             st.bar_chart(df)
 
+    # ── 상대 수익률 추이 차트 (matplotlib) ──
+    chart_b64 = data.get("comparison_chart_b64")
+    if chart_b64:
+        try:
+            st.markdown("#### 기간별 상대 수익률 추이")
+            image_bytes = base64.b64decode(chart_b64)
+            st.image(image_bytes, use_container_width=True)
+        except Exception:
+            pass
+
     # ── 주식 밸류에이션 바 차트 ──
     if asset_type == "stock":
         val_metrics = [

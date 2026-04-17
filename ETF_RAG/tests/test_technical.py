@@ -518,6 +518,47 @@ class TestPortfolioSimulation:
         assert result is not None
         assert result["portfolio"]["sharpe_ratio"] > 0
 
+    def test_benchmark_included(self, monkeypatch):
+        """벤치마크(KODEX 200) 데이터 있으면 benchmark 필드 포함"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 100 for i in range(n)],
+            "069500": [40000 + i * 50 for i in range(n)],  # KODEX 200
+        })
+        result = simulate_portfolio(["A"], [1.0], days=50)
+        assert result is not None
+        bm = result["benchmark"]
+        assert bm is not None
+        assert bm["ticker"] == "069500"
+        assert bm["name"] == "KODEX 200"
+        assert "total_return" in bm
+        assert "alpha" in bm
+        assert "tracking_error" in bm
+
+    def test_benchmark_none_when_no_data(self, monkeypatch):
+        """벤치마크 데이터 없으면 benchmark=None"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 100 for i in range(n)],
+            # 069500 데이터 없음
+        })
+        result = simulate_portfolio(["A"], [1.0], days=50)
+        assert result is not None
+        assert result["benchmark"] is None
+
+    def test_benchmark_alpha_positive_when_outperform(self, monkeypatch):
+        """포트폴리오가 벤치마크보다 수익률 높으면 alpha > 0"""
+        n = 60
+        self._make_mock(monkeypatch, {
+            "A": [50000 + i * 300 for i in range(n)],  # 강한 상승
+            "069500": [40000 + i * 50 for i in range(n)],  # 약한 상승
+        })
+        result = simulate_portfolio(["A"], [1.0], days=50)
+        assert result is not None
+        bm = result["benchmark"]
+        assert bm is not None
+        assert bm["alpha"] > 0  # 포트폴리오가 더 좋으니 alpha 양수
+
 
 # ── 포트폴리오 도구 테스트 ────────────────────────────────────
 

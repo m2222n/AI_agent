@@ -16,8 +16,11 @@ import os
 import sys
 import logging
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+# KST (UTC+9) — GitHub Actions는 UTC 기준이므로 명시적 타임존 필요
+KST = timezone(timedelta(hours=9))
 
 # 프로젝트 경로 설정
 PROJECT_DIR = Path(__file__).parent.parent
@@ -121,9 +124,36 @@ def main():
         # 주식 데이터 먼저 수집 (DB + deploy 둘 다 사용)
         stock_data = collect_stock_for_deploy(date)
 
-        # 재무제표 (월요일만)
-        if datetime.now().weekday() == 0:
+        # 재무제표 (KST 기준 월요일만 — deploy용 요약 + DB 전종목)
+        now_kst = datetime.now(KST)
+        is_monday_kst = now_kst.weekday() == 0
+        logger.info(f"KST 현재: {now_kst.strftime('%Y-%m-%d %A %H:%M')}, 월요일={is_monday_kst}")
+
+        if is_monday_kst:
+            # 1) deploy용 재무 요약 (거래대금 상위 50종목)
             collect_financial_summary(stock_data, max_count=50)
+
+            # 2) DB 전종목 재무제표 갱신 (최근 분기만 스캔, 백필 완료 후 빠름)
+            try:
+                # ETF_RAG/scripts/backfill_financials_runner (ETF_RAG가 sys.path에 있음)
+                from scripts.backfill_financials_runner import run_daily_backfill
+                from src.data.database import init_db as _init_db
+                from src.data.dart_collector import _init_dart
+
+                _init_dart()
+                import config
+                config.DB_PATH = db_path
+                fin_conn = _init_db()
+                # 최근 1년만 스캔 (신규 공시 포착, API 한도 절약)
+                current_year = now_kst.year
+                fin_collected = run_daily_backfill(
+                    fin_conn, daily_limit=5000,
+                    start_year=current_year - 1, end_year=current_year,
+                )
+                fin_conn.close()
+                logger.info(f"[DB] 재무제표 월요일 갱신: {fin_collected}건 수집")
+            except Exception as e:
+                logger.warning(f"[DB] 재무제표 갱신 실패 (수집은 계속): {e}")
 
         result = collect_to_db(db_path, date, stock_data=stock_data)
         etf_data = result["etf_data"]
@@ -137,7 +167,7 @@ def main():
         etf_data = collect_etf_for_deploy(date)
     if stock_data is None:
         stock_data = collect_stock_for_deploy(date)
-        if datetime.now().weekday() == 0:
+        if datetime.now(KST).weekday() == 0:
             collect_financial_summary(stock_data, max_count=50)
 
     # --- deploy/ JSON 저장 ---

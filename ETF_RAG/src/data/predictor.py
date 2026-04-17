@@ -19,6 +19,8 @@ HORIZON_MAP = {
     "2w": 10,
     "1m": 20,
     "3m": 60,
+    "6m": 120,
+    "1y": 240,
 }
 
 
@@ -307,6 +309,28 @@ def _get_financials(ticker: str) -> list:
 # (C) 통계적 모델 예측
 # ══════════════════════════════════════════════════════════════
 
+def _bootstrap_ci(predicted: float, residuals: list,
+                   n_bootstrap: int = 500, alpha: float = 0.10) -> tuple:
+    """Bootstrap percentile 신뢰 구간.
+
+    예측값에 잔차를 리샘플링하여 분포를 만들고 alpha/2 ~ 1-alpha/2 구간 반환.
+    """
+    import random
+    if len(residuals) < 10:
+        std = (sum(r**2 for r in residuals) / max(len(residuals), 1)) ** 0.5
+        return (round(predicted - std, 2), round(predicted + std, 2))
+
+    bootstrap_preds = []
+    for _ in range(n_bootstrap):
+        sampled_residual = random.choice(residuals)
+        bootstrap_preds.append(predicted + sampled_residual)
+
+    bootstrap_preds.sort()
+    lo_idx = int(n_bootstrap * (alpha / 2))
+    hi_idx = int(n_bootstrap * (1 - alpha / 2)) - 1
+    return (round(bootstrap_preds[lo_idx], 2), round(bootstrap_preds[hi_idx], 2))
+
+
 def _calc_statistical_prediction(ticker: str, horizon_days: int) -> dict:
     """Ridge 회귀 + 히스토리컬 아날로그.
 
@@ -316,8 +340,11 @@ def _calc_statistical_prediction(ticker: str, horizon_days: int) -> dict:
     """
     from src.data.technical import _get_ohlcv
 
-    ohlcv = _get_ohlcv(ticker, days=500)
-    if len(ohlcv) < 60:
+    # 장기 예측은 더 많은 데이터 필요
+    data_days = max(500, horizon_days * 5 + 60)
+    ohlcv = _get_ohlcv(ticker, days=data_days)
+    min_required = max(60, horizon_days + 60)
+    if len(ohlcv) < min_required:
         return _empty_statistical()
 
     closes = [d["close"] for d in ohlcv]
@@ -336,11 +363,9 @@ def _calc_statistical_prediction(ticker: str, horizon_days: int) -> dict:
     latest_features = features[-1]
     predicted_return = ridge_result["model"].predict([latest_features])[0]
 
-    # 잔차 기반 신뢰 구간
+    # Bootstrap percentile 신뢰 구간 (90%)
     residuals = ridge_result["residuals"]
-    std = (sum(r**2 for r in residuals) / len(residuals)) ** 0.5
-    ci_lo = predicted_return - std
-    ci_hi = predicted_return + std
+    ci_lo, ci_hi = _bootstrap_ci(predicted_return, residuals)
 
     # 히스토리컬 아날로그: 현재와 유사한 조건의 과거 수익률 분포
     current_cond = conditions[-1] if conditions else None
@@ -352,6 +377,17 @@ def _calc_statistical_prediction(ticker: str, horizon_days: int) -> dict:
         "historical_analog": analog,
         "model_r2": round(ridge_result["r2"], 4),
     }
+
+
+def _calc_ema_at(closes: list, idx: int, period: int) -> float:
+    """인덱스 idx 시점에서의 EMA(period) 계산 (0번부터 순차 누적)."""
+    k = 2 / (period + 1)
+    # SMA로 시드 (period개 평균)
+    start = max(0, idx - period * 3)  # 충분한 히스토리 확보
+    ema = sum(closes[start:start + period]) / period
+    for j in range(start + period, idx + 1):
+        ema = closes[j] * k + ema * (1 - k)
+    return ema
 
 
 def _build_features_targets(closes: list, volumes: list, horizon: int):
@@ -404,10 +440,10 @@ def _build_features_targets(closes: list, volumes: list, horizon: int):
             atr = sum(trs) / 14
             atr_pct = atr / c * 100 if c > 0 else 0
 
-        # MACD 부호
+        # MACD 부호 (진짜 EMA 기반)
         if i >= 33:
-            ema12 = sum(closes[i-11:i+1]) / 12
-            ema26 = sum(closes[i-25:i+1]) / 26
+            ema12 = _calc_ema_at(closes, i, 12)
+            ema26 = _calc_ema_at(closes, i, 26)
             macd_sign = 1 if ema12 > ema26 else -1
         else:
             macd_sign = 0
@@ -607,15 +643,30 @@ def build_price_outlook(ticker: str, name: str, horizon: str = "1m",
 
 
 def _calc_scenarios(composite: float, stat: dict) -> dict:
-    """종합 점수를 시나리오별 확률로 변환."""
-    # 시그모이드 기반
-    bullish_raw = 1 / (1 + math.exp(-4 * composite))
+    """종합 점수를 시나리오별 확률로 변환.
 
-    bullish_prob = max(0.10, bullish_raw * 0.65)
-    bearish_prob = max(0.10, (1 - bullish_raw) * 0.65)
-    neutral_prob = round(1.0 - bullish_prob - bearish_prob, 2)
+    히스토리컬 아날로그 win_rate 반영 + sigmoid 기반 기본 확률.
+    """
+    # 기본 확률: sigmoid (기울기 3으로 완화 — 극단값 방지)
+    bullish_raw = 1 / (1 + math.exp(-3 * composite))
 
-    # 확률 보정 (합 = 1)
+    # 히스토리컬 아날로그 win_rate 반영 (있으면 30% 가중)
+    analog = stat.get("historical_analog", {})
+    win_rate = analog.get("win_rate", 0.5)
+    sample_count = analog.get("sample_count", 0)
+
+    if sample_count >= 10:
+        # 표본 충분: sigmoid 70% + win_rate 30%
+        bullish_blend = bullish_raw * 0.7 + win_rate * 0.3
+    else:
+        bullish_blend = bullish_raw
+
+    # 확률 배분 (최소 10%)
+    bullish_prob = max(0.10, min(0.65, bullish_blend * 0.7))
+    bearish_prob = max(0.10, min(0.65, (1 - bullish_blend) * 0.7))
+    neutral_prob = 1.0 - bullish_prob - bearish_prob
+
+    # 정규화 (합 = 1)
     total = bullish_prob + neutral_prob + bearish_prob
     bullish_prob = round(bullish_prob / total, 2)
     bearish_prob = round(bearish_prob / total, 2)

@@ -371,3 +371,100 @@ def _fmt_date(date_str: str) -> str:
     if len(date_str) == 8:
         return f"{date_str[4:6]}/{date_str[6:]}"
     return date_str
+
+
+# ══════════════════════════════════════════════════════════════
+# 비교 상대 수익률 차트
+# ══════════════════════════════════════════════════════════════
+
+_COMPARE_COLORS = ["#1A73E8", "#E8453C", "#34A853", "#FBBC04"]
+
+
+def generate_comparison_chart(
+    tickers: list[str], names: list[str], days: int = 120,
+) -> Optional[str]:
+    """종목 간 상대 수익률 차트 생성 → base64 PNG.
+
+    시작일 = 100 기준으로 정규화하여 기간별 수익률 추이를 비교.
+
+    Args:
+        tickers: 비교 대상 티커 리스트 (2~4개)
+        names: 종목명 리스트
+        days: 비교 기간 (영업일)
+
+    Returns:
+        base64 인코딩 PNG 문자열, 실패 시 None
+    """
+    from src.data.technical import _get_closes
+
+    if len(tickers) < 2 or len(tickers) != len(names):
+        return None
+
+    _setup_font()
+
+    # 종가 데이터 수집
+    all_data = {}
+    for ticker in tickers:
+        data = _get_closes(ticker, days=days + 10)
+        if len(data) < 20:
+            logger.warning(f"비교 차트: {ticker} 데이터 부족 ({len(data)}일)")
+            return None
+        all_data[ticker] = {d["date"]: d["close"] for d in data}
+
+    # 공통 날짜
+    common_dates = sorted(
+        set.intersection(*(set(d.keys()) for d in all_data.values()))
+    )
+    if len(common_dates) < 20:
+        return None
+    common_dates = common_dates[-days:] if len(common_dates) > days else common_dates
+
+    try:
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor=_BG_COLOR)
+        ax.set_facecolor(_BG_COLOR)
+
+        for i, (ticker, name) in enumerate(zip(tickers, names)):
+            closes = [all_data[ticker][d] for d in common_dates]
+            if closes[0] <= 0:
+                continue
+            # 기준일 = 100 정규화
+            normalized = [c / closes[0] * 100 for c in closes]
+            color = _COMPARE_COLORS[i % len(_COMPARE_COLORS)]
+            ax.plot(range(len(normalized)), normalized,
+                    color=color, linewidth=1.8, label=name, alpha=0.9)
+
+        # 100 기준선
+        ax.axhline(y=100, color="#999999", linewidth=0.8, linestyle="--", alpha=0.6)
+
+        # X축 날짜 라벨 (5~7개)
+        n_points = len(common_dates)
+        step = max(1, n_points // 6)
+        xtick_pos = list(range(0, n_points, step))
+        xtick_labels = [_fmt_date(common_dates[i]) for i in xtick_pos]
+        ax.set_xticks(xtick_pos)
+        ax.set_xticklabels(xtick_labels, fontsize=8, color=_TEXT_COLOR)
+
+        ax.set_ylabel("상대 수익률 (기준=100)", fontsize=10, color=_TEXT_COLOR)
+        ax.set_title("기간별 상대 수익률 비교", fontsize=13, fontweight="bold",
+                      color=_TEXT_COLOR, pad=12)
+
+        ax.legend(fontsize=9, loc="upper left", framealpha=0.8)
+        ax.grid(True, alpha=0.3, color=_GRID_COLOR)
+        ax.tick_params(colors=_TEXT_COLOR, labelsize=8)
+
+        # 스파인 제거
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        plt.tight_layout()
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"비교 차트 생성 실패: {e}")
+        return None

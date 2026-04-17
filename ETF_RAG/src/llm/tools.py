@@ -323,6 +323,19 @@ def compare_etfs(etf_name_1: str, etf_name_2: str) -> str:
                 _extract_comparison_fields(d2),
             ],
         }
+        # 상대 수익률 차트 생성
+        try:
+            from src.data.chart_generator import generate_comparison_chart
+            chart_b64 = generate_comparison_chart(
+                [d1["ticker"], d2["ticker"]],
+                [d1["name"], d2["name"]],
+                days=120,
+            )
+            if chart_b64:
+                comparison["comparison_chart_b64"] = chart_b64
+        except Exception as e:
+            logger.debug(f"비교 차트 생성 실패: {e}")
+
         # 구조화 JSON + 텍스트 컨텍스트 모두 반환
         # (LLM이 텍스트를 참조해서 자연어 답변 생성)
         text_parts = []
@@ -431,6 +444,19 @@ def compare_stocks(stock_name_1: str, stock_name_2: str) -> str:
                 _extract_comparison_fields(d2),
             ],
         }
+        # 상대 수익률 차트 생성
+        try:
+            from src.data.chart_generator import generate_comparison_chart
+            chart_b64 = generate_comparison_chart(
+                [d1["ticker"], d2["ticker"]],
+                [d1["name"], d2["name"]],
+                days=120,
+            )
+            if chart_b64:
+                comparison["comparison_chart_b64"] = chart_b64
+        except Exception as e:
+            logger.debug(f"비교 차트 생성 실패: {e}")
+
         text_parts = []
         for name, data in [(stock_name_1, d1), (stock_name_2, d2)]:
             line = f"[{data['name']}] 종가: {data.get('close', 0):,}원"
@@ -1133,6 +1159,21 @@ def simulate_portfolio(tickers_and_weights: str, period: str = "1y") -> str:
         lines.append(f"  - 샤프 비율: {p['sharpe_ratio']:.2f}")
         lines.append(f"  - 최대 낙폭(MDD): {p['max_drawdown'] * 100:.2f}%")
 
+        # 벤치마크 비교
+        bm = result.get("benchmark")
+        if bm:
+            lines.append(f"\n**벤치마크 비교 ({bm['name']}):**")
+            lines.append(f"  - 총 수익률: {bm['total_return'] * 100:+.2f}%")
+            lines.append(f"  - 연환산 수익률: {bm['annualized_return'] * 100:+.2f}%")
+            lines.append(f"  - 변동성: {bm['volatility'] * 100:.2f}%")
+            lines.append(f"  - 샤프 비율: {bm['sharpe_ratio']:.2f}")
+            lines.append(f"  - MDD: {bm['max_drawdown'] * 100:.2f}%")
+            # 초과 성과
+            excess = p['total_return'] - bm['total_return']
+            lines.append(f"  - **포트폴리오 초과 수익:** {excess * 100:+.2f}%p")
+            if bm.get('tracking_error'):
+                lines.append(f"  - 트래킹 에러: {bm['tracking_error'] * 100:.2f}%")
+
         # 개별
         lines.append(f"\n**개별 종목 수익률:**")
         for item, name in zip(result["individual"], resolved_names):
@@ -1256,7 +1297,7 @@ def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
 
     Args:
         name_or_ticker: ETF/주식 이름 또는 티커 (예: "삼성전자", "005930", "KODEX 200")
-        horizon: 예측 기간 ("1w": 1주, "2w": 2주, "1m": 1개월, "3m": 3개월). 기본값 1m
+        horizon: 예측 기간 ("1w": 1주, "2w": 2주, "1m": 1개월, "3m": 3개월, "6m": 6개월, "1y": 1년). 기본값 1m
     """
     data = _find_structured_data(name_or_ticker)
     if not data:
@@ -1285,7 +1326,7 @@ def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
         return f"'{name}'의 가격 전망 분석에 실패했습니다. ({type(e).__name__})"
 
     # 포맷팅
-    horizon_labels = {"1w": "1주", "2w": "2주", "1m": "1개월", "3m": "3개월"}
+    horizon_labels = {"1w": "1주", "2w": "2주", "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년"}
     h_label = horizon_labels.get(outlook["horizon"], outlook["horizon"])
     price = outlook.get("current_price", 0)
 

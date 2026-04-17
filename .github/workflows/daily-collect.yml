@@ -13,7 +13,7 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -27,6 +27,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pykrx requests dart-fss
+
+      # 월요일(KST) 여부 판정 — 재무제표 수집 + 타임아웃 조정에 사용
+      - name: Check if Monday (KST)
+        id: day_check
+        run: |
+          KST_DAY=$(TZ=Asia/Seoul date +%u)  # 1=월 ... 7=일
+          echo "kst_weekday=$KST_DAY" >> $GITHUB_OUTPUT
+          if [ "$KST_DAY" = "1" ]; then
+            echo "is_monday=true" >> $GITHUB_OUTPUT
+            echo "KST 월요일 — 재무제표 수집 포함"
+          else
+            echo "is_monday=false" >> $GITHUB_OUTPUT
+            echo "KST $(TZ=Asia/Seoul date +%A) — 재무제표 생략"
+          fi
 
       # ── DB 다운로드 (Release asset에서) ──────────────────────
       - name: Download DB from latest release
@@ -117,9 +131,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          DATE=$(date -u +%Y%m%d)
+          DATE=$(TZ=Asia/Seoul date +%Y%m%d)
           git add ETF_RAG/src/data/deploy/etf_data.json ETF_RAG/src/data/deploy/stock_data.json
-          git commit -m "chore: update deploy data ($DATE)
+          git commit -m "chore: update deploy data ($DATE KST)
 
           Automated daily KRX data collection via GitHub Actions"
           git push
