@@ -1122,5 +1122,53 @@
 
 ---
 
+## 분석 지표 개선 + KST 자동화 (2026-04-17)
+
+### predictor.py 오버홀
+- **SMA→EMA 전환**: MACD 피처에서 SMA 근사치 → 진짜 EMA 계산 (`_calc_ema_at()` 헬퍼)
+  - EMA 시드: 최초 period개 SMA → 이후 `k = 2/(period+1)` 반복
+- **Bootstrap CI**: 기존 ±1σ → 잔차 리샘플링 500회 Bootstrap 백분위 (90% CI)
+  - `_bootstrap_ci()`: residuals < 10개일 때 RMSE fallback
+- **6m/1y 기간 추가**: `HORIZON_MAP`에 `"6m": 120, "1y": 240` 추가
+  - `_calc_statistical_prediction()`에서 `data_days = max(500, horizon_days * 5 + 60)` 동적 조정
+- **시나리오 확률 개선**: `_calc_scenarios()` — sigmoid slope 4→3, historical win_rate 블렌딩
+  - sample_count >= 10일 때: 70% sigmoid + 30% win_rate
+  - sample_count < 10: 기존 sigmoid만 (저표본 보호)
+
+### 포트폴리오 벤치마크 비교
+- **`technical.py`**: `BENCHMARK_TICKER = "069500"` (KODEX 200)
+  - `_calc_benchmark()` 함수 추가 (~60줄): total_return, annualized, volatility, sharpe, max_drawdown, alpha, tracking_error
+- **`tools.py`**: `simulate_portfolio` 도구 출력에 벤치마크 비교 섹션 추가
+  - "KODEX 200 대비: 초과수익률 +X.XX%p, 알파 X.XX%, 추적오차 X.XX%"
+
+### 비교 시계열 차트 (상대 수익률 추이)
+- **`chart_generator.py`**: `generate_comparison_chart()` 함수 추가 (~80줄)
+  - 2~4개 종목의 base=100 정규화 가격 성능 차트 (matplotlib)
+  - `_COMPARE_COLORS = ["#1A73E8", "#E8453C", "#34A853", "#FBBC04"]`
+  - base64 PNG 반환 → `comparison_chart_b64` 키로 comparison dict에 포함
+- **`tools.py`**: `compare_etfs`와 `compare_stocks` 모두 시계열 차트 생성
+- **`charts.py`**: "기간별 상대 수익률 추이" 섹션 렌더링 (`comparison_chart_b64`)
+
+### KST 타임존 자동화
+- **`scripts/collect_full.py`**: `datetime.now()` → `datetime.now(KST)` 전면 교체
+  - `KST = timezone(timedelta(hours=9))` — GitHub Actions UTC 환경 대응
+  - 월요일 판별: `now_kst.weekday() == 0` (KST 기준)
+  - 월요일에 재무제표 전종목 갱신: `run_daily_backfill()` (최근 1년만 스캔)
+- **`.github/workflows/daily-collect.yml`**: KST 월요일 감지 스텝 추가
+  - `TZ=Asia/Seoul date +%u` → `is_monday` output
+  - timeout 45→60분, commit 날짜 UTC→KST 변경
+- **`com.etfrag.dart-backfill.plist`**: `Weekday=1` 추가 (매일→월요일만)
+
+### RAGAS 재평가
+- Hit Rate **100%** (162/162) 유지 확인
+- Full RAGAS 평가 실행 (--sample 24, stratified)
+
+### 테스트: 404→419개 (+15)
+- `test_predictor.py`: +14개 (EMA 4 + Bootstrap CI 4 + 장기 기간 2 + win_rate 시나리오 2 + 기존 수정 2)
+- `test_technical.py`: +3개 (벤치마크 포함/없음/양수알파)
+- 기존 `test_valid_horizons`, `test_different_horizons` 6m/1y 추가
+
+---
+
 _Last Updated: 2026-04-17_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + Mac 독립 자동화(Actions DB Release) + 12년 백필 (800만 행, 영구 보존) + 도구 13개 + 테스트 404개 + eval 162개_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 분석 지표 개선(EMA/Bootstrap/벤치마크/시계열차트) + KST 자동화 + 도구 13개 + 테스트 419개 + eval 162개 + Hit Rate 100%_

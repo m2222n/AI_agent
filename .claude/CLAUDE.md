@@ -83,7 +83,7 @@
 - [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:30 자동 실행 (로컬 SQLite DB 업데이트)
 - [x] **GitHub Actions** (`.github/workflows/daily-collect.yml`) — 매일 18:30 KST, deploy/ JSON + SQLite DB 갱신 → auto-commit/push → Streamlit Cloud 자동 재배포
 - [x] `scripts/collect_for_deploy.py` — GitHub Actions용 경량 수집 (SQLite 없이 JSON만, 재무제표는 월요일만)
-- [x] `scripts/collect_full.py` — GitHub Actions용 통합 수집 (deploy JSON + SQLite DB 동시 갱신)
+- [x] `scripts/collect_full.py` — GitHub Actions용 통합 수집 (deploy JSON + SQLite DB 동시 갱신, KST 타임존, 월요일 재무제표 갱신)
 - [x] `scripts/upload_db_to_release.sh` — 로컬 DB → GitHub Release asset 초기 업로드 (zstd 압축)
 - [x] GitHub Release `db-latest` — SQLite DB를 Release asset으로 관리 (Mac 없이도 DB 갱신 가능)
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
@@ -162,9 +162,9 @@
   - `analyze_sector`: 종목→ETF 역인덱스 기반 보유종목/섹터 분석 + 밸류에이션 위치
   - `get_technical_indicators`: 기술적 지표 분석 (MA/RSI/MACD/볼린저/골든크로스)
   - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
-  - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성)
+  - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성) + KODEX 200 벤치마크 비교 (알파/추적오차)
   - `get_financial_statements`: 분기별 재무제표 (매출/영업이익/순이익/마진/성장률, OpenDart)
-  - `predict_price_outlook`: 3축 가격 전망 (기술적+펀더멘털+통계 모델, 시나리오별 확률)
+  - `predict_price_outlook`: 3축 가격 전망 (기술적+펀더멘털+Ridge회귀, EMA 피처, Bootstrap CI, 6m/1y 지원)
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -323,11 +323,11 @@ ETF_RAG/
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
-│   │   ├── chart_generator.py  # matplotlib 기술적 분석 차트 (3단: 가격+MA+BB / RSI / 거래량+MACD, base64 PNG)
+│   │   ├── chart_generator.py  # matplotlib 차트 (기술적 분석 3단 + 비교 시계열 base=100, base64 PNG)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
-│   │   ├── predictor.py    # 3축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+히스토리컬아날로그)
+│   │   ├── predictor.py    # 3축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+EMA피처+Bootstrap CI+6m/1y)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
@@ -345,7 +345,7 @@ ETF_RAG/
 │   ├── ui/
 │   │   ├── sidebar.py      # render_sidebar()
 │   │   ├── chat.py         # process_question() (structured_data 이벤트 처리 포함)
-│   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 기술적 분석 차트 이미지)
+│   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 시계열 차트 + 기술적 분석 차트)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응)
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
 │   └── utils/
@@ -354,7 +354,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 404개
+├── tests/                  # pytest 419개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
@@ -414,4 +414,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-17 (데이터 영구 보존 + Mac 독립 자동화 — GitHub Actions DB Release 관리, yfinance 백필, DART NO_DATA 구분, 도구 13개, 테스트 404개, eval 162개)_
+_Last Updated: 2026-04-17 (분석 지표 개선: EMA/Bootstrap CI/벤치마크/시계열차트 + KST 자동화, 도구 13개, 테스트 419개, eval 162개, Hit Rate 100%)_
