@@ -1,10 +1,14 @@
+import logging
 import time
+import traceback
 
 import streamlit as st
 
 from src.llm.agent import stream_agent
 from src.ui.charts import try_parse_comparison, render_comparison, try_parse_structured_data, render_structured_data
 from src.utils.logging import log_interaction
+
+logger = logging.getLogger(__name__)
 
 QUESTION_TYPE_LABELS = {
     "simple": "📝 단순 정보",
@@ -84,36 +88,48 @@ def process_question(question: str, client=None, retriever=None):
         comparison_data = None
 
         try:
+            event_count = 0
+            status_placeholder.caption("🔄 에이전트 시작...")
             for event in stream_agent(question, st.session_state.messages[:-1]):
-                if event["event"] == "question_type":
+                event_count += 1
+                event_type = event.get("event", "unknown")
+                logger.info(f"[chat] event #{event_count}: {event_type}")
+
+                if event_type == "question_type":
                     question_type = event["data"]
                     st.session_state.last_question_type = question_type
                     type_label = QUESTION_TYPE_LABELS.get(question_type, question_type)
                     status_placeholder.caption(f"질문 유형: {type_label}")
 
-                elif event["event"] == "tool_call":
+                elif event_type == "tool_call":
                     tool_name = event["data"]["name"]
                     status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
 
-                elif event["event"] == "structured_data":
+                elif event_type == "structured_data":
                     parsed = try_parse_structured_data(event["data"])
                     if parsed:
                         comparison_data = parsed
 
-                elif event["event"] == "token":
+                elif event_type == "token":
                     full_response = event["data"]
                     answer_placeholder.markdown(full_response)
 
-                elif event["event"] == "error":
+                elif event_type == "error":
                     st.warning(event["data"])
 
-                elif event["event"] == "done":
+                elif event_type == "done":
                     full_response = event["data"]["answer"]
                     model_used = event["data"]["model"]
                     question_type = event["data"].get("question_type", question_type)
 
+            logger.info(f"[chat] stream 종료: {event_count}개 이벤트, 답변 {len(full_response)}자")
+            if not full_response:
+                logger.warning(f"[chat] 빈 응답! events={event_count}")
+                status_placeholder.caption(f"⚠️ 디버그: {event_count}개 이벤트 수신, 답변 없음")
+
         except Exception as e:
-            error_msg = _get_user_error_message(e)
+            logger.error(f"[chat] stream 오류: {e}\n{traceback.format_exc()}")
+            error_msg = f"⚠️ 오류 발생: {type(e).__name__}: {e}"
             st.error(error_msg)
             full_response = error_msg
 

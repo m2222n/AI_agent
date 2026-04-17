@@ -601,7 +601,8 @@ def stream_agent(question: str, chat_history: list = None):
                                     yield {"event": "token", "data": final_answer}
 
     except Exception as e:
-        logger.error(f"에이전트 스트리밍 오류: {e}")
+        import traceback
+        logger.error(f"에이전트 스트리밍 오류: {e}\n{traceback.format_exc()}")
         error_msg = _make_error_message(e)
         if not final_answer:
             final_answer = error_msg
