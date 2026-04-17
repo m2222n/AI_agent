@@ -281,23 +281,32 @@ def test_search_instruments_by_ticker(db_with_data):
 
 # ── 유지보수 테스트 ──────────────────────────────────────────
 
-def test_prune_old_data(db_with_data):
-    """오래된 데이터 삭제"""
-    # retention_days=0이면 모든 데이터 삭제
+def test_prune_old_data_preserves_prices(db_with_data):
+    """daily_prices/returns/stock_fundamentals는 영구 보존"""
     prune_old_data(db_with_data, retention_days=0)
 
+    # daily_prices는 삭제되지 않음 (KRX 슬라이딩 윈도우로 재수집 불가)
     assert db_with_data.execute(
         "SELECT COUNT(*) FROM daily_prices"
+    ).fetchone()[0] == 2  # 영구 보존
+
+
+def test_prune_deletes_old_holdings(db_with_data):
+    """holdings만 1년 기준으로 삭제"""
+    # 2년 전 holdings 데이터 삽입
+    db_with_data.execute(
+        "INSERT INTO holdings (ticker, stock_ticker, stock_name, weight, date) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("069500", "005930", "삼성전자", 30.0, "20240101"),
+    )
+    db_with_data.commit()
+
+    prune_old_data(db_with_data)
+
+    # 오래된 holdings는 삭제
+    assert db_with_data.execute(
+        "SELECT COUNT(*) FROM holdings WHERE date = '20240101'"
     ).fetchone()[0] == 0
-
-
-def test_prune_preserves_recent_data(db_with_data):
-    """최근 데이터는 보존"""
-    prune_old_data(db_with_data, retention_days=9999)
-
-    assert db_with_data.execute(
-        "SELECT COUNT(*) FROM daily_prices"
-    ).fetchone()[0] == 2  # 보존됨
 
 
 def test_get_db_stats(db_with_data):
