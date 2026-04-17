@@ -172,13 +172,22 @@ def _make_error_message(error: Exception) -> str:
 # ── 그래프 노드 ───────────────────────────────────────────
 
 def call_model(state: AgentState) -> dict:
-    """LLM 호출 (도구 선택 또는 최종 답변)"""
+    """LLM 호출 (도구 선택 또는 최종 답변)
+
+    첫 번째 호출(tool_call_count == 0)이고 general이 아니면
+    tool_choice="required"로 도구 호출을 강제한다.
+    이후 호출에서는 LLM이 자유롭게 답변 또는 도구를 선택한다.
+    """
     question_type = state["question_type"]
     model = _get_model(question_type)
 
     messages = list(state["messages"])
     try:
-        response = model.invoke(messages)
+        # 첫 호출 + general 아닌 경우: 도구 호출 강제
+        if state["tool_call_count"] == 0 and question_type != "general":
+            response = model.invoke(messages, tool_choice="required")
+        else:
+            response = model.invoke(messages)
     except Exception as e:
         logger.error(f"LLM 호출 실패: {e}")
         error_msg = _make_error_message(e)
