@@ -337,7 +337,7 @@ ETF_RAG/
 │   │   ├── vectorstore.py  # create_vectorstore() — FAISS persist (MD5 해시 캐시) + text-embedding-3-small
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
-│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output)
+│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer)
 │   │   ├── tools.py        # Function Calling 도구 13개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
@@ -354,7 +354,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 419개
+├── tests/                  # pytest 421개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
@@ -414,4 +414,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-17 (분석 지표 개선: EMA/Bootstrap CI/벤치마크/시계열차트 + KST 자동화, 도구 13개, 테스트 419개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-17 (분석 지표 개선: EMA/Bootstrap CI/벤치마크/시계열차트 + KST 자동화 + Streamlit Cloud 빈 응답 수정(force_answer), 도구 13개, 테스트 421개, eval 162개, Hit Rate 100%)_

@@ -1168,7 +1168,16 @@
 - `test_technical.py`: +3개 (벤치마크 포함/없음/양수알파)
 - 기존 `test_valid_horizons`, `test_different_horizons` 6m/1y 추가
 
+### Streamlit Cloud 빈 응답 수정 (2026-04-17)
+- **증상**: "삼성전자 기술적 분석" 등 질문 시 답변 영역 완전히 빈 상태
+- **원인 1**: `should_call_tools`에서 도구 호출 2회 초과 시 `"end"` 반환 → AIMessage에 content 없이 tool_calls만 존재 → `final_answer` 빈 문자열
+- **수정 1**: `force_answer` 노드 추가 — 도구 호출 제한 도달 시 ToolMessage로 "현재 정보로 답변하라" 주입 → agent 노드로 재순환
+- **원인 2**: Streamlit Cloud (Python 3.13) + LangGraph `stream_mode=["messages", "updates"]` 조합에서 `messages` 모드의 AIMessageChunk 토큰 스트리밍 미발생
+- **수정 2**: `updates` 모드 fallback — agent 노드의 최종 AIMessage.content를 `final_answer`로 사용 + chat.py `done` 이벤트에서 answer 길이 비교 fallback
+- **파일**: `agent.py` (force_answer 노드, updates fallback), `chat.py` (done answer fallback, 상세 로깅)
+- **테스트**: 419→421개 (+2: `test_force_answer_single_tool_call`, `test_force_answer_multiple_tool_calls`)
+
 ---
 
 _Last Updated: 2026-04-17_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 분석 지표 개선(EMA/Bootstrap/벤치마크/시계열차트) + KST 자동화 + 도구 13개 + 테스트 419개 + eval 162개 + Hit Rate 100%_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 분석 지표 개선(EMA/Bootstrap/벤치마크/시계열차트) + KST 자동화 + Streamlit Cloud 빈 응답 수정 + 도구 13개 + 테스트 421개 + eval 162개 + Hit Rate 100%_

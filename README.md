@@ -8,8 +8,8 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 [![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-302_Passed-2ea44f?style=for-the-badge)](#)
-[![RAGAS](https://img.shields.io/badge/Hit_Rate-91.9%25-blue?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-421_Passed-2ea44f?style=for-the-badge)](#)
+[![RAGAS](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 </div>
 
@@ -34,7 +34,7 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 ## 핵심 기능
 
-### 🤖 LangGraph 에이전트 (12개 도구)
+### 🤖 LangGraph 에이전트 (13개 도구)
 
 ```mermaid
 graph LR
@@ -55,7 +55,8 @@ graph LR
     T --> S10[get_stock_correlation]
     T --> S11[simulate_portfolio]
     T --> S12[get_financial_statements]
-    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 & S11 & S12 --> R[답변 생성]
+    T --> S13[predict_price_outlook]
+    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 & S11 & S12 & S13 --> R[답변 생성]
 ```
 
 | 도구 | 기능 |
@@ -72,6 +73,7 @@ graph LR
 | `get_stock_correlation` | 종목 간 상관관계 + 베타 계수 분석 |
 | `simulate_portfolio` | 포트폴리오 백테스트 (수익률/MDD/샤프/변동성) |
 | `get_financial_statements` | 분기별 재무제표 (매출/영업이익/마진/YoY, OpenDart) |
+| `predict_price_outlook` | 3축 가격 전망 (기술적+펀더멘털+Ridge회귀, Bootstrap CI) |
 
 ### 🔍 하이브리드 검색 파이프라인
 
@@ -101,15 +103,15 @@ graph LR
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (12개 도구) + 모델 라우팅 |
+| **에이전트** | LangGraph + Function Calling (13개 도구) + 모델 라우팅 |
 | **LLM** | GPT-4o (복잡 질문) + GPT-4o-mini (단순 질문) |
 | **임베딩** | OpenAI text-embedding-3-small |
 | **Vector DB** | FAISS (인메모리) |
 | **검색** | Kiwi BM25 + FAISS Dense + RRF + MMR + 이름 매칭 |
 | **데이터** | pykrx (ETF 1,088 + 주식 전종목) + yfinance (장중) + dart-fss (재무제표) |
 | **저장** | SQLite WAL (12년 보존, 1.5GB) + JSON fallback |
-| **평가** | RAGAS (Hit Rate 91.9%, 134개 데이터셋) |
-| **테스트** | pytest 302개 |
+| **평가** | RAGAS (Hit Rate 100%, 162개 데이터셋) |
+| **테스트** | pytest 421개 |
 | **자동 수집** | GitHub Actions (deploy/ 갱신) + macOS launchd (로컬 DB + DART 백필) |
 | **모니터링** | LangSmith (free tier) |
 | **UI** | Streamlit (커스텀 CSS, 반응형) |
@@ -123,28 +125,22 @@ graph LR
 
 ### 검색 품질 (Hit Rate)
 ```
-평가 데이터셋: 134개 질문 (8개 유형)
-├── simple (38개):      93.8%
-├── compare (15개):     92.3%
-├── recommend (19개):   94.4%
-├── risk (5개):         80.0%
-├── general (8개):      83.3%
-├── technical (18개):   신규
-├── correlation (12개): 신규
-├── portfolio (12개):   신규
-├── ETF:               88.0%
-├── 주식:              100%
-├── 혼합:              100%
-└── 전체 Hit Rate:     91.9%
+평가 데이터셋: 162개 질문 (8개 유형)
+├── simple, compare, recommend, risk, general,
+│   technical, correlation, portfolio
+├── ETF / 주식 / 혼합 전 유형
+└── 전체 Hit Rate:     100.0% (162/162)
 ```
 
-### RAGAS 답변 품질
+**주요 성과:** force_answer 노드로 빈 응답 방지, 부분 키워드 매칭 + 접두어 매칭 + 한글 별칭으로 검색 품질 100% 달성
+
+### RAGAS 답변 품질 (7차)
 | 지표 | 값 |
 |------|-----|
-| Faithfulness | 0.549 |
-| Faithfulness (RAG only) | 0.578 |
-| Answer Relevancy | 0.340 |
-| Context Recall | 0.469 |
+| Hit Rate | 100% (162/162) |
+| Faithfulness | 0.411 |
+| Answer Relevancy | 0.108 |
+| Context Recall | 0.333 |
 
 ---
 
@@ -176,8 +172,8 @@ ETF_RAG/
 │       ├── charts.py          # 비교 테이블/차트 렌더링
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
-├── eval/                      # RAGAS 평가 (134개 질문)
-├── tests/                     # pytest 302개
+├── eval/                      # RAGAS 평가 (162개 질문)
+├── tests/                     # pytest 421개
 ├── scripts/
 │   ├── daily_collect.sh                # ETF+주식 일배치 수집
 │   ├── collect_for_deploy.py           # GitHub Actions용 경량 수집
@@ -247,7 +243,7 @@ pytest tests/ -v
 - [x] **Phase 3**: LangGraph 에이전트 + 도구 + 모델 라우팅 + 프롬프트 개선
 - [x] **Phase 4**: UI/UX 개편 + 에러 핸들링 + 실시간 시세 + 섹터 분석
 - [x] **Phase C**: 정량 분석 — 기술적 지표 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 (OpenDart)
-- [ ] **Phase D**: 예측 모델 (일목균형표, 스토캐스틱 등 지표 확장 + ML/DL 예측)
+- [x] **Phase D**: 기술적 지표 확장 (6개 추가) + 차트 이미지 + 가격 전망 모델 (3축 Ridge회귀)
 - [ ] **추후**: Pinecone + Cohere Rerank + KIS OpenAPI
 
 ---
