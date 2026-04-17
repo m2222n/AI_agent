@@ -1091,5 +1091,36 @@
 
 ---
 
-_Last Updated: 2026-04-14_
-_Phase 0~4 + C-1~C-6 완료 + GitHub Actions 자동수집 + 12년 백필 (800만 행) + 도구 12개 + 테스트 302개 + eval 134개_
+## Mac 독립 자동화 + 데이터 영구 보존 (2026-04-17)
+
+### 데이터 영구 보존
+- **문제**: `prune_old_data()`가 12년(4380일) 넘는 데이터 삭제 → 2026-04-18에 2014-04-18 데이터 삭제 위기
+- **원인**: KRX 슬라이딩 윈도우 (~12년) — 한번 삭제하면 재수집 불가
+- **해결**: daily_prices/returns/stock_fundamentals 영구 보존 (holdings만 1년 정리)
+
+### GitHub Actions DB Release 관리
+- **문제**: Mac이 고장/교체되면 SQLite DB 수집 불가 → Streamlit Cloud에 영향
+- **해결**: GitHub Release asset으로 DB 관리
+  - `collect_full.py`: deploy JSON + SQLite DB 통합 수집
+  - `daily-collect.yml`: Release에서 DB 다운로드 → 수집 → 업로드 사이클
+  - `upload_db_to_release.sh`: 로컬 DB 초기 업로드 (zstd 압축)
+
+### DART 백필 개선
+- `dart_collector.py`: NO_DATA 센티넬 — '데이터 없음'과 API 오류 구분
+- `backfill_financials_runner.py`:
+  - `financials_no_data` 테이블로 빈 분기 기록 (다음 실행에서 스킵)
+  - 일일 한도 9,500→39,000 (DART 실제 40,000)
+  - 연속 API 오류 200→50으로 조기 종료 기준 변경
+
+### yfinance 백필 스크립트
+- `backfill_yfinance.py`: KRX 슬라이딩 윈도우 밖 구간(2014-01-01~04-17) 보충
+- `auto_adjust=False`로 원시 가격 수집 (액면분할 미조정 = pykrx 데이터와 일관)
+
+### 테스트 수정
+- `test_prune_old_data` → `test_prune_old_data_preserves_prices` (영구 보존 검증)
+- `test_prune_preserves_recent_data` → `test_prune_deletes_old_holdings` (holdings 삭제 검증)
+
+---
+
+_Last Updated: 2026-04-17_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + Mac 독립 자동화(Actions DB Release) + 12년 백필 (800만 행, 영구 보존) + 도구 13개 + 테스트 404개 + eval 162개_

@@ -67,7 +67,7 @@
 - [x] retriever.py: 수집 데이터 metadata 호환성 수정 (id/ticker fallback)
 - [x] sidebar.py: 수집 데이터 포맷 대응 (종가/등락률/거래대금 표시, 상위 20개)
 - [x] 테스트 29개 전체 통과 (loader 12개: 수익률+필터링 추가)
-- [x] **SQLite 데이터베이스** — 12년 보존, WAL 모드, 6테이블 (instruments, daily_prices, returns, holdings, collection_log, stock_fundamentals)
+- [x] **SQLite 데이터베이스** — 영구 보존 (daily_prices/returns/stock_fundamentals), WAL 모드, 8테이블 (instruments, daily_prices, returns, holdings, collection_log, stock_fundamentals, dart_corp_codes, financials_no_data)
 - [x] loader.py 4-tier 우선순위: SQLite DB → collected/ → deploy/ → 하드코딩 fallback
 - [x] deploy/ 배포용 데이터 (Streamlit Cloud용, Git 추적, ~1MB)
 - [x] collector.py 듀얼 라이트: JSON + SQLite 동시 저장
@@ -81,11 +81,16 @@
 **1-4. 수집 자동화** ✅ 완료
 - [x] 일배치 셸 스크립트 (`scripts/daily_collect.sh`) — 수집 + 로깅 + 정리
 - [x] macOS launchd plist (`scripts/com.etfrag.daily-collect.plist`) — 매일 18:30 자동 실행 (로컬 SQLite DB 업데이트)
-- [x] **GitHub Actions** (`.github/workflows/daily-collect.yml`) — 매일 18:30 KST, deploy/ JSON 갱신 → auto-commit/push → Streamlit Cloud 자동 재배포
+- [x] **GitHub Actions** (`.github/workflows/daily-collect.yml`) — 매일 18:30 KST, deploy/ JSON + SQLite DB 갱신 → auto-commit/push → Streamlit Cloud 자동 재배포
 - [x] `scripts/collect_for_deploy.py` — GitHub Actions용 경량 수집 (SQLite 없이 JSON만, 재무제표는 월요일만)
+- [x] `scripts/collect_full.py` — GitHub Actions용 통합 수집 (deploy JSON + SQLite DB 동시 갱신)
+- [x] `scripts/upload_db_to_release.sh` — 로컬 DB → GitHub Release asset 초기 업로드 (zstd 압축)
+- [x] GitHub Release `db-latest` — SQLite DB를 Release asset으로 관리 (Mac 없이도 DB 갱신 가능)
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
 - [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
+- [x] yfinance 백필 스크립트 — KRX 슬라이딩 윈도우 밖 구간(2014-01-01~04-17) 보충 (auto_adjust=False 원시 가격)
+- [x] 데이터 영구 보존 정책 — prune_old_data에서 daily_prices/returns/stock_fundamentals 삭제 중단 (KRX 재수집 불가)
 
 **자기 검증:** "내일 실제 ETF 가격이 반영되나?" → No면 실패
 
@@ -314,7 +319,7 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
-│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 12yr, dart_corp_codes, stock_financials)
+│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 영구보존, dart_corp_codes, stock_financials, financials_no_data)
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
@@ -352,14 +357,20 @@ ETF_RAG/
 ├── tests/                  # pytest 404개
 ├── .github/
 │   └── workflows/
-│       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ 갱신)
+│       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 셸 스크립트 (로컬 Mac용)
 │   ├── collect_for_deploy.py          # GitHub Actions용 경량 수집 (deploy/ JSON 전용)
 │   ├── backfill_historical.py         # 12년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
+│   ├── backfill_financials_runner.py  # DART 재무제표 전종목 백필 (39,000건/일, NO_DATA 구분, resume)
+│   ├── backfill_financials.sh         # DART 백필 셸 스크립트 (launchd용)
+│   ├── backfill_yfinance.py           # yfinance KRX 슬라이딩 윈도우 밖 백필 (2014-01-01~04-17)
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
 │   ├── com.etfrag.daily-collect.plist  # macOS launchd 스케줄 (18:30)
 │   └── README_cron.md                 # 자동화 설정 안내
+├── scripts/                           # 프로젝트 루트 스크립트
+│   ├── collect_full.py                # GitHub Actions용 통합 수집 (deploy JSON + SQLite DB)
+│   └── upload_db_to_release.sh        # 로컬 DB → GitHub Release asset 업로드
 └── docs/
     └── TODO_deferred.md               # 보류된 작업 목록 (Pinecone, Cohere, KIS, RAGAS)
 ```
@@ -403,4 +414,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-16 (eval 7차: Hit Rate 100% 달성 — 부분 키워드/접두어/한글 별칭 매칭, 도구 13개, 테스트 404개, eval 162개)_
+_Last Updated: 2026-04-17 (데이터 영구 보존 + Mac 독립 자동화 — GitHub Actions DB Release 관리, yfinance 백필, DART NO_DATA 구분, 도구 13개, 테스트 404개, eval 162개)_
