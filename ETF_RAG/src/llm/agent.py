@@ -609,6 +609,12 @@ def stream_agent(question: str, chat_history: list = None):
                             if isinstance(msg, AIMessage) and msg.tool_calls:
                                 for tc in msg.tool_calls:
                                     yield {"event": "tool_call", "data": {"name": tc["name"], "args": tc["args"]}}
+                            elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
+                                # 최종 답변 (토큰 스트리밍이 안 된 경우 fallback)
+                                if not final_answer:
+                                    final_answer = msg.content
+                                    logger.info(f"[stream] updates fallback: {len(final_answer)}자")
+                                    yield {"event": "token", "data": final_answer}
                     elif node_name == "verify":
                         for msg in node_output.get("messages", []):
                             if isinstance(msg, AIMessage) and msg.content:

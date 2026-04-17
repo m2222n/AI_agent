@@ -89,6 +89,8 @@ def process_question(question: str, client=None, retriever=None):
 
         try:
             event_count = 0
+            token_count = 0
+            tool_results_summary = []
             status_placeholder.caption("🔄 에이전트 시작...")
             for event in stream_agent(question, st.session_state.messages[:-1]):
                 event_count += 1
@@ -105,12 +107,16 @@ def process_question(question: str, client=None, retriever=None):
                     tool_name = event["data"]["name"]
                     status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
 
+                elif event_type == "tool_result":
+                    tool_results_summary.append(str(event["data"])[:200])
+
                 elif event_type == "structured_data":
                     parsed = try_parse_structured_data(event["data"])
                     if parsed:
                         comparison_data = parsed
 
                 elif event_type == "token":
+                    token_count += 1
                     full_response = event["data"]
                     answer_placeholder.markdown(full_response)
 
@@ -118,14 +124,21 @@ def process_question(question: str, client=None, retriever=None):
                     st.warning(event["data"])
 
                 elif event_type == "done":
-                    full_response = event["data"]["answer"]
+                    done_answer = event["data"]["answer"]
                     model_used = event["data"]["model"]
                     question_type = event["data"].get("question_type", question_type)
+                    logger.info(f"[chat] done: answer_len={len(done_answer)}, tokens={token_count}, model={model_used}")
+                    # done의 answer가 더 길면 사용 (토큰 스트리밍이 안 됐을 수 있음)
+                    if len(done_answer) > len(full_response):
+                        full_response = done_answer
+                        answer_placeholder.markdown(full_response)
 
-            logger.info(f"[chat] stream 종료: {event_count}개 이벤트, 답변 {len(full_response)}자")
+            logger.info(f"[chat] stream 종료: {event_count}개 이벤트, {token_count}개 토큰, 답변 {len(full_response)}자")
             if not full_response:
-                logger.warning(f"[chat] 빈 응답! events={event_count}")
-                status_placeholder.caption(f"⚠️ 디버그: {event_count}개 이벤트 수신, 답변 없음")
+                logger.warning(f"[chat] 빈 응답! events={event_count}, tokens={token_count}, tool_results={len(tool_results_summary)}")
+                # 빈 응답 시 사용자에게 안내 메시지 표시
+                full_response = "죄송합니다. 답변 생성에 실패했습니다. 다시 시도해주세요."
+                answer_placeholder.markdown(full_response)
 
         except Exception as e:
             logger.error(f"[chat] stream 오류: {e}\n{traceback.format_exc()}")
