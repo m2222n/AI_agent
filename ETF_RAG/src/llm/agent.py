@@ -112,11 +112,13 @@ def classify_with_llm(question: str) -> str:
     """LLM으로 질문 유형 분류 (Structured Output + 키워드 fallback)"""
     prompt = f"""다음 질문을 분류하세요. 반드시 아래 5가지 중 하나를 선택합니다.
 
-- simple: 특정 ETF/주식의 가격, 수익률, NAV, 거래량 등 단순 정보 질문
+- simple: 특정 ETF/주식의 정보 질문 (가격, 수익률, 기술적 분석, 차트, 지표, 재무제표, 동향, 전망, 시세 등). 특정 종목명이 포함되면 대부분 simple입니다.
 - compare: 두 개 이상의 ETF/주식을 비교하는 질문
 - recommend: ETF/주식 추천, 카테고리 탐색, 목록 요청
 - risk: 투자 위험, 변동성, 손실 가능성 질문
-- general: ETF/주식 일반 개념, 용어 설명
+- general: ETF/주식 일반 개념, 용어 설명 (특정 종목명이 없는 순수 개념 질문만)
+
+중요: "삼성전자 기술적 분석", "SK하이닉스 전망", "KODEX 200 동향" 등 특정 종목에 대한 분석/전망/동향 질문은 simple입니다. general은 "ETF란 무엇인가?", "PER이 뭐야?" 같은 순수 개념 질문에만 사용합니다.
 
 질문: {question}"""
 
