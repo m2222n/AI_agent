@@ -12,6 +12,7 @@ from src.llm.tools import (
 from src.llm.agent import (
     AgentState,
     should_call_tools,
+    force_answer,
     COMPLEX_TYPES,
     build_graph,
     stream_agent,
@@ -127,13 +128,47 @@ def test_should_call_tools_no_tool_calls():
 
 
 def test_should_call_tools_limit_exceeded():
-    """도구 호출 횟수 초과 시 'end' 반환"""
+    """도구 호출 횟수 초과 시 'force_answer' 반환 (빈 응답 방지)"""
     state: AgentState = {
         "messages": [AIMessage(content="", tool_calls=[{"id": "1", "name": "search_etf", "args": {"query": "test"}}])],
         "question_type": "simple",
         "tool_call_count": 2,
     }
-    assert should_call_tools(state) == "end"
+    assert should_call_tools(state) == "force_answer"
+
+
+def test_force_answer_single_tool_call():
+    """force_answer: 단일 도구 호출 시 ToolMessage 1개 반환"""
+    state: AgentState = {
+        "messages": [AIMessage(content="", tool_calls=[
+            {"id": "tc1", "name": "search_etf", "args": {"query": "test"}},
+        ])],
+        "question_type": "simple",
+        "tool_call_count": 2,
+    }
+    result = force_answer(state)
+    msgs = result["messages"]
+    assert len(msgs) == 1
+    assert isinstance(msgs[0], ToolMessage)
+    assert msgs[0].tool_call_id == "tc1"
+    assert "더 이상 도구를 호출할 수 없습니다" in msgs[0].content
+
+
+def test_force_answer_multiple_tool_calls():
+    """force_answer: 복수 도구 호출 시 각각 ToolMessage 반환"""
+    state: AgentState = {
+        "messages": [AIMessage(content="", tool_calls=[
+            {"id": "tc1", "name": "search_etf", "args": {"query": "a"}},
+            {"id": "tc2", "name": "compare_etfs", "args": {"names": "a,b"}},
+        ])],
+        "question_type": "compare",
+        "tool_call_count": 2,
+    }
+    result = force_answer(state)
+    msgs = result["messages"]
+    assert len(msgs) == 2
+    assert msgs[0].tool_call_id == "tc1"
+    assert msgs[1].tool_call_id == "tc2"
 
 
 # ── 모델 라우팅 테스트 ────────────────────────────────────

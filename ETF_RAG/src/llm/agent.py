@@ -360,10 +360,25 @@ def should_call_tools(state: AgentState) -> str:
         # 재검색 제한 (최대 2회)
         if state["tool_call_count"] >= 2:
             logger.info("도구 호출 횟수 초과 — 최종 답변으로 전환")
-            return "end"
+            return "force_answer"
         return "tools"
 
     return "end"
+
+
+def force_answer(state: AgentState) -> dict:
+    """도구 호출 횟수 초과 시, 현재까지의 정보로 최종 답변을 생성하도록 강제."""
+    logger.info("force_answer: 도구 호출 제한 도달, 현재 정보로 답변 강제 생성")
+
+    last_message = state["messages"][-1]
+    force_content = "[시스템] 더 이상 도구를 호출할 수 없습니다. 지금까지 수집한 정보를 바탕으로 사용자에게 최선의 답변을 작성하세요. 정보가 부족하면 부족하다고 안내하세요."
+
+    # 각 tool_call에 대해 ToolMessage를 생성 (LangGraph는 모든 tool_call에 대응하는 ToolMessage를 기대)
+    tool_messages = []
+    for tc in last_message.tool_calls:
+        tool_messages.append(ToolMessage(content=force_content, tool_call_id=tc["id"]))
+
+    return {"messages": tool_messages}
 
 
 def should_verify(state: AgentState) -> str:
@@ -395,20 +410,24 @@ def build_graph() -> StateGraph:
     # 노드 추가
     graph.add_node("agent", call_model)
     graph.add_node("tools", call_tools)
+    graph.add_node("force_answer", force_answer)
     graph.add_node("verify", verify_answer)
 
     # 진입점
     graph.set_entry_point("agent")
 
-    # agent → tools / verify(최종답변) / END
+    # agent → tools / force_answer / verify(최종답변) / END
     graph.add_conditional_edges(
         "agent",
         _route_after_agent,
-        {"tools": "tools", "verify": "verify", "end": END},
+        {"tools": "tools", "force_answer": "force_answer", "verify": "verify", "end": END},
     )
 
     # tools → agent (도구 결과를 LLM에 전달)
     graph.add_edge("tools", "agent")
+
+    # force_answer → agent (강제 답변 생성)
+    graph.add_edge("force_answer", "agent")
 
     # verify → END
     graph.add_edge("verify", END)
@@ -417,11 +436,11 @@ def build_graph() -> StateGraph:
 
 
 def _route_after_agent(state: AgentState) -> str:
-    """agent 노드 후 라우팅: tools / verify / end"""
+    """agent 노드 후 라우팅: tools / force_answer / verify / end"""
     # 먼저 도구 호출 여부 확인
     tool_route = should_call_tools(state)
-    if tool_route == "tools":
-        return "tools"
+    if tool_route in ("tools", "force_answer"):
+        return tool_route
 
     # 도구 호출 아니면 검증 여부 확인
     return should_verify(state)
