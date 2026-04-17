@@ -43,41 +43,49 @@ def _setup_font():
         return
     import matplotlib.font_manager as fm
     from pathlib import Path
+    import glob
 
-    # 1) 이름 기반 매칭 (macOS AppleGothic 등)
-    for font_name in ["AppleGothic", "NanumGothic", "Malgun Gothic"]:
-        try:
-            if any(font_name in f.name for f in fm.fontManager.ttflist):
-                plt.rcParams["font.family"] = font_name
-                plt.rcParams["axes.unicode_minus"] = False
-                _FONT_SET = True
-                return
-        except Exception:
-            continue
+    plt.rcParams["axes.unicode_minus"] = False
 
-    # 2) TTF 파일 직접 탐색 (Streamlit Cloud / Linux — fonts-nanum 패키지)
-    nanum_paths = [
-        Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
-        Path("/usr/share/fonts/nanum/NanumGothic.ttf"),
-        Path("/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf"),
+    # 1) TTF 파일 직접 탐색 + 등록 (가장 확실한 방법)
+    # Streamlit Cloud (Debian): fonts-nanum → /usr/share/fonts/truetype/nanum/
+    # 일부 Linux: /usr/share/fonts/nanum/
+    search_patterns = [
+        "/usr/share/fonts/truetype/nanum/NanumGothic*.ttf",
+        "/usr/share/fonts/nanum/NanumGothic*.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumBarunGothic*.ttf",
     ]
-    for ttf_path in nanum_paths:
-        if ttf_path.exists():
+    for pattern in search_patterns:
+        found = glob.glob(pattern)
+        if found:
+            ttf_path = found[0]
             try:
-                fm.fontManager.addfont(str(ttf_path))
-                prop = fm.FontProperties(fname=str(ttf_path))
-                plt.rcParams["font.family"] = prop.get_name()
-                plt.rcParams["axes.unicode_minus"] = False
+                fm.fontManager.addfont(ttf_path)
+                prop = fm.FontProperties(fname=ttf_path)
+                font_name = prop.get_name()
+                plt.rcParams["font.family"] = font_name
+                # sans-serif fallback 리스트에도 추가
+                plt.rcParams["font.sans-serif"] = [font_name] + plt.rcParams.get("font.sans-serif", [])
                 _FONT_SET = True
-                logger.info(f"한글 폰트 로드: {ttf_path}")
+                logger.info(f"한글 폰트 로드 (TTF 직접): {ttf_path} → {font_name}")
                 return
             except Exception as e:
                 logger.warning(f"폰트 등록 실패 ({ttf_path}): {e}")
                 continue
 
+    # 2) 이름 기반 매칭 (macOS AppleGothic 등 — 시스템 폰트가 이미 등록된 경우)
+    for font_name in ["AppleGothic", "NanumGothic", "Malgun Gothic"]:
+        try:
+            if any(font_name in f.name for f in fm.fontManager.ttflist):
+                plt.rcParams["font.family"] = font_name
+                _FONT_SET = True
+                logger.info(f"한글 폰트 로드 (시스템): {font_name}")
+                return
+        except Exception:
+            continue
+
     # 3) 최종 fallback
     plt.rcParams["font.family"] = "sans-serif"
-    plt.rcParams["axes.unicode_minus"] = False
     _FONT_SET = True
     logger.warning("한글 폰트를 찾지 못함 — sans-serif fallback")
 
