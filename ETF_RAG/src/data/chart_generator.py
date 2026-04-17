@@ -42,15 +42,44 @@ def _setup_font():
     if _FONT_SET:
         return
     import matplotlib.font_manager as fm
-    for font_name in ["AppleGothic", "NanumGothic", "Malgun Gothic", "sans-serif"]:
+    from pathlib import Path
+
+    # 1) 이름 기반 매칭 (macOS AppleGothic 등)
+    for font_name in ["AppleGothic", "NanumGothic", "Malgun Gothic"]:
         try:
             if any(font_name in f.name for f in fm.fontManager.ttflist):
                 plt.rcParams["font.family"] = font_name
-                break
+                plt.rcParams["axes.unicode_minus"] = False
+                _FONT_SET = True
+                return
         except Exception:
             continue
+
+    # 2) TTF 파일 직접 탐색 (Streamlit Cloud / Linux — fonts-nanum 패키지)
+    nanum_paths = [
+        Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+        Path("/usr/share/fonts/nanum/NanumGothic.ttf"),
+        Path("/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf"),
+    ]
+    for ttf_path in nanum_paths:
+        if ttf_path.exists():
+            try:
+                fm.fontManager.addfont(str(ttf_path))
+                prop = fm.FontProperties(fname=str(ttf_path))
+                plt.rcParams["font.family"] = prop.get_name()
+                plt.rcParams["axes.unicode_minus"] = False
+                _FONT_SET = True
+                logger.info(f"한글 폰트 로드: {ttf_path}")
+                return
+            except Exception as e:
+                logger.warning(f"폰트 등록 실패 ({ttf_path}): {e}")
+                continue
+
+    # 3) 최종 fallback
+    plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["axes.unicode_minus"] = False
     _FONT_SET = True
+    logger.warning("한글 폰트를 찾지 못함 — sans-serif fallback")
 
 
 def _apply_style(ax, ylabel: str = "", hide_xticklabels: bool = True):

@@ -185,6 +185,25 @@ def call_model(state: AgentState) -> dict:
     return {"messages": [response]}
 
 
+def _strip_chart_json(content: str) -> tuple:
+    """도구 결과에서 차트 JSON을 분리.
+
+    Returns:
+        (LLM에 전달할 텍스트, 차트 JSON 원본 또는 None)
+    """
+    if '"__type__": "technical_chart"' not in content:
+        return content, None
+
+    # chart_json + "\n\n---\n\n" + text_result 구조
+    parts = content.split("\n\n---\n\n", 1)
+    if len(parts) == 2:
+        chart_json = parts[0]
+        text_only = parts[1]
+        return f"[기술적 분석 차트 이미지 생성됨]\n\n{text_only}", chart_json
+
+    return content, None
+
+
 def call_tools(state: AgentState) -> dict:
     """도구 실행"""
     last_message = state["messages"][-1]
@@ -207,9 +226,16 @@ def call_tools(state: AgentState) -> dict:
             logger.error(f"도구 실행 실패 ({tool_name}): {e}")
             result = f"검색 중 오류가 발생했습니다: {type(e).__name__}"
 
-        tool_messages.append(
-            ToolMessage(content=str(result), tool_call_id=tool_call["id"])
-        )
+        result_str = str(result)
+
+        # 차트 JSON은 LLM context에서 제거 (base64 이미지가 수십 KB → 토큰 낭비 + 혼란)
+        # 원본은 _raw_tool_results에 보관하여 stream에서 structured_data 이벤트 발행
+        llm_content, chart_json = _strip_chart_json(result_str)
+
+        msg = ToolMessage(content=llm_content, tool_call_id=tool_call["id"])
+        if chart_json:
+            msg.additional_kwargs["_chart_json"] = chart_json
+        tool_messages.append(msg)
 
     return {
         "messages": tool_messages,
@@ -552,8 +578,12 @@ def stream_agent(question: str, chat_history: list = None):
                         for msg in node_output.get("messages", []):
                             if isinstance(msg, ToolMessage):
                                 yield {"event": "tool_result", "data": msg.content[:100]}
-                                # 구조화 비교 데이터 감지
-                                if '"__type__"' in msg.content:
+                                # 차트 JSON (call_tools에서 분리하여 additional_kwargs에 보관)
+                                chart_json = msg.additional_kwargs.get("_chart_json")
+                                if chart_json:
+                                    yield {"event": "structured_data", "data": chart_json}
+                                # 비교 테이블 등 다른 구조화 데이터 (content에 남아있는 경우)
+                                elif '"__type__"' in msg.content:
                                     yield {"event": "structured_data", "data": msg.content}
                     elif node_name == "agent":
                         for msg in node_output.get("messages", []):
