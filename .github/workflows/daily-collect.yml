@@ -43,8 +43,7 @@ jobs:
               --dir /tmp \
               --clobber 2>/dev/null; then
             echo "DB 다운로드 성공"
-            # zstd 압축 해제
-            sudo apt-get install -y zstd > /dev/null 2>&1
+            # zstd 압축 해제 (ubuntu-latest에 zstd 기본 포함)
             zstd -d /tmp/etf_rag.db.zst -o "$DB_DIR/etf_rag.db" --force
             ls -lh "$DB_DIR/etf_rag.db"
             echo "db_exists=true" >> $GITHUB_OUTPUT
@@ -90,7 +89,6 @@ jobs:
         run: |
           DB_FILE="ETF_RAG/src/data/etf_rag.db"
           if [ -f "$DB_FILE" ]; then
-            sudo apt-get install -y zstd > /dev/null 2>&1
             zstd -19 "$DB_FILE" -o /tmp/etf_rag.db.zst --force
             COMPRESSED_SIZE=$(du -h /tmp/etf_rag.db.zst | cut -f1)
             echo "DB 압축 완료: $COMPRESSED_SIZE"

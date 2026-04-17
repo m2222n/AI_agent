@@ -25,6 +25,7 @@ SCRIPTS_DIR = PROJECT_DIR / "scripts"
 ETF_RAG_DIR = PROJECT_DIR / "ETF_RAG"
 
 # scripts/ 와 ETF_RAG/ 둘 다 import 가능하게
+sys.path.insert(0, str(SCRIPTS_DIR))
 sys.path.insert(0, str(PROJECT_DIR))
 sys.path.insert(0, str(ETF_RAG_DIR))
 
