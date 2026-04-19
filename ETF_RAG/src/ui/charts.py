@@ -108,6 +108,29 @@ def render_comparison(data: dict):
             ("DPS", f"{a.get('dps', 0):,.0f}원", f"{b.get('dps', 0):,.0f}원"),
         ])
 
+        # 재무제표 행 (데이터 있을 때만)
+        if a.get("revenue") is not None or b.get("revenue") is not None:
+            period_a = a.get("fiscal_period", "")
+            period_b = b.get("fiscal_period", "")
+            period_label = period_a or period_b
+            if period_label:
+                rows.append(("**실적 기준**", period_a, period_b))
+            rows.append(("매출액", _format_value(a.get("revenue") or 0),
+                         _format_value(b.get("revenue") or 0)))
+            rows.append(("영업이익", _format_value(a.get("operating_profit") or 0),
+                         _format_value(b.get("operating_profit") or 0)))
+            rows.append(("순이익", _format_value(a.get("net_income") or 0),
+                         _format_value(b.get("net_income") or 0)))
+            rows.append(("영업이익률",
+                         f"{a.get('operating_margin', 0):.1f}%" if a.get("operating_margin") is not None else "-",
+                         f"{b.get('operating_margin', 0):.1f}%" if b.get("operating_margin") is not None else "-"))
+            rows.append(("매출 YoY",
+                         f"{a.get('revenue_growth_yoy', 0):+.1f}%" if a.get("revenue_growth_yoy") is not None else "-",
+                         f"{b.get('revenue_growth_yoy', 0):+.1f}%" if b.get("revenue_growth_yoy") is not None else "-"))
+            rows.append(("영업이익 YoY",
+                         f"{a.get('op_growth_yoy', 0):+.1f}%" if a.get("op_growth_yoy") is not None else "-",
+                         f"{b.get('op_growth_yoy', 0):+.1f}%" if b.get("op_growth_yoy") is not None else "-"))
+
     # 테이블 렌더링
     header = f"| 항목 | {name_a} | {name_b} |"
     sep = "|------|------|------|"

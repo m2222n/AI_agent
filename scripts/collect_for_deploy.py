@@ -352,12 +352,65 @@ def collect_stock_for_deploy(date: str) -> dict:
 
 # ── 재무제표 요약 수집 (DART API, 선택적) ─────────────────────
 
-def collect_financial_summary(stock_data: dict, max_count: int = 50) -> int:
-    """거래대금 상위 종목에 최근 분기 재무 요약을 추가.
+def _fill_financial_from_db(stock_data: dict) -> int:
+    """DB에서 전종목 최근 분기 재무 요약을 채운다. DB 없으면 0 반환."""
+    try:
+        db_path = Path(__file__).parent.parent / "ETF_RAG" / "src" / "data" / "etf_rag.db"
+        if not db_path.exists():
+            return 0
+        import sqlite3
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        # 종목별 최신 분기 1건씩 조회
+        rows = conn.execute("""
+            SELECT f.* FROM stock_financials f
+            INNER JOIN (
+                SELECT ticker, MAX(fiscal_year || '-' || fiscal_quarter) as max_q
+                FROM stock_financials
+                GROUP BY ticker
+            ) latest ON f.ticker = latest.ticker
+                AND (f.fiscal_year || '-' || f.fiscal_quarter) = latest.max_q
+        """).fetchall()
+        conn.close()
 
-    DART_API_KEY가 설정되어 있을 때만 동작.
+        fin_map = {}
+        for r in rows:
+            fin_map[r["ticker"]] = {
+                "fiscal_year": r["fiscal_year"],
+                "fiscal_quarter": r["fiscal_quarter"],
+                "revenue": r["revenue"],
+                "operating_profit": r["operating_profit"],
+                "net_income": r["net_income"],
+                "operating_margin": r["operating_margin"],
+                "revenue_growth_yoy": r["revenue_growth_yoy"],
+                "op_growth_yoy": r["op_growth_yoy"],
+            }
+
+        filled = 0
+        for s in stock_data.get("stocks", []):
+            fin = fin_map.get(s["ticker"])
+            if fin:
+                s["financial_summary"] = fin
+                filled += 1
+        logger.info(f"재무제표 요약 (DB): {filled}/{len(stock_data.get('stocks', []))}종목")
+        return filled
+    except Exception as e:
+        logger.warning(f"DB 재무제표 로드 실패: {e}")
+        return 0
+
+
+def collect_financial_summary(stock_data: dict, max_count: int = 50) -> int:
+    """종목에 최근 분기 재무 요약을 추가.
+
+    1순위: 로컬 DB에서 전종목 일괄 로드 (빠르고 전종목 커버)
+    2순위: DART API로 거래대금 상위 종목만 수집 (DB 없을 때 fallback)
     stock_data['stocks'] 각 항목에 'financial_summary' 필드를 추가.
     """
+    # DB 우선
+    db_count = _fill_financial_from_db(stock_data)
+    if db_count > 0:
+        return db_count
+
     dart_api_key = os.environ.get("DART_API_KEY", "")
     if not dart_api_key:
         logger.info("DART_API_KEY 미설정 — 재무제표 요약 생략")
@@ -509,12 +562,9 @@ def main():
     # 주식 수집 → deploy/stock_data.json
     stock_data = collect_stock_for_deploy(date)
 
-    # 재무제표 요약 추가 (월요일만, DART_API_KEY 있을 때만)
-    # 분기 데이터라 매일 수집 불필요 — 주 1회(월요일)로 충분
-    if datetime.now().weekday() == 0:  # 0 = Monday
-        collect_financial_summary(stock_data, max_count=50)
-    else:
-        logger.info("재무제표 수집 건너뜀 (월요일만 실행)")
+    # 재무제표 요약 추가 (DB 우선 → DART API fallback)
+    # DB 있으면 매일 전종목 로드 (API 미호출), DB 없으면 월요일만 DART API
+    collect_financial_summary(stock_data, max_count=50)
 
     stock_path = DEPLOY_DIR / "stock_data.json"
     with open(stock_path, "w", encoding="utf-8") as f:

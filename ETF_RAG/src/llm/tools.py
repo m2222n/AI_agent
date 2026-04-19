@@ -153,14 +153,18 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
 
         enriched.append(line)
 
-        # 최근 분기 실적 추가 (DB에서 조회)
+        # 최근 분기 실적 + 4분기 추세 추가 (DB에서 조회)
         if "per" in data and ticker:
             try:
-                from src.data.database import get_latest_financial_summary, get_connection
+                from src.data.database import get_financial_data, get_connection
                 fin_conn = get_connection()
-                fin = get_latest_financial_summary(fin_conn, ticker)
-                fin_conn.close()
-                if fin:
+                try:
+                    fin_list = get_financial_data(fin_conn, ticker, quarters=4)
+                finally:
+                    fin_conn.close()
+                if fin_list:
+                    # 최근 1분기 요약
+                    fin = fin_list[0]
                     fy = fin.get("fiscal_year", "")
                     fq = fin.get("fiscal_quarter", "")
                     rev = fin.get("revenue")
@@ -182,6 +186,24 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
                         parts.append(f"매출 YoY {rg:+.1f}%")
                     if len(parts) > 1:
                         enriched.append("  " + ", ".join(parts))
+
+                    # 4분기 추세 (2개 이상일 때만)
+                    if len(fin_list) >= 2:
+                        trend_parts = []
+                        for q in reversed(fin_list):  # 과거→최신 순
+                            qy = q.get("fiscal_year", "")
+                            qq = q.get("fiscal_quarter", "")
+                            qr = q.get("revenue")
+                            qo = q.get("operating_margin")
+                            if qr is not None:
+                                if abs(qr) >= 1_0000_0000_0000:
+                                    rev_s = f"{qr / 1_0000_0000_0000:.1f}조"
+                                else:
+                                    rev_s = f"{qr / 1_0000_0000:,.0f}억"
+                                margin_s = f"({qo:.1f}%)" if qo is not None else ""
+                                trend_parts.append(f"{qy}Q{qq} {rev_s}{margin_s}")
+                        if len(trend_parts) >= 2:
+                            enriched.append(f"  실적추세: {' → '.join(trend_parts)}")
             except Exception:
                 pass  # 재무 데이터 없으면 조용히 무시
 
@@ -293,6 +315,27 @@ def _extract_comparison_fields(data: dict) -> dict:
         fields["div"] = data.get("div", 0)
         fields["dps"] = data.get("dps", 0)
         fields["asset_type"] = "stock"
+
+        # 최근 분기 재무제표 (DB 조회)
+        ticker = data.get("ticker", "")
+        if ticker:
+            try:
+                from src.data.database import get_connection, get_latest_financial_summary
+                conn = get_connection()
+                try:
+                    fin = get_latest_financial_summary(conn, ticker)
+                    if fin:
+                        fields["revenue"] = fin.get("revenue")
+                        fields["operating_profit"] = fin.get("operating_profit")
+                        fields["net_income"] = fin.get("net_income")
+                        fields["operating_margin"] = fin.get("operating_margin")
+                        fields["revenue_growth_yoy"] = fin.get("revenue_growth_yoy")
+                        fields["op_growth_yoy"] = fin.get("op_growth_yoy")
+                        fields["fiscal_period"] = f"{fin.get('fiscal_year', '')}Q{fin.get('fiscal_quarter', '')}"
+                finally:
+                    conn.close()
+            except Exception as e:
+                logger.debug(f"비교용 재무제표 조회 실패 ({ticker}): {e}")
 
     if "asset_type" not in fields:
         fields["asset_type"] = "unknown"
@@ -472,6 +515,39 @@ def compare_stocks(stock_name_1: str, stock_name_2: str) -> str:
                 div_rate = data.get("div", 0)
                 if div_rate:
                     line += f", 배당: {div_rate:.2f}%"
+            # 재무제표 요약 추가
+            ticker = data.get("ticker", "")
+            if ticker:
+                try:
+                    from src.data.database import get_connection, get_latest_financial_summary
+                    conn = get_connection()
+                    try:
+                        fin = get_latest_financial_summary(conn, ticker)
+                        if fin:
+                            period = f"{fin.get('fiscal_year', '')}Q{fin.get('fiscal_quarter', '')}"
+                            rev = fin.get("revenue")
+                            op = fin.get("operating_profit")
+                            margin = fin.get("operating_margin")
+                            rev_g = fin.get("revenue_growth_yoy")
+                            line += f"\n  실적({period}):"
+                            if rev is not None:
+                                if abs(rev) >= 1_0000_0000_0000:
+                                    line += f" 매출 {rev / 1_0000_0000_0000:.1f}조"
+                                else:
+                                    line += f" 매출 {rev / 1_0000_0000:,.0f}억"
+                            if op is not None:
+                                if abs(op) >= 1_0000_0000_0000:
+                                    line += f", 영업이익 {op / 1_0000_0000_0000:.1f}조"
+                                else:
+                                    line += f", 영업이익 {op / 1_0000_0000:,.0f}억"
+                            if margin is not None:
+                                line += f" (마진 {margin:.1f}%)"
+                            if rev_g is not None:
+                                line += f", 매출YoY {rev_g:+.1f}%"
+                    finally:
+                        conn.close()
+                except Exception:
+                    pass
             text_parts.append(line)
         structured_json = json.dumps(comparison, ensure_ascii=False)
         return f"{structured_json}\n\n---\n\n" + "\n".join(text_parts)

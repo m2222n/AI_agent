@@ -197,3 +197,55 @@ def test_enrich_etf_no_stock_fields():
     assert "NAV:" in result
     assert "PER" not in result
     assert "시가총액" not in result
+
+
+# ── 재무제표 비교 필드 테스트 ──
+
+
+def test_comparison_with_financial_fields():
+    """비교 테이블에 재무제표 필드가 포함된 경우 파싱"""
+    data = {
+        "__type__": "comparison_table",
+        "items": [
+            {"name": "삼성전자", "ticker": "005930", "close": 55000,
+             "change_pct": 1.5, "volume": 10000000, "trade_value": 500000000000,
+             "per": 12.5, "pbr": 1.2, "market_cap": 350000000000000,
+             "div": 2.1, "asset_type": "stock",
+             "revenue": 79100000000000, "operating_profit": 6700000000000,
+             "net_income": 5000000000000, "operating_margin": 8.5,
+             "revenue_growth_yoy": 10.8, "op_growth_yoy": 33.2,
+             "fiscal_period": "2025Q1"},
+            {"name": "SK하이닉스", "ticker": "000660", "close": 180000,
+             "change_pct": -0.8, "volume": 3000000, "trade_value": 540000000000,
+             "per": 8.3, "pbr": 1.8, "market_cap": 130000000000000,
+             "div": 1.5, "asset_type": "stock",
+             "revenue": 20000000000000, "operating_profit": 7000000000000,
+             "net_income": 6000000000000, "operating_margin": 35.0,
+             "revenue_growth_yoy": 46.8, "op_growth_yoy": 120.5,
+             "fiscal_period": "2025Q1"},
+        ],
+    }
+    result = try_parse_comparison(json.dumps(data, ensure_ascii=False))
+    assert result is not None
+    assert result["items"][0]["revenue"] == 79100000000000
+    assert result["items"][0]["fiscal_period"] == "2025Q1"
+    assert result["items"][1]["operating_margin"] == 35.0
+    assert result["items"][1]["revenue_growth_yoy"] == 46.8
+
+
+def test_comparison_without_financial_fields():
+    """재무제표 필드 없는 비교 테이블도 정상 파싱"""
+    data = {
+        "__type__": "comparison_table",
+        "items": [
+            {"name": "A", "close": 100, "change_pct": 1.0,
+             "trade_value": 1000, "asset_type": "stock",
+             "per": 10.0, "pbr": 1.0, "market_cap": 1000000000000, "div": 2.0},
+            {"name": "B", "close": 200, "change_pct": -1.0,
+             "trade_value": 2000, "asset_type": "stock",
+             "per": 15.0, "pbr": 2.0, "market_cap": 2000000000000, "div": 1.0},
+        ],
+    }
+    result = try_parse_comparison(json.dumps(data, ensure_ascii=False))
+    assert result is not None
+    assert result["items"][0].get("revenue") is None
