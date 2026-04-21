@@ -88,6 +88,8 @@
 - [x] GitHub Release `db-latest` — SQLite DB를 Release asset으로 관리 (Mac 없이도 DB 갱신 가능)
 - [x] 수집 결과 로깅 (`logs/collect_YYYYMMDD.log`) + 실패 시 macOS 알림
 - [x] 30일 이상 된 수집 파일/로그 자동 삭제
+- [x] 수집 검증 + 누락 자동 보충 (`scripts/verify_and_recover.py` — 최근 5영업일 DB 검증, 자동 재수집)
+- [x] pykrx 로깅 오류 방어 (`_PykrxFilter` — `record.args`가 dict인 malformed 로그 필터링)
 - [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
 - [x] yfinance 백필 스크립트 — KRX 슬라이딩 윈도우 밖 구간(2014-01-01~04-17) 보충 (auto_adjust=False 원시 가격)
 - [x] 데이터 영구 보존 정책 — prune_old_data에서 daily_prices/returns/stock_fundamentals 삭제 중단 (KRX 재수집 불가)
@@ -289,7 +291,8 @@
 - [x] tools.py deploy fallback: DB 없을 때 stock_data.json의 `financial_summary` 사용
 - [x] GitHub Actions: `dart-fss` + `DART_API_KEY` secret 추가
 - [x] 평가 데이터셋 재무제표 질문 10개 추가 (124 → 134개)
-- [x] 전종목 백필 진행 중 (DART corp_code 있는 3,342종목, 일 9,500건 제한, ~7-10일 소요)
+- [x] 전종목 백필 완료 (147,048건, DART corp_code 있는 3,342종목)
+- [x] 매주 월요일 DART 최신 분기 자동 수집 (`daily_collect.sh` 내 `dart_collector --max 3500`)
 
 **C-5. 포트폴리오 시뮬레이션** ✅ 구현 완료
 - [x] `simulate_portfolio()` — 백테스트 (총수익률, 연환산, MDD, 샤프, 변동성)
@@ -338,7 +341,7 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer)
-│   │   ├── tools.py        # Function Calling 도구 13개 (search_etf, compare_etfs, get_etf_list, search_stock, compare_stocks, get_stock_list, get_realtime_price, analyze_sector, get_technical_indicators, get_stock_correlation, simulate_portfolio, get_financial_statements) + 구조화/역인덱스
+│   │   ├── tools.py        # Function Calling 도구 13개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -354,15 +357,16 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 421개
+├── tests/                  # pytest 423개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
 ├── scripts/
-│   ├── daily_collect.sh               # 일배치 수집 셸 스크립트 (로컬 Mac용)
+│   ├── daily_collect.sh               # 일배치 수집 (ETF+주식+월요일DART+검증/복구, 로컬 Mac용)
 │   ├── collect_for_deploy.py          # GitHub Actions용 경량 수집 (deploy/ JSON 전용)
 │   ├── backfill_historical.py         # 12년 과거 데이터 백필 (ETF+주식 전종목, --resume 지원)
 │   ├── backfill_financials_runner.py  # DART 재무제표 전종목 백필 (39,000건/일, NO_DATA 구분, resume)
+│   ├── verify_and_recover.py          # 수집 검증 + 누락 자동 보충 (최근 5영업일)
 │   ├── backfill_financials.sh         # DART 백필 셸 스크립트 (launchd용)
 │   ├── backfill_yfinance.py           # yfinance KRX 슬라이딩 윈도우 밖 백필 (2014-01-01~04-17)
 │   ├── migrate_json_to_db.py          # JSON → SQLite 일회성 마이그레이션
@@ -414,4 +418,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-17 (분석 지표 개선: EMA/Bootstrap CI/벤치마크/시계열차트 + KST 자동화 + Streamlit Cloud 빈 응답 수정(force_answer), 도구 13개, 테스트 421개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-21 (pykrx 안정화(logging filter) + 월요일 DART 자동수집 + 수집 검증/복구 + 데이터 활용 강화(종합 판단/실적 신호), 도구 13개, 테스트 423개, eval 162개, Hit Rate 100%)_

@@ -97,6 +97,19 @@ elif ! $ETF_OK || ! $STOCK_OK; then
     fi
 fi
 
+# ── 월요일: DART 재무제표 최신 분기 수집 ──────────────────────
+# 매주 월요일에만 최신 분기 재무제표를 로컬 DB에 수집 (DART API)
+if [ "$DAY_OF_WEEK" -eq 1 ]; then
+    echo "=== DART 재무제표 수집 시작 (월요일): $(date) ===" >> "$LOG_FILE"
+    DART_MODULE="src.data.dart_collector"
+    if $PYTHON -m $DART_MODULE --max 3500 >> "$LOG_FILE" 2>&1; then
+        echo "=== DART 재무제표 수집 완료: $(date) ===" >> "$LOG_FILE"
+    else
+        echo "=== DART 재무제표 수집 실패: $(date) ===" >> "$LOG_FILE"
+        osascript -e "display notification \"DART 재무제표 수집 실패. 로그: $LOG_FILE\" with title \"ETF RAG 수집 경고\"" 2>/dev/null || true
+    fi
+fi
+
 # ── 수집 검증 + 누락 자동 보충 ────────────────────────────────
 # 최근 5영업일 중 누락된 날짜를 감지하고 자동으로 재수집
 echo "=== 수집 검증+보충 시작: $(date) ===" >> "$LOG_FILE"

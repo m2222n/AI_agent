@@ -187,14 +187,17 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
                     if len(parts) > 1:
                         enriched.append("  " + ", ".join(parts))
 
-                    # 4분기 추세 (2개 이상일 때만)
+                    # 4분기 추세 + 가속/둔화 신호 (2개 이상일 때만)
                     if len(fin_list) >= 2:
                         trend_parts = []
+                        yoy_values = []
+                        margin_values = []
                         for q in reversed(fin_list):  # 과거→최신 순
                             qy = q.get("fiscal_year", "")
                             qq = q.get("fiscal_quarter", "")
                             qr = q.get("revenue")
                             qo = q.get("operating_margin")
+                            q_yoy = q.get("revenue_growth_yoy")
                             if qr is not None:
                                 if abs(qr) >= 1_0000_0000_0000:
                                     rev_s = f"{qr / 1_0000_0000_0000:.1f}조"
@@ -202,10 +205,40 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
                                     rev_s = f"{qr / 1_0000_0000:,.0f}억"
                                 margin_s = f"({qo:.1f}%)" if qo is not None else ""
                                 trend_parts.append(f"{qy}Q{qq} {rev_s}{margin_s}")
+                            if q_yoy is not None:
+                                yoy_values.append(q_yoy)
+                            if qo is not None:
+                                margin_values.append(qo)
                         if len(trend_parts) >= 2:
                             enriched.append(f"  실적추세: {' → '.join(trend_parts)}")
-            except Exception:
-                pass  # 재무 데이터 없으면 조용히 무시
+
+                        # 성장 가속/둔화 판정
+                        signals = []
+                        if len(yoy_values) >= 2:
+                            latest_yoy = yoy_values[-1]
+                            prev_yoy = yoy_values[-2]
+                            if latest_yoy > 0 and prev_yoy > 0 and latest_yoy > prev_yoy:
+                                signals.append("매출 성장 가속")
+                            elif latest_yoy > 0 and prev_yoy > 0 and latest_yoy < prev_yoy:
+                                signals.append("매출 성장 둔화")
+                            elif latest_yoy < 0 and prev_yoy >= 0:
+                                signals.append("매출 역성장 전환")
+                            elif latest_yoy >= 0 and prev_yoy < 0:
+                                signals.append("매출 턴어라운드")
+
+                        if len(margin_values) >= 2:
+                            latest_m = margin_values[-1]
+                            prev_m = margin_values[-2]
+                            diff = latest_m - prev_m
+                            if diff >= 3:
+                                signals.append("수익성 개선")
+                            elif diff <= -3:
+                                signals.append("수익성 악화")
+
+                        if signals:
+                            enriched.append(f"  실적신호: {', '.join(signals)}")
+            except Exception as e:
+                logger.debug(f"재무제표 enrichment 실패 ({ticker}): {e}")
 
         # 보유종목 정보 추가 (ETF)
         holdings = data.get("holdings", [])
@@ -1052,6 +1085,62 @@ def get_technical_indicators(name_or_ticker: str) -> str:
     atr = summary.get("atr")
     if atr:
         lines.append(f"\n**ATR(14):** {atr['atr']:,.0f}원 ({atr['atr_pct']:.1f}%, {atr['volatility']})")
+
+    # ── 종합 기술적 판단 요약 ──
+    bullish = 0
+    bearish = 0
+    # 추세
+    if summary.get("trend") in ("상승 추세", "강한 상승"):
+        bullish += 1
+    elif summary.get("trend") in ("하락 추세", "강한 하락"):
+        bearish += 1
+    # RSI
+    if rsi is not None:
+        if rsi >= 70:
+            bearish += 1  # 과매수 = 하락 가능성
+        elif rsi <= 30:
+            bullish += 1  # 과매도 = 반등 가능성
+    # MACD
+    if macd and macd.get("histogram", 0) > 0:
+        bullish += 1
+    elif macd and macd.get("histogram", 0) < 0:
+        bearish += 1
+    # 크로스
+    for key in cross.values():
+        if key == "golden_cross":
+            bullish += 1
+        elif key == "dead_cross":
+            bearish += 1
+    # 일목균형표
+    if ichimoku and ichimoku.get("cloud_status") == "구름대 위":
+        bullish += 1
+    elif ichimoku and ichimoku.get("cloud_status") == "구름대 아래":
+        bearish += 1
+    # ADX
+    if adx and adx.get("plus_di", 0) > adx.get("minus_di", 0):
+        bullish += 1
+    elif adx and adx.get("minus_di", 0) > adx.get("plus_di", 0):
+        bearish += 1
+    # OBV
+    if obv and obv.get("trend") == "매집":
+        bullish += 1
+    elif obv and obv.get("trend") == "분산":
+        bearish += 1
+
+    total = bullish + bearish
+    if total > 0:
+        bull_pct = bullish / total * 100
+        if bull_pct >= 70:
+            overall = "강세 우위"
+        elif bull_pct >= 55:
+            overall = "약한 강세"
+        elif bull_pct <= 30:
+            overall = "약세 우위"
+        elif bull_pct <= 45:
+            overall = "약한 약세"
+        else:
+            overall = "중립 (혼조)"
+        lines.append(f"\n**종합 판단:** {overall} (강세 {bullish}개 vs 약세 {bearish}개 지표)")
 
     text_result = "\n".join(lines)
 

@@ -255,7 +255,7 @@ def collect_etf_deviation(ticker: str, date: str) -> dict:
         if not dev_df.empty:
             row = dev_df.iloc[0]
             result["deviation"] = round(float(row.get("괴리율", 0)), 2)
-    except Exception as e:
+    except BaseException as e:
         logger.warning(f"{ticker} 괴리율 수집 실패: {e}")
 
     try:
@@ -263,29 +263,45 @@ def collect_etf_deviation(ticker: str, date: str) -> dict:
         if not te_df.empty:
             row = te_df.iloc[0]
             result["tracking_error"] = round(float(row.get("추적오차율", 0)), 2)
-    except Exception as e:
+    except BaseException as e:
         logger.warning(f"{ticker} 추적오차율 수집 실패: {e}")
 
     return result
 
 
+def _suppress_pykrx_logging_errors():
+    """pykrx 내부 logging.info(args, kwargs) 포맷 에러 억제 필터 설치.
+
+    pykrx는 에러 발생 시 logging.info(args, kwargs)를 호출하는데,
+    args가 tuple이고 kwargs가 dict라서 Python logging의 % 포맷팅이 실패.
+    이 '--- Logging error ---'가 stderr에 직접 출력되어 로그를 오염시킴.
+    한 번만 호출하면 프로세스 수명 동안 유효.
+    """
+    import logging as _logging
+
+    class _PykrxFilter(_logging.Filter):
+        def filter(self, record):
+            # pykrx util.py wrapper가 logging.info(args, kwargs) 호출 시
+            # record.args가 dict인 경우 → pykrx 포맷 에러 → 무시
+            if isinstance(record.args, dict):
+                return False
+            return True
+
+    _logging.getLogger().addFilter(_PykrxFilter())
+
+
+# 모듈 로드 시 필터 설치
+_suppress_pykrx_logging_errors()
+
+
 def _safe_get_ticker_name(ticker: str) -> str:
     """pykrx get_market_ticker_name의 안전한 래퍼.
 
-    pykrx 내부에서 존재하지 않는 종목 조회 시 logging.info(args, kwargs) 호출이
-    Python 로깅 포맷 에러를 발생시켜 프로세스를 크래시시킬 수 있음 (2026-04-13 장애).
-    BaseException까지 잡고, 추가로 stderr 로깅도 억제.
+    pykrx 내부에서 존재하지 않는 종목 조회 시 에러 발생 가능 (2026-04-13 장애).
+    BaseException까지 잡아서 프로세스 크래시 방지.
     """
     try:
-        import io
-        import sys
-        # pykrx 내부 logging error가 stderr에 쏟아지는 것 억제
-        old_stderr = sys.stderr
-        sys.stderr = io.StringIO()
-        try:
-            name = stock.get_market_ticker_name(ticker)
-        finally:
-            sys.stderr = old_stderr
+        name = stock.get_market_ticker_name(ticker)
         return name or ""
     except BaseException:
         return ""

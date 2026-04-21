@@ -47,21 +47,30 @@ RETURN_PERIODS = [
 # ── 유틸리티 ──────────────────────────────────────────────────
 
 
+def _suppress_pykrx_logging_errors():
+    """pykrx 내부 logging 포맷 에러 억제 필터 설치."""
+    import logging as _logging
+
+    class _PykrxFilter(_logging.Filter):
+        def filter(self, record):
+            if isinstance(record.args, dict):
+                return False
+            return True
+
+    _logging.getLogger().addFilter(_PykrxFilter())
+
+
+_suppress_pykrx_logging_errors()
+
+
 def _safe_get_ticker_name(ticker: str) -> str:
     """pykrx get_market_ticker_name의 안전한 래퍼.
 
-    pykrx 내부에서 존재하지 않는 종목 조회 시 logging.info(args, kwargs) 호출이
-    Python 로깅 포맷 에러를 발생시켜 프로세스를 크래시시킬 수 있음.
+    pykrx 내부에서 존재하지 않는 종목 조회 시 에러 발생 가능.
+    BaseException까지 잡아서 프로세스 크래시 방지.
     """
     try:
-        import io
-        import sys
-        old_stderr = sys.stderr
-        sys.stderr = io.StringIO()
-        try:
-            name = stock.get_market_ticker_name(ticker)
-        finally:
-            sys.stderr = old_stderr
+        name = stock.get_market_ticker_name(ticker)
         return name or ""
     except BaseException:
         return ""

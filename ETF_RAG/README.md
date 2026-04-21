@@ -4,7 +4,7 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-404_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-423_Passed-2ea44f?style=for-the-badge)](#)
 [![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 ---
@@ -43,14 +43,17 @@
 ### 데이터 파이프라인
 - **pykrx** 기반 일배치 수집 (ETF ~1,088종목 + 주식 KOSPI/KOSDAQ ~3,100종목)
 - 시세(OHLCV), NAV, 수익률(1일~1년), 보유종목, 괴리율, 추적오차, PER/PBR/EPS/BPS/DPS
-- **OpenDart** 분기 재무제표 (매출/영업이익/순이익/마진/YoY 성장률, 전종목 백필 진행 중)
+- **OpenDart** 분기 재무제표 (매출/영업이익/순이익/마진/YoY 성장률, 전종목 백필 완료 147,048건) + 매주 월요일 자동 갱신
 - **SQLite** 12년 보존 (WAL 모드, 800만+ 행, 1.5GB) + JSON 듀얼 라이트
-- **듀얼 자동 수집**: GitHub Actions (deploy/ JSON → Streamlit Cloud 재배포) + macOS launchd (로컬 DB)
+- **듀얼 자동 수집**: GitHub Actions (deploy/ JSON → Streamlit Cloud 재배포) + macOS launchd (로컬 DB + 월요일 DART 재무제표)
+- **자동 검증/복구**: 최근 5영업일 누락 감지 + 자동 재수집 (`verify_and_recover.py`)
 
 ### 정량 분석 도구
 - **기술적 지표**: MA(5/20/60/120), RSI, MACD, 볼린저 밴드, 골든/데드크로스, 스토캐스틱, 일목균형표, CCI, ADX, OBV, ATR
 - **기술적 분석 차트**: matplotlib 3단 차트 (가격+MA+볼린저 / RSI / 거래량+MACD) — base64 PNG 이미지 자동 생성
 - **가격 전망**: 3축 종합 분석 (기술적 스코어 + 펀더멘털 스코어 + Ridge 회귀/히스토리컬 아날로그), 시나리오별 확률
+- **종합 판단**: 7개 지표(추세/RSI/MACD/크로스/일목균형표/ADX/OBV) 강세/약세 집계 → 자동 판정
+- **실적 신호**: 4분기 트렌드 분석 (매출 성장 가속/둔화/역성장/턴어라운드, 수익성 개선/악화)
 - **상관관계/베타**: 종목 간 상관계수, 시장 대비 베타 계수
 - **포트폴리오 시뮬레이션**: 백테스트, MDD, 샤프 비율, 연환산 수익률
 - **재무제표**: 분기별 매출/영업이익/순이익/마진율/성장률 (OpenDart)
@@ -126,13 +129,13 @@ flowchart TB
 | **검색** | FAISS (디스크 캐싱) + Kiwi BM25 + RRF + MMR + 4단계 이름 매칭 |
 | **임베딩** | OpenAI text-embedding-3-small |
 | **데이터** | pykrx (ETF ~1,088 + 주식 ~3,100) + OpenDart 재무제표, SQLite 12년 (800만+ 행) |
-| **분석** | 기술적 지표 11종 + 차트 이미지 + 가격 전망 모델 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 |
+| **분석** | 기술적 지표 11종 + 종합 판단(7지표 집계) + 실적 신호(4Q 트렌드) + 차트 이미지 + 가격 전망 모델 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 |
 | **한국어** | Kiwi 형태소 분석기 (BM25 토크나이저) |
 | **평가** | RAGAS (162개 데이터셋, Hit Rate 100%) |
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **자동 수집** | GitHub Actions (deploy/ JSON) + macOS launchd (로컬 DB) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 404개 |
+| **테스트** | pytest 423개 |
 
 ---
 
@@ -211,10 +214,11 @@ ETF_RAG/
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 404개
+├── tests/                      # pytest 423개
 ├── packages.txt                # Streamlit Cloud 시스템 패키지 (한글 폰트)
 ├── scripts/
-│   ├── daily_collect.sh        # 일배치 수집 스크립트
+│   ├── daily_collect.sh        # 일배치 수집 (ETF+주식+월요일DART+검증/복구)
+│   ├── verify_and_recover.py   # 수집 검증 + 누락 자동 보충
 │   └── com.etfrag.daily-collect.plist  # macOS launchd 스케줄
 └── docs/
 ```
@@ -279,6 +283,7 @@ ETF_RAG/
 - [x] Phase C: 정량 분석 (기술적 지표, 상관관계/베타, 포트폴리오 시뮬레이션, 재무제표)
 - [x] Phase D: 기술적 지표 확장 (스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지 + 예측 종합 응답
 - [x] 가격 전망 모델 (3축: 기술적+펀더멘털+Ridge 회귀), CoV 검증, FAISS persist, Structured Output
+- [x] 데이터 활용 강화: 종합 판단(7지표 집계), 실적 신호(4Q 트렌드), pykrx 안정화
 - [x] Hit Rate 100% (162개 eval, 4단계 이름 매칭)
 - [ ] Phase E: 예측 모델 고도화 (LSTM/Transformer, 감성 분석)
 
