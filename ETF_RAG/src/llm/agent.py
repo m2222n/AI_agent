@@ -50,8 +50,8 @@ class AgentState(TypedDict):
 # 복잡한 질문 유형 → GPT-4o
 COMPLEX_TYPES = {"compare", "recommend", "risk"}
 
-# CoV 적용 대상 질문 유형
-COV_TYPES = {"compare", "recommend", "risk"}
+# CoV 적용 대상 질문 유형 (도구 결과가 있는 모든 유형에 적용)
+COV_TYPES = {"simple", "compare", "recommend", "risk", "technical", "correlation", "portfolio"}
 
 _models = {}
 
@@ -267,7 +267,7 @@ def _extract_tool_evidence(messages: Sequence[BaseMessage]) -> str:
                 # JSON 앞의 텍스트 부분만 추출
                 parts = content.split("---")
                 content = parts[-1] if len(parts) > 1 else content[:500]
-            evidence_parts.append(content[:1000])  # 각 도구 결과 최대 1000자
+            evidence_parts.append(content[:2000])  # 각 도구 결과 최대 2000자
     return "\n---\n".join(evidence_parts)
 
 
@@ -299,7 +299,7 @@ def verify_answer(state: AgentState) -> dict:
 [도구 결과]의 데이터와 일치하는지 검증하세요.
 
 [도구 결과]
-{evidence[:3000]}
+{evidence[:5000]}
 
 [답변]
 {answer}
@@ -381,8 +381,19 @@ def force_answer(state: AgentState) -> dict:
     """도구 호출 횟수 초과 시, 현재까지의 정보로 최종 답변을 생성하도록 강제."""
     logger.info("force_answer: 도구 호출 제한 도달, 현재 정보로 답변 강제 생성")
 
+    # 이전 도구 결과 요약 수집 (LLM이 참조할 수 있도록)
+    prior_evidence = _extract_tool_evidence(state["messages"])
+    evidence_summary = ""
+    if prior_evidence:
+        evidence_summary = f"\n\n[이전 도구 결과 요약]\n{prior_evidence[:3000]}"
+
     last_message = state["messages"][-1]
-    force_content = "[시스템] 더 이상 도구를 호출할 수 없습니다. 지금까지 수집한 정보를 바탕으로 사용자에게 최선의 답변을 작성하세요. 정보가 부족하면 부족하다고 안내하세요."
+    force_content = (
+        "[시스템] 더 이상 도구를 호출할 수 없습니다. "
+        "지금까지 수집한 정보를 바탕으로 사용자에게 최선의 답변을 작성하세요. "
+        "정보가 부족하면 부족하다고 안내하세요."
+        f"{evidence_summary}"
+    )
 
     # 각 tool_call에 대해 ToolMessage를 생성 (LangGraph는 모든 tool_call에 대응하는 ToolMessage를 기대)
     tool_messages = []

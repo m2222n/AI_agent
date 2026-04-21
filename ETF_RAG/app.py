@@ -111,9 +111,12 @@ def main():
     render_example_questions()
     example_question = st.session_state.pop("example_q", None)
 
+    # 재시도 질문 처리
+    retry_question = st.session_state.pop("_retry_question", None)
+
     # 채팅 입력
     user_input = st.chat_input("ETF/주식에 대해 궁금한 점을 물어보세요...")
-    question = example_question or user_input
+    question = retry_question or example_question or user_input
 
     if question:
         process_question(question)

@@ -4,7 +4,7 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-423_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-431_Passed-2ea44f?style=for-the-badge)](#)
 [![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 ---
@@ -27,7 +27,7 @@
 ### LangGraph 에이전트 + Function Calling
 - LLM이 질문을 분석하고 적절한 도구를 **자동 선택** (13개 도구: 검색, 비교, 기술적 분석, 상관관계, 포트폴리오 시뮬레이션, 재무제표, 가격 전망 등)
 - 검색 결과 부족 시 **자동 재검색** (Conditional Edge, 최대 2회)
-- **CoV (Chain of Verification)** — 비교/추천/위험 질문 시 도구 결과 대조 검증
+- **CoV (Chain of Verification)** — 도구 사용 질문 전체 대상 검증 (general 제외)
 - 토큰 단위 실시간 스트리밍 응답
 
 ### 모델 라우팅 (비용 최적화)
@@ -80,7 +80,7 @@ flowchart TB
         Full["GPT-4o<br/>compare · recommend · risk"]
         Tools["Function Calling<br/>(13개 도구)"]
         Retry{"결과 충분?"}
-        CoV["CoV 검증<br/>(비교/추천/위험)"]
+        CoV["CoV 검증<br/>(도구 사용 전체)"]
     end
 
     subgraph Search["하이브리드 검색"]
@@ -124,7 +124,7 @@ flowchart TB
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (13개 도구) + CoV 검증 + Structured Output |
+| **에이전트** | LangGraph + Function Calling (13개 도구) + CoV 검증 (전체 도구 대상) + Structured Output |
 | **LLM** | GPT-4o / GPT-4o-mini (질문 유형별 라우팅) |
 | **검색** | FAISS (디스크 캐싱) + Kiwi BM25 + RRF + MMR + 4단계 이름 매칭 |
 | **임베딩** | OpenAI text-embedding-3-small |
@@ -135,7 +135,7 @@ flowchart TB
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **자동 수집** | GitHub Actions (deploy/ JSON) + macOS launchd (로컬 DB) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 423개 |
+| **테스트** | pytest 431개 |
 
 ---
 
@@ -214,7 +214,7 @@ ETF_RAG/
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 423개
+├── tests/                      # pytest 431개
 ├── packages.txt                # Streamlit Cloud 시스템 패키지 (한글 폰트)
 ├── scripts/
 │   ├── daily_collect.sh        # 일배치 수집 (ETF+주식+월요일DART+검증/복구)
@@ -285,6 +285,7 @@ ETF_RAG/
 - [x] 가격 전망 모델 (3축: 기술적+펀더멘털+Ridge 회귀), CoV 검증, FAISS persist, Structured Output
 - [x] 데이터 활용 강화: 종합 판단(7지표 집계), 실적 신호(4Q 트렌드), pykrx 안정화
 - [x] Hit Rate 100% (162개 eval, 4단계 이름 매칭)
+- [x] 답변 품질 강화: CoV 전체 도구 확대, R² 엄격화, force_answer 증거 포함, 차트 캡션, 에러 재시도 UI
 - [ ] Phase E: 예측 모델 고도화 (LSTM/Transformer, 감성 분석)
 
 ---

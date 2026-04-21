@@ -629,7 +629,7 @@ def build_price_outlook(ticker: str, name: str, horizon: str = "1m",
             "historical_win_rate": stat["historical_analog"].get("win_rate", 0.5),
             "historical_sample_count": stat["historical_analog"].get("sample_count", 0),
             "model_r2": stat["model_r2"],
-            "model_reliability": "높음" if stat["model_r2"] > 0.1 else "보통" if stat["model_r2"] > 0.05 else "낮음",
+            "model_reliability": "높음" if stat["model_r2"] > 0.3 else "보통" if stat["model_r2"] > 0.1 else "낮음",
         },
         "composite_score": composite,
         "scenarios": scenarios,
@@ -724,7 +724,9 @@ def _calc_confidence(tech: dict, fund: dict, stat: dict, summary: dict) -> str:
         score += 1
 
     # R2
-    if stat["model_r2"] > 0.1:
+    if stat["model_r2"] > 0.3:
+        score += 2
+    elif stat["model_r2"] > 0.1:
         score += 1
 
     # 재무 데이터
@@ -736,9 +738,9 @@ def _calc_confidence(tech: dict, fund: dict, stat: dict, summary: dict) -> str:
     if data_days >= 120:
         score += 1
 
-    if score >= 4:
+    if score >= 5:
         return "A"
-    elif score >= 3:
+    elif score >= 4:
         return "B"
     elif score >= 2:
         return "C"
@@ -775,8 +777,11 @@ def _identify_risks(summary: dict, stat: dict, fund: dict) -> list:
             risks.append("⚠️ 볼린저 상단 극접근 — 되돌림 압력")
 
     # 모델 신뢰도
-    if stat.get("model_r2", 0) < 0.05:
-        risks.append("⚠️ 통계 모델 예측력 낮음 (R²<0.05) — 참고만")
+    r2 = stat.get("model_r2", 0)
+    if r2 < 0.05:
+        risks.append("⚠️ 통계 모델 예측력 매우 낮음 (R²<0.05) — 수치 참고용")
+    elif r2 < 0.1:
+        risks.append("⚠️ 통계 모델 예측력 낮음 (R²<0.1) — 방향성 참고만")
 
     # 재무
     if fund.get("signal") == "데이터 없음":

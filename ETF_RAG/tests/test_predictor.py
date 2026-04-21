@@ -643,3 +643,59 @@ class TestScenarioWinRate:
         result = _calc_scenarios(0.0, stat)
         # win_rate 미반영 → 중립에 가까움
         assert abs(result["bullish"]["probability"] - result["bearish"]["probability"]) < 0.15
+
+
+# ── R² 신뢰도 기준 테스트 ──
+
+class TestModelReliability:
+    """model_reliability 및 R² 관련 신뢰도 기준 테스트"""
+
+    def test_r2_high_reliability(self):
+        """R² > 0.3 → 높음"""
+        from src.data.predictor import _calc_confidence
+        tech = {"score": 0.5}
+        fund = {"score": 0.4, "signal": "강세"}
+        stat = {"model_r2": 0.35, "predicted_return": 5.0}
+        summary = {"data_days": 200}
+        # R² 0.35 → score +2 (높음 등급)
+        grade = _calc_confidence(tech, fund, stat, summary)
+        assert grade in ("A", "B")
+
+    def test_r2_medium_reliability(self):
+        """0.1 < R² <= 0.3 → 보통 (score +1)"""
+        from src.data.predictor import _calc_confidence
+        tech = {"score": 0.0}
+        fund = {"score": 0.0, "signal": "데이터 없음"}
+        stat = {"model_r2": 0.15, "predicted_return": 0.5}
+        summary = {"data_days": 50}
+        grade = _calc_confidence(tech, fund, stat, summary)
+        # R²=0.15 → +1, 다른 요인 부족 → C or D
+        assert grade in ("C", "D")
+
+    def test_r2_low_no_score(self):
+        """R² <= 0.1 → score 0"""
+        from src.data.predictor import _calc_confidence
+        tech = {"score": 0.0}
+        fund = {"score": 0.0, "signal": "데이터 없음"}
+        stat = {"model_r2": 0.05, "predicted_return": 0.0}
+        summary = {"data_days": 30}
+        grade = _calc_confidence(tech, fund, stat, summary)
+        assert grade == "D"
+
+    def test_low_r2_risk_tiering(self):
+        """R² < 0.05 vs 0.05~0.1 리스크 메시지 구분"""
+        from src.data.predictor import _identify_risks
+        summary = {"rsi": 50, "atr": {}}
+        fund = {"signal": "중립"}
+
+        # R² < 0.05 → "매우 낮음"
+        risks_very_low = _identify_risks(summary, {"model_r2": 0.02, "historical_analog": {"sample_count": 20}}, fund)
+        assert any("매우 낮음" in r for r in risks_very_low)
+
+        # 0.05 <= R² < 0.1 → "낮음"
+        risks_low = _identify_risks(summary, {"model_r2": 0.07, "historical_analog": {"sample_count": 20}}, fund)
+        assert any("낮음" in r and "매우" not in r for r in risks_low)
+
+        # R² >= 0.1 → 리스크 없음
+        risks_ok = _identify_risks(summary, {"model_r2": 0.15, "historical_analog": {"sample_count": 20}}, fund)
+        assert not any("R²" in r for r in risks_ok)

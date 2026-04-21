@@ -183,7 +183,7 @@
 - [x] 프롬프트 개선: 데이터에 없는 항목(수수료, 위험등급, 배당정책) 출력 방지
 - [x] 프롬프트 개선: general 질문에 금융 지식 활용 허용
 - [x] 보유종목(상위 10개) 구조화 데이터 enrichment 추가
-- [x] Hallucination 방어: CoV 검증 — LangGraph verify 노드 (compare/recommend/risk 질문, 도구 결과 대조 검증)
+- [x] Hallucination 방어: CoV 검증 — LangGraph verify 노드 (도구 사용 전체 질문 대상, general만 제외)
 - [x] Structured Output 적용 — Pydantic `QuestionClassification` + `with_structured_output()` (LLM 분류 JSON 강제)
 - [x] FAISS 디스크 캐싱 — `save_local/load_local` + MD5 해시 기반 캐시 무효화 (냉부팅 시 임베딩 재호출 방지)
 - [x] 대화 히스토리 토큰 관리 (tiktoken 카운팅, _trim_history)
@@ -357,7 +357,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 423개
+├── tests/                  # pytest 431개
 ├── .github/
 │   └── workflows/
 │       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
@@ -418,4 +418,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-21 (pykrx 안정화(logging filter) + 월요일 DART 자동수집 + 수집 검증/복구 + 데이터 활용 강화(종합 판단/실적 신호), 도구 13개, 테스트 423개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-21 (CoV 전체 도구 확대 + R² 엄격화 + force_answer 증거 포함 + 차트 캡션 + 에러 재시도 UI, 도구 13개, 테스트 423개, eval 162개, Hit Rate 100%)_

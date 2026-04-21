@@ -142,9 +142,14 @@ def process_question(question: str, client=None, retriever=None):
 
         except Exception as e:
             logger.error(f"[chat] stream 오류: {e}\n{traceback.format_exc()}")
-            error_msg = f"⚠️ 오류 발생: {type(e).__name__}: {e}"
-            st.error(error_msg)
-            full_response = error_msg
+            user_msg = _get_user_error_message(e)
+            st.error(user_msg)
+            full_response = user_msg
+            # 재시도 버튼
+            if st.button("🔄 다시 시도", key=f"retry_{hash(question)}"):
+                st.session_state.messages.pop()  # 실패한 user 메시지 제거
+                st.session_state["_retry_question"] = question
+                st.rerun()
 
         total_time = time.time() - total_start_time
 

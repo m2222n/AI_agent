@@ -9,6 +9,7 @@ from src.llm.agent import (
     verify_answer,
     should_verify,
     should_call_tools,
+    force_answer,
     _route_after_agent,
     build_graph,
     COV_TYPES,
@@ -57,11 +58,11 @@ def test_extract_tool_evidence_structured_data():
 
 
 def test_extract_tool_evidence_truncation():
-    """긴 도구 결과 1000자로 절단"""
-    long_content = "x" * 2000
+    """긴 도구 결과 2000자로 절단"""
+    long_content = "x" * 5000
     messages = [ToolMessage(content=long_content, tool_call_id="1")]
     evidence = _extract_tool_evidence(messages)
-    assert len(evidence) <= 1000
+    assert len(evidence) <= 2000
 
 
 # ── should_verify 테스트 ──────────────────────────────────
@@ -80,18 +81,17 @@ def test_should_verify_complex_with_tools():
         assert should_verify(state) == "verify"
 
 
-def test_should_verify_simple_skipped():
-    """simple/general 유형은 검증 스킵"""
-    for qtype in ["simple", "general"]:
-        state: AgentState = {
-            "messages": [
-                ToolMessage(content="데이터", tool_call_id="1"),
-                AIMessage(content="최종 답변"),
-            ],
-            "question_type": qtype,
-            "tool_call_count": 1,
-        }
-        assert should_verify(state) == "end"
+def test_should_verify_general_skipped():
+    """general 유형은 검증 스킵 (도구 없이 답변하는 유형)"""
+    state: AgentState = {
+        "messages": [
+            ToolMessage(content="데이터", tool_call_id="1"),
+            AIMessage(content="최종 답변"),
+        ],
+        "question_type": "general",
+        "tool_call_count": 1,
+    }
+    assert should_verify(state) == "end"
 
 
 def test_should_verify_no_tools():
@@ -143,11 +143,11 @@ def test_route_verify_after_answer():
     assert _route_after_agent(state) == "verify"
 
 
-def test_route_end_simple():
-    """simple 유형 최종 답변 → end"""
+def test_route_end_general():
+    """general 유형 최종 답변 → end (CoV 대상 아님)"""
     state: AgentState = {
         "messages": [AIMessage(content="답변")],
-        "question_type": "simple",
+        "question_type": "general",
         "tool_call_count": 0,
     }
     assert _route_after_agent(state) == "end"
@@ -258,6 +258,74 @@ def test_build_graph_has_verify_node():
             assert "verify" in node_names
 
 
-def test_cov_types_subset_of_complex():
-    """COV_TYPES는 COMPLEX_TYPES의 부분집합"""
-    assert COV_TYPES.issubset(COMPLEX_TYPES)
+def test_cov_types_includes_complex():
+    """COV_TYPES는 COMPLEX_TYPES를 포함 (비교/추천/위험 + 단순/기술적 등)"""
+    assert COMPLEX_TYPES.issubset(COV_TYPES)
+    assert "simple" in COV_TYPES
+    assert "technical" in COV_TYPES
+    assert "general" not in COV_TYPES  # general은 도구 없이 답변하므로 제외
+
+
+# ── CoV 확대 적용 테스트 ──────────────────────────────────
+
+def test_should_verify_simple_with_tools():
+    """simple 유형 + 도구 결과 있으면 verify (확대 적용)"""
+    state: AgentState = {
+        "messages": [
+            ToolMessage(content="삼성전자 종가 70,000원", tool_call_id="1"),
+            AIMessage(content="삼성전자의 현재 종가는 70,000원입니다."),
+        ],
+        "question_type": "simple",
+        "tool_call_count": 1,
+    }
+    assert should_verify(state) == "verify"
+
+
+def test_should_verify_technical_with_tools():
+    """technical 유형 + 도구 결과 있으면 verify"""
+    state: AgentState = {
+        "messages": [
+            ToolMessage(content="RSI: 72.5 (과매수)", tool_call_id="1"),
+            AIMessage(content="RSI가 72.5로 과매수 구간입니다."),
+        ],
+        "question_type": "technical",
+        "tool_call_count": 1,
+    }
+    assert should_verify(state) == "verify"
+
+
+# ── force_answer 개선 테스트 ──────────────────────────────
+
+def test_force_answer_includes_prior_evidence():
+    """force_answer 시 이전 도구 결과 요약이 포함되는지 확인"""
+    msg = AIMessage(content="")
+    msg.tool_calls = [{"name": "search_etf", "args": {}, "id": "tc1"}]
+    state: AgentState = {
+        "messages": [
+            ToolMessage(content="KODEX 200 종가 45,000원", tool_call_id="prev1"),
+            msg,
+        ],
+        "question_type": "simple",
+        "tool_call_count": 2,
+    }
+    result = force_answer(state)
+    assert len(result["messages"]) == 1
+    # 이전 도구 결과 요약이 force_content에 포함
+    content = result["messages"][0].content
+    assert "KODEX 200" in content or "45,000" in content
+    assert "이전 도구 결과 요약" in content
+
+
+def test_force_answer_no_prior_evidence():
+    """이전 도구 결과 없으면 기본 메시지만"""
+    msg = AIMessage(content="")
+    msg.tool_calls = [{"name": "search_etf", "args": {}, "id": "tc1"}]
+    state: AgentState = {
+        "messages": [msg],
+        "question_type": "simple",
+        "tool_call_count": 2,
+    }
+    result = force_answer(state)
+    content = result["messages"][0].content
+    assert "더 이상 도구를 호출할 수 없습니다" in content
+    assert "이전 도구 결과 요약" not in content

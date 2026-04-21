@@ -52,14 +52,21 @@ def render_structured_data(data: dict):
 
 
 def render_technical_chart(data: dict):
-    """기술적 분석 차트 이미지 렌더링."""
+    """기술적 분석 차트 이미지 렌더링 + 해석 캡션."""
     image_b64 = data.get("image_b64")
     name = data.get("name", "")
     if not image_b64:
         return
     try:
         image_bytes = base64.b64decode(image_b64)
+        if name:
+            st.markdown(f"#### {name} 기술적 분석 차트")
         st.image(image_bytes, use_container_width=True)
+        st.caption(
+            "📊 상단: 종가 + 이동평균선(MA5/20/60) + 볼린저 밴드 | "
+            "중단: RSI(14) — 70↑ 과매수, 30↓ 과매도 | "
+            "하단: 거래량 + MACD 히스토그램"
+        )
     except Exception:
         pass
 
