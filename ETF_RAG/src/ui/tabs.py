@@ -65,17 +65,37 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (selectbox with search)"""
+    """종목 입력 위젯 (text_input + 부분 매칭 selectbox)"""
     options = _build_autocomplete_options()
-    selected = st.selectbox(
-        label,
-        options=options,
-        index=None,
-        placeholder=placeholder,
-        key=key,
-    )
-    if not selected:
+
+    # 텍스트 입력
+    text_key = f"{key}_text"
+    query = st.text_input(label, placeholder=placeholder, key=text_key)
+    if not query:
         return ""
+
+    q = query.strip().lower()
+    # 부분 매칭 필터링 (이름 또는 티커에 포함)
+    matched = [opt for opt in options if q in opt.lower()]
+
+    if not matched:
+        st.caption(f"'{query}' 검색결과 없음")
+        return query  # 그래도 원문 반환 → _resolve_ticker에서 유사 종목 제안
+
+    if len(matched) == 1:
+        # 1개만 매칭되면 자동 선택
+        selected = matched[0]
+        st.caption(f"✅ {selected}")
+    else:
+        st.caption(f"🔍 '{query}' 검색결과 ({len(matched)}건)")
+        selected = st.selectbox(
+            "종목 선택", options=matched, key=f"{key}_select",
+            label_visibility="collapsed",
+        )
+
+    if not selected:
+        return query
+
     # "종목명 (티커)" → 종목명 추출
     if " (" in selected and selected.endswith(")"):
         return selected.rsplit(" (", 1)[0]
@@ -213,14 +233,12 @@ def render_technical_tab():
 def render_financial_tab():
     """재무제표 탭: 종목 입력 → 분기별 재무 테이블"""
     st.markdown("##### 📑 재무제표")
-    st.caption("종목의 최근 8분기 재무제표를 조회합니다. (DART 공시 기준)")
+    st.caption("2015년부터 재무제표를 조회합니다. (DART 공시 기준)")
 
-    col1, col2, col3 = st.columns([3, 1, 1])
+    col1, col2 = st.columns([3, 1])
     with col1:
         query = _ticker_input("종목", "fin_ticker", "예: 삼성전자, 005930")
     with col2:
-        quarters = st.selectbox("분기 수", [4, 6, 8, 12], index=2, key="fin_quarters")
-    with col3:
         st.markdown("<br>", unsafe_allow_html=True)
         run = st.button("조회", key="fin_run", use_container_width=True)
 
@@ -240,9 +258,24 @@ def render_financial_tab():
 
     conn = get_connection()
     try:
-        rows = get_financial_data(conn, ticker, quarters=quarters)
+        # 전체 데이터 조회 (충분히 큰 수로 전체 가져옴)
+        all_rows = get_financial_data(conn, ticker, quarters=200)
     finally:
         conn.close()
+
+    if not all_rows:
+        st.warning(f"{name}의 재무제표 데이터가 없습니다. (DART 미공시 종목이거나 ETF일 수 있습니다)")
+        return
+
+    # 분기 수 선택 (1 ~ 전체)
+    max_q = len(all_rows)
+    # 기본값: 8분기 또는 최대 분기 중 작은 값
+    default_q = min(8, max_q)
+    quarters = st.slider(
+        "조회 분기 수", min_value=1, max_value=max_q,
+        value=default_q, key="fin_quarters",
+    )
+    rows = all_rows[:quarters]
 
     if not rows:
         st.warning(f"{name}의 재무제표 데이터가 없습니다. (DART 미공시 종목이거나 ETF일 수 있습니다)")
