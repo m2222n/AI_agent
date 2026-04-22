@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1
 
 from config import is_langsmith_enabled
 from src.data.db_downloader import ensure_db
@@ -91,22 +92,24 @@ def init_retriever():
 def main():
     st.set_page_config(page_title="투자 AI 어시스턴트", page_icon="📈", layout="wide")
     inject_custom_css()
-    # 헤더 + 홈 버튼
-    hcol1, hcol2 = st.columns([9, 1])
+    # 홈 버튼 + 헤더
+    hcol1, hcol2 = st.columns([1, 9])
     with hcol1:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🏠 홈으로 돌아가기", key="home_btn"):
+            for k in list(st.session_state.keys()):
+                if k.startswith(("tech_", "fin_", "cmp_", "outlook_")):
+                    del st.session_state[k]
+            st.session_state.messages = []
+            st.session_state.pop("_goto_tab", None)
+            st.rerun()
+    with hcol2:
         st.markdown(
             '<h1 style="margin-bottom:0;">📈 투자 AI 어시스턴트</h1>'
             '<p style="color:#888; font-size:0.9rem; margin-top:0.2rem;">'
             'ETF &middot; 주식 &middot; 기술적 분석 &middot; 재무제표 &middot; 가격 전망</p>',
             unsafe_allow_html=True,
         )
-    with hcol2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🏠", key="home_btn", help="홈으로 돌아가기"):
-            for k in list(st.session_state.keys()):
-                if k.startswith(("tech_", "fin_", "cmp_", "outlook_")):
-                    del st.session_state[k]
-            st.rerun()
 
     # 사이드바
     etf_data = load_etf_data()
@@ -185,6 +188,20 @@ def main():
 
     with tab_outlook:
         render_outlook_tab()
+
+    # 카드 클릭 → 탭 자동 전환 (JS 주입)
+    goto_tab = st.session_state.pop("_goto_tab", None)
+    if goto_tab is not None:
+        # Streamlit 탭 버튼은 [role="tab"] 요소, 0-indexed
+        st.components.v1.html(
+            f"""<script>
+            const tabs = window.parent.document.querySelectorAll('[role="tab"]');
+            if (tabs.length > {goto_tab}) {{
+                tabs[{goto_tab}].click();
+            }}
+            </script>""",
+            height=0,
+        )
 
 
 if __name__ == "__main__":

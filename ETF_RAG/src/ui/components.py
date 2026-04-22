@@ -34,27 +34,31 @@ EXAMPLE_CATEGORIES = {
     },
 }
 
-# 기능 소개 카드
+# 기능 소개 카드 (tab_index: st.tabs 0-indexed)
 FEATURE_CARDS = [
     {
         "icon": "📈",
         "title": "실시간 시세",
         "desc": "ETF/주식 4,300+ 종목의 최신 가격과 수익률",
+        "tab_index": 0,  # 종합 채팅
     },
     {
         "icon": "📊",
         "title": "기술적 분석",
         "desc": "11개 지표 + 차트 자동 생성 (MA, RSI, MACD 등)",
+        "tab_index": 1,  # 기술적 분석
     },
     {
         "icon": "🔮",
         "title": "가격 전망",
         "desc": "기술적+펀더멘털+회귀모델 3축 분석",
+        "tab_index": 4,  # 가격 전망
     },
     {
         "icon": "⚖️",
         "title": "비교/시뮬레이션",
         "desc": "종목 비교, 포트폴리오 백테스트, 재무제표",
+        "tab_index": 3,  # 비교 분석
     },
 ]
 
@@ -74,18 +78,15 @@ def render_welcome():
     cols = st.columns(len(FEATURE_CARDS))
     for col, card in zip(cols, FEATURE_CARDS):
         with col:
-            st.markdown(
-                f'<div style="text-align:center; padding:0.8rem 0.4rem; '
-                f'background:rgba(59,130,246,0.04); border-radius:10px; '
-                f'border:1px solid rgba(59,130,246,0.1);">'
-                f'<div style="font-size:1.6rem;">{card["icon"]}</div>'
-                f'<div style="font-size:0.85rem; font-weight:600; margin:0.3rem 0 0.2rem;">'
-                f'{card["title"]}</div>'
-                f'<div style="font-size:0.75rem; color:#888; line-height:1.3;">'
-                f'{card["desc"]}</div>'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+            if st.button(
+                f'{card["icon"]} {card["title"]}',
+                key=f"card_{card['title']}",
+                use_container_width=True,
+                help=card["desc"],
+            ):
+                st.session_state["_goto_tab"] = card["tab_index"]
+                st.rerun()
+            st.caption(card["desc"])
 
     st.markdown("")  # spacer
 
