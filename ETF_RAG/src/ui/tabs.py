@@ -13,7 +13,6 @@ import logging
 from typing import Optional
 
 import streamlit as st
-from streamlit_searchbox import st_searchbox
 
 from src.data.chart_generator import generate_technical_chart, generate_comparison_chart
 from src.data.technical import get_technical_summary
@@ -65,31 +64,66 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     return None
 
 
-def _search_options(query: str) -> list[str]:
-    """searchbox 콜백: 타이핑할 때마다 부분 매칭 결과 반환."""
+def _filter_options(query: str) -> list[str]:
+    """부분 매칭 필터링. 숫자 검색 시 '티커 (종목명)' 형식으로 표시."""
     if not query or len(query.strip()) == 0:
         return []
     options = _build_autocomplete_options()
     q = query.strip().lower()
-    return [opt for opt in options if q in opt.lower()][:50]  # 최대 50개
+    matched = [opt for opt in options if q in opt.lower()][:50]
+
+    # 숫자로 검색 시 "티커 (종목명)" 형식으로 재포맷
+    if q.isdigit() and matched:
+        reformatted = []
+        for opt in matched:
+            if " (" in opt and opt.endswith(")"):
+                name, ticker = opt.rsplit(" (", 1)
+                ticker = ticker.rstrip(")")
+                reformatted.append(f"{ticker} ({name})")
+            else:
+                reformatted.append(opt)
+        return reformatted
+
+    return matched
+
+
+def _extract_name(display: str) -> str:
+    """'종목명 (티커)' 또는 '티커 (종목명)' → 종목명 추출."""
+    if " (" in display and display.endswith(")"):
+        left, right = display.rsplit(" (", 1)
+        right = right.rstrip(")")
+        if left.isdigit():
+            return right  # "005930 (삼성전자)" → 삼성전자
+        return left       # "삼성전자 (005930)" → 삼성전자
+    return display
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (실시간 자동완성 searchbox)"""
-    selected = st_searchbox(
-        _search_options,
-        label=label,
-        placeholder=placeholder,
-        key=key,
-        clear_on_submit=False,
-    )
-    if not selected:
+    """종목 입력 위젯 (text_input + selectbox 실시간 필터링)"""
+    query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
+
+    if not query or not query.strip():
         return ""
 
-    # "종목명 (티커)" → 종목명 추출
-    if isinstance(selected, str) and " (" in selected and selected.endswith(")"):
-        return selected.rsplit(" (", 1)[0]
-    return selected if isinstance(selected, str) else ""
+    filtered = _filter_options(query.strip())
+    if not filtered:
+        st.caption("검색 결과 없음")
+        return ""
+
+    if len(filtered) == 1:
+        # 정확히 1개 매칭 → 바로 선택
+        st.caption(f"✅ {filtered[0]}")
+        return _extract_name(filtered[0])
+
+    selected = st.selectbox(
+        "종목 선택",
+        filtered,
+        key=f"{key}_select",
+        label_visibility="collapsed",
+    )
+    if selected:
+        return _extract_name(selected)
+    return ""
 
 
 # ── 기술적 분석 탭 ─────────────────────────────────────────
