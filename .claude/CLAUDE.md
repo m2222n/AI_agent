@@ -210,9 +210,13 @@
 - [x] LangSmith 모니터링 연동 (환경변수 설정 시 자동 트레이싱)
 - [x] 탭 분리 UI (종합 채팅 / 기술적 분석 / 재무제표 / 비교 분석 / 가격 전망) — tabs.py
 - [x] 후속 질문 버튼 (on_click 콜백 + session_state 패턴)
-- [x] 탭 종목 입력 자동완성 (st.selectbox with search, ~4,200종목 검색, 이름/티커 매칭)
+- [x] 탭 종목 입력 자동완성 (text_input + 부분 매칭 selectbox, ~4,200종목 검색, 이름/티커 매칭)
+- [x] 재무제표 탭 분기 수 동적 조정 (slider 1~최대분기, 2015년부터 전체 데이터)
 - [x] 프롬프트 데이터 범위 안내 (시세 2014년~, 재무제표 2015년~, LLM 학습 데이터 기준 답변 방지)
 - [x] 차트 제목/범례 겹침 수정 (subplots_adjust + fig.text 위치 조정)
+- [x] 홈 버튼 왼쪽 상단 배치 ("🏠 홈으로 돌아가기", 대화 히스토리 초기화)
+- [x] 기능 카드 4개 탭 네비게이션 (클릭 시 해당 탭 자동 전환, JS 주입)
+- [x] 탭 UI 성능 최적화 (@st.cache_resource/cache_data, selectbox 전환, 차트/DB 캐싱)
 
 **4-3. 데이터/분석 확장**
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
@@ -354,7 +358,7 @@ ETF_RAG/
 │   │   ├── sidebar.py      # render_sidebar()
 │   │   ├── chat.py         # process_question() (structured_data 이벤트 처리, 후속질문 on_click 콜백)
 │   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 시계열 차트 + 기술적 분석 차트)
-│   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망, selectbox 자동완성)
+│   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망, text_input 부분매칭 자동완성)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응)
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
 │   └── utils/
@@ -424,4 +428,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-22 (탭 UI 분리 + 자동완성 + 후속질문 버튼 + 프롬프트 데이터 범위 + 차트 겹침 수정, 도구 13개, 테스트 431개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-23 (홈 버튼 + 카드 네비게이션 + 탭 성능 최적화(캐싱/selectbox) + 자동완성 개선, 도구 13개, 테스트 431개, eval 162개, Hit Rate 100%)_

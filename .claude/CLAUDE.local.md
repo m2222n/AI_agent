@@ -1261,6 +1261,28 @@
   - db-latest Release 생성 전에 앱이 먼저 부팅되어 404 캐시됨
 - **해결**: Streamlit Cloud 대시보드에서 앱 **Reboot** (캐시 초기화)
 
+### GitHub Actions dotenv 버그 수정 (2026-04-22)
+- **원인**: `collect_full.py` → `config.py` → `from dotenv import load_dotenv` → `ModuleNotFoundError`
+- **수정**: `.github/workflows/daily-collect.yml`에 `python-dotenv` pip install 추가
+- 4/22 스케줄 실행 실패 → 수정 후 수동 트리거로 성공, 데이터 정상 수집
+
+### 탭 종목 검색 부분 매칭 전환 (2026-04-22)
+- **문제**: `st.selectbox`의 네이티브 검색이 ~4,200개 옵션에서 "삼성" 부분 매칭 불가 (No results)
+- **수정**: `_ticker_input()`을 `st.text_input` + 수동 부분 매칭 + `st.selectbox`로 변경
+  - 텍스트 입력 → `q in opt.lower()` 필터링 → 매칭 1개면 자동선택, 복수면 selectbox 표시
+  - "삼성" → 33건 매칭 (ETF+주식), 종목명/티커 모두 검색 가능
+
+### 재무제표 탭 분기 수 동적 조정 (2026-04-22)
+- **변경**: 고정 selectbox [4,6,8,12] → `st.slider` (1 ~ 최대분기)
+  - 전체 데이터를 `get_financial_data(quarters=200)`으로 조회 후 max_q 계산
+  - 기본값: min(8, 전체 분기 수)
+- 설명 문구: "최근 8분기" → "2015년부터 재무제표를 조회합니다"
+- 분기 수 selectbox 열 제거 → 2열 레이아웃으로 간소화
+
+### yfinance 백필 실행 (2026-04-22)
+- `backfill_yfinance.py` 실행 (2014-01-01 ~ 2014-04-17, ETF+주식 전종목)
+- KRX 슬라이딩 윈도우 밖 구간 보충 (로컬 DB에만 영향)
+
 ### 커밋 이력 (04-21~22)
 - `37591d5`: feat: 탭 분리 UI + 후속질문 on_click 리팩토링
 - `d910cfb`: fix: 데이터 범위 질문 시 LLM 학습 데이터 대신 실제 DB 기준 안내
@@ -1268,8 +1290,29 @@
 - `c9a57c4`: fix: 프롬프트 데이터 범위 — 재무제표 2015년부터로 수정
 - `d6ab94f`: fix: 후속질문 on_click 재적용 + 차트 제목/범례 겹침 수정
 - `e6a87d6`: feat: 탭 종목 입력에 자동완성 검색 추가 (selectbox)
+- `9424364`: docs: CLAUDE.md, CLAUDE.local.md, README 전체 업데이트
+- `fba311c`: fix: GitHub Actions에 python-dotenv 의존성 추가
+- `5566c4c`: fix: 탭 종목 검색을 부분 매칭으로 변경 + 재무제표 분기 수 동적 조정
+
+### 커밋 이력 (04-23)
+- `a748203`~`7b619d2`: st_searchbox→text_input+selectbox→text_input+버튼 자동완성 (Streamlit Cloud 호환)
+- `862c119`: fix: 재무제표 fiscal_year 타입 에러 수정 (str→int 변환)
+- `2f0e906`: feat: 홈 버튼 왼쪽 상단 이동 + 기능 카드 탭 네비게이션 (JS 주입)
+- `11f4b71`: perf: 탭 UI 성능 최적화 (캐싱 + selectbox 전환)
+
+### UI/UX 변경 (04-23)
+- **홈 버튼**: 왼쪽 상단 이동, "🏠 홈으로 돌아가기" 텍스트, 대화 히스토리 초기화
+- **기능 카드 4개**: 클릭 시 해당 탭으로 자동 전환 (JS `[role="tab"]` 클릭 주입)
+- **자동완성**: st_searchbox 제거 → text_input + selectbox 방식 (Streamlit Cloud 호환)
+- **재무제표**: 연도 범위 select_slider (2015~현재), caption 변경
+
+### 성능 최적화 (04-23)
+- `_build_autocomplete_options()` → `@st.cache_resource` (rerun마다 4,200종목 순회 제거)
+- `_ticker_input()` 버튼 20개 → `st.selectbox` 1개 (위젯 렌더링 20→1)
+- 기술적 지표/차트/재무제표 DB → `@st.cache_data` (ttl=1h/10m)
+- 비교 차트/가격 전망도 캐싱 적용
 
 ---
 
-_Last Updated: 2026-04-22_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 답변 품질 강화(CoV 확대/R² 엄격화/에러 재시도) + 탭 UI(5탭/자동완성/후속질문) + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
+_Last Updated: 2026-04-23_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 탭 UI 성능 최적화(캐싱/selectbox) + 홈 버튼/카드 네비게이션 + 자동완성 개선 중 + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_

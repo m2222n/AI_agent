@@ -101,7 +101,7 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 — text_input으로 필터링 + selectbox로 선택."""
+    """종목 입력 위젯 — text_input + selectbox 자동완성."""
     query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
     if not query or not query.strip():
         return ""
@@ -109,40 +109,59 @@ def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티
     q = query.strip()
     ql = q.lower()
 
-    # 자동완성 매칭 (selectbox 1개로 표시)
+    # 자동완성 매칭
     options = _build_autocomplete_options()
-    if options:
-        is_digit = ql.isdigit()
-        matched = [opt for opt in options if ql in opt.lower()][:30]
+    if not options:
+        return q
 
-        if matched:
-            # 숫자 검색이면 "티커 (종목명)" 형식으로 표시
-            if is_digit:
-                display_map = {}
-                for opt in matched:
-                    if " (" in opt and opt.endswith(")"):
-                        name_part, ticker_part = opt.rsplit(" (", 1)
-                        display = f"{ticker_part.rstrip(')')} ({name_part})"
-                    else:
-                        display = opt
-                    display_map[display] = opt
-                display_options = list(display_map.keys())
+    is_digit = ql.isdigit()
+    matched = [opt for opt in options if ql in opt.lower()][:30]
+
+    if not matched:
+        return q
+
+    # "종목명 (티커)" → 종목명 추출 헬퍼
+    def _extract_name(opt: str) -> str:
+        if " (" in opt and opt.endswith(")"):
+            return opt.rsplit(" (", 1)[0]
+        return opt
+
+    # 정확히 1개만 매칭되면 바로 반환
+    if len(matched) == 1:
+        st.caption(f"✅ {matched[0]}")
+        return _extract_name(matched[0])
+
+    # 숫자 검색이면 "티커 (종목명)" 형식으로 표시
+    if is_digit:
+        display_map = {}
+        for opt in matched:
+            if " (" in opt and opt.endswith(")"):
+                name_part, ticker_part = opt.rsplit(" (", 1)
+                display = f"{ticker_part.rstrip(')')} ({name_part})"
             else:
-                display_options = matched
-                display_map = {opt: opt for opt in matched}
+                display = opt
+            display_map[display] = opt
+        display_options = list(display_map.keys())
+    else:
+        display_options = matched
+        display_map = {opt: opt for opt in matched}
 
-            selected = st.selectbox(
-                f"{len(matched)}개 매칭",
-                display_options,
-                key=f"{key}_select",
-                label_visibility="collapsed",
-            )
-            if selected:
-                original = display_map[selected]
-                if " (" in original and original.endswith(")"):
-                    return original.rsplit(" (", 1)[0]
-                return original
+    # 첫 번째 옵션에 "선택하세요" placeholder 추가
+    placeholder_opt = f"— {len(matched)}개 종목 중 선택 —"
+    all_options = [placeholder_opt] + display_options
 
+    selected = st.selectbox(
+        "종목 선택",
+        all_options,
+        key=f"{key}_select_{ql}",  # 검색어별 key (검색어 바뀌면 선택 초기화)
+        label_visibility="collapsed",
+    )
+
+    if selected and selected != placeholder_opt:
+        original = display_map[selected]
+        return _extract_name(original)
+
+    # selectbox에서 선택 안 했으면 입력값 그대로 반환
     return q
 
 
