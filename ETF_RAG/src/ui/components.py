@@ -89,6 +89,9 @@ def render_welcome():
 
     st.markdown("")  # spacer
 
+    # 예시 질문 라벨
+    st.caption("💡 예시 질문")
+
     # 카테고리별 예시 질문
     for cat_name, cat_info in EXAMPLE_CATEGORIES.items():
         st.markdown(

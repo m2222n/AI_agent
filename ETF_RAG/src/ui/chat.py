@@ -117,15 +117,39 @@ def init_session_state():
             st.session_state[key] = value
 
 
+def _set_followup(fq: str):
+    """후속 질문 콜백 — on_click에서 호출되어 _retry_question 세팅"""
+    st.session_state["_retry_question"] = fq
+
+
+def _render_followup_buttons(followups: list[str], suffix: str = ""):
+    """후속 질문 버튼 렌더링 (on_click 콜백 사용 — 이중 rerun 방지)"""
+    if not followups:
+        return
+    # 이미 후속 질문이 대기 중이면 버튼을 렌더링하지 않음
+    if st.session_state.get("_retry_question"):
+        return
+    cols = st.columns(len(followups))
+    for i, (col, fq) in enumerate(zip(cols, followups)):
+        with col:
+            st.button(f"💬 {fq}", key=f"followup_{suffix}_{i}",
+                      use_container_width=True,
+                      on_click=_set_followup, args=(fq,))
+
+
 def render_chat_history():
     """대화 히스토리 표시"""
-    for message in st.session_state.messages:
+    for idx, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
             # 저장된 구조화 데이터가 있으면 차트도 렌더링
             comparison = message.get("comparison_data")
             if comparison:
                 render_structured_data(comparison)
+            # 마지막 assistant 메시지의 후속 질문 버튼
+            followups = message.get("followups")
+            if followups and message["role"] == "assistant" and idx == len(st.session_state.messages) - 1:
+                _render_followup_buttons(followups, suffix=f"hist_{idx}")
 
 
 def process_question(question: str, client=None, retriever=None):
@@ -240,16 +264,13 @@ def process_question(question: str, client=None, retriever=None):
         # 성능 지표 — 간결한 캡션 (일반 사용자에게 부담 없게)
         status_placeholder.caption(f"⏱️ {total_time:.1f}초")
 
-        # 후속 질문 제안
+        # 후속 질문 제안 — 세션에 저장하여 히스토리 렌더링 시에도 표시
         followups = _get_followup_suggestions(question, tools_used, question_type or "")
         if followups:
-            cols = st.columns(len(followups))
-            for col, fq in zip(cols, followups):
-                with col:
-                    if st.button(f"💬 {fq}", key=f"followup_{hash(fq)}",
-                                 use_container_width=True):
-                        st.session_state["_retry_question"] = fq
-                        st.rerun()
+            # 마지막 응답 메시지에 후속 질문 저장
+            if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+                st.session_state.messages[-1]["followups"] = followups
+            _render_followup_buttons(followups, suffix="live")
 
         # 로그 저장
         log_interaction(

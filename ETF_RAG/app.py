@@ -28,6 +28,7 @@ from src.ui.sidebar import render_sidebar
 from src.ui.chat import init_session_state, render_chat_history, process_question
 from src.ui.components import render_example_questions, render_feedback_buttons, render_reset_button
 from src.ui.styles import inject_custom_css
+from src.ui.tabs import render_technical_tab, render_financial_tab, render_comparison_tab, render_outlook_tab
 
 logger = logging.getLogger(__name__)
 
@@ -133,26 +134,47 @@ def main():
     # 세션 상태
     init_session_state()
 
-    # 대화 히스토리
-    render_chat_history()
-
-    # 예시 질문
-    render_example_questions()
+    # 예시/후속 질문 처리 (탭 외부에서 pop — rerun 시 탭 상태와 무관하게 동작)
     example_question = st.session_state.pop("example_q", None)
-
-    # 재시도 질문 처리
     retry_question = st.session_state.pop("_retry_question", None)
+    pending_question = retry_question or example_question
+    if pending_question:
+        logger.info(f"[app] pending_question: {pending_question} (retry={retry_question}, example={example_question})")
 
-    # 채팅 입력
+    # chat_input은 탭 밖에 배치 (Streamlit은 chat_input을 항상 하단 고정)
     user_input = st.chat_input("ETF/주식에 대해 궁금한 점을 물어보세요...")
-    question = retry_question or example_question or user_input
+    question = pending_question or user_input
 
-    if question:
-        process_question(question)
+    # 탭 UI
+    tab_chat, tab_tech, tab_fin, tab_cmp, tab_outlook = st.tabs([
+        "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "⚖️ 비교 분석", "🔮 가격 전망"
+    ])
 
-    # 피드백 + 초기화
-    render_feedback_buttons()
-    render_reset_button()
+    with tab_chat:
+        # 대화 히스토리
+        render_chat_history()
+
+        # 예시 질문
+        render_example_questions()
+
+        if question:
+            process_question(question)
+
+        # 피드백 + 초기화
+        render_feedback_buttons()
+        render_reset_button()
+
+    with tab_tech:
+        render_technical_tab()
+
+    with tab_fin:
+        render_financial_tab()
+
+    with tab_cmp:
+        render_comparison_tab()
+
+    with tab_outlook:
+        render_outlook_tab()
 
 
 if __name__ == "__main__":
