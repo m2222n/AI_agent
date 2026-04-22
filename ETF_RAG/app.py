@@ -8,9 +8,12 @@ LLM 기반 ETF 질의응답 시스템
 """
 
 import logging
+from pathlib import Path
+
 import streamlit as st
 
 from config import is_langsmith_enabled
+from src.data.db_downloader import ensure_db
 from src.data.loader import (
     load_etf_data as _load_etf_data,
     load_stock_data as _load_stock_data,
@@ -43,6 +46,15 @@ def load_stock_data():
     except Exception as e:
         logger.error(f"주식 데이터 로드 실패: {e}", exc_info=True)
         return []
+
+
+@st.cache_resource
+def download_db():
+    """Streamlit Cloud 시작 시 GitHub Release에서 DB 다운로드 (1회)."""
+    db_path = Path(__file__).parent / "src" / "data" / "etf_rag.db"
+    result = ensure_db(db_path)
+    logger.info(f"DB 다운로드 결과: {'성공' if result else '실패/스킵'}")
+    return result
 
 
 @st.cache_resource
@@ -99,6 +111,10 @@ def main():
         st.error("OPENAI_API_KEY가 설정되어 있지 않습니다.")
         st.info("Streamlit Cloud: Settings → Secrets에서 설정하세요.")
         st.stop()
+
+    # DB 다운로드 (Streamlit Cloud: 최초 실행 시 GitHub Release에서 다운로드)
+    with st.spinner("데이터베이스 준비 중... (최초 실행 시 1~2분 소요)"):
+        download_db()
 
     # 하이브리드 검색기 + 에이전트 초기화
     try:
