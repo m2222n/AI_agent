@@ -38,10 +38,10 @@ SAMPLE_DOCS = [
 
 @pytest.fixture
 def mock_retriever():
-    """도구에 mock retriever 주입"""
+    """도구에 mock retriever 주입 (인덱스 초기화)"""
     retriever = MagicMock()
     retriever.documents = SAMPLE_DOCS
-    set_retriever(retriever, SAMPLE_DOCS)
+    set_retriever(retriever, SAMPLE_DOCS, etf_data=[], stock_data=[])
     return retriever
 
 

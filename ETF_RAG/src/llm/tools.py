@@ -21,6 +21,7 @@ _documents = None
 # 구조화 데이터 인덱스 — 이름/티커로 원본 dict 직접 조회
 _etf_data_index = {}       # {name_lower: dict, ticker: dict}
 _stock_data_index = {}     # {name_lower: dict, ticker: dict}
+_data_initialized = False  # set_retriever()로 데이터 주입 여부
 
 # 역인덱스 — 보유종목 → ETF 매핑 (섹터 분석용)
 _holdings_reverse_index = {}   # {stock_ticker: [{etf_name, etf_ticker, weight}]}
@@ -95,7 +96,7 @@ def _build_sector_index(stock_data_list):
 def set_retriever(retriever, documents=None, stock_retriever=None,
                   etf_data=None, stock_data=None):
     """앱 초기화 시 retriever와 documents를 주입"""
-    global _retriever, _documents, _stock_retriever
+    global _retriever, _documents, _stock_retriever, _data_initialized
     global _etf_data_index, _stock_data_index, _holdings_reverse_index, _sector_index
     _retriever = retriever
     _documents = documents or (retriever.documents if hasattr(retriever, "documents") else [])
@@ -103,9 +104,13 @@ def set_retriever(retriever, documents=None, stock_retriever=None,
     if etf_data is not None:
         _etf_data_index = _build_data_index(etf_data)
         _holdings_reverse_index = _build_holdings_reverse_index(etf_data)
+        logger.info(f"[tools] ETF 인덱스: {len(_etf_data_index)}개 키 (원본 {len(etf_data)}종목)")
+        _data_initialized = True
     if stock_data is not None:
         _stock_data_index = _build_data_index(stock_data)
         _sector_index = _build_sector_index(stock_data)
+        logger.info(f"[tools] 주식 인덱스: {len(_stock_data_index)}개 키 (원본 {len(stock_data)}종목)")
+        _data_initialized = True
 
 
 def _enrich_with_structured_data(sources: list, index: dict) -> str:
@@ -306,7 +311,116 @@ def _find_structured_data(name_or_ticker: str) -> Optional[dict]:
             if key in idx_key or idx_key in key:
                 return data
 
+    # 인덱스 초기화 자체가 안 된 경우 deploy JSON에서 직접 검색 (초기화 실패 복구)
+    if not _data_initialized and not _etf_data_index and not _stock_data_index:
+        logger.warning(f"[tools] 인덱스 미초기화 — deploy JSON 직접 검색 시도: {name_or_ticker}")
+        result = _fallback_deploy_lookup(key)
+        if result:
+            return result
+
     return None
+
+
+def _fallback_deploy_lookup(key: str) -> Optional[dict]:
+    """인덱스 초기화 실패 시 deploy JSON에서 직접 검색."""
+    try:
+        import json
+        from config import DEPLOY_DIR
+        for filename in ("stock_data.json", "etf_data.json"):
+            path = DEPLOY_DIR / filename
+            if not path.exists():
+                continue
+            with open(path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            items = raw.get("stocks", raw.get("etfs", []))
+            for item in items:
+                name = item.get("name", "").lower()
+                ticker = item.get("ticker", "")
+                if key == name or key == ticker or key in name or name in key:
+                    # _normalize 간소화 반환
+                    ohlcv = item.get("ohlcv") or {}
+                    fund = item.get("fundamental") or {}
+                    return {
+                        "ticker": item.get("ticker", ""),
+                        "name": item.get("name", ""),
+                        "date": item.get("date", ""),
+                        "close": ohlcv.get("close", item.get("close", 0)),
+                        "change_pct": ohlcv.get("change_pct", item.get("change_pct", 0)),
+                        "volume": ohlcv.get("volume", item.get("volume", 0)),
+                        "market_cap": item.get("market_cap", 0),
+                        "per": fund.get("per", item.get("per", 0)),
+                        "pbr": fund.get("pbr", item.get("pbr", 0)),
+                        "returns": item.get("returns", {}),
+                    }
+    except Exception as e:
+        logger.error(f"[tools] deploy fallback 실패: {e}")
+    return None
+
+
+def _not_found_message(name_or_ticker: str) -> str:
+    """종목을 찾을 수 없을 때 유사 종목 제안 포함 메시지 반환."""
+    similar = _find_similar_names(name_or_ticker)
+    if similar:
+        suggestions = "\n".join(
+            f"- {s['name']} ({s['ticker']})" for s in similar
+        )
+        return (
+            f"'{name_or_ticker}'에 정확히 일치하는 종목이 없습니다. "
+            f"혹시 다음 중 하나를 찾으시나요?\n{suggestions}\n\n"
+            f"정확한 종목명이나 티커(숫자 6자리)로 다시 검색해주세요."
+        )
+    return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+
+
+def _find_similar_names(name_or_ticker: str, max_results: int = 5) -> list[dict]:
+    """유사한 종목명 후보 리스트 반환 (정확 매칭 실패 시 사용).
+
+    Returns:
+        [{"name": str, "ticker": str, "asset_type": "etf"|"stock"}, ...]
+    """
+    key = name_or_ticker.lower().strip()
+    if not key:
+        return []
+
+    candidates = []
+    seen = set()
+
+    for index, asset_type in [(_etf_data_index, "etf"), (_stock_data_index, "stock")]:
+        for idx_key, data in index.items():
+            name = data.get("name", "")
+            ticker = data.get("ticker", "")
+            if not name or ticker in seen:
+                continue
+            # 이름 키만 검사 (티커 키는 건너뛰기 — 중복 방지)
+            if idx_key != name.lower():
+                continue
+
+            # 유사도 점수: 부분 포함 > 첫 글자 일치 > 기타
+            score = 0
+            name_lower = name.lower()
+            if key in name_lower or name_lower in key:
+                score = 100
+            elif name_lower.startswith(key) or key.startswith(name_lower):
+                score = 80
+            elif any(c in name_lower for c in key if len(c.encode("utf-8")) > 1):
+                # 한글 글자 단위 부분 매칭
+                matched = sum(1 for c in key if c in name_lower and len(c.encode("utf-8")) > 1)
+                score = matched * 20
+            else:
+                continue
+
+            if score > 0:
+                candidates.append({
+                    "name": name,
+                    "ticker": ticker,
+                    "asset_type": asset_type,
+                    "score": score,
+                })
+                seen.add(ticker)
+
+    # 점수 높은 순, 같으면 이름 짧은 순
+    candidates.sort(key=lambda x: (-x["score"], len(x["name"])))
+    return candidates[:max_results]
 
 
 def _extract_comparison_fields(data: dict) -> dict:
@@ -653,7 +767,7 @@ def get_realtime_price(name_or_ticker: str) -> str:
     # 종목 조회
     data = _find_structured_data(name_or_ticker)
     if not data:
-        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+        return _not_found_message(name_or_ticker)
 
     ticker = data.get("ticker", "")
     name = data.get("name", "")
@@ -972,7 +1086,7 @@ def get_technical_indicators(name_or_ticker: str) -> str:
     # 종목 조회
     data = _find_structured_data(name_or_ticker)
     if not data:
-        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+        return _not_found_message(name_or_ticker)
 
     ticker = data.get("ticker", "")
     name = data.get("name", "")
@@ -1181,9 +1295,9 @@ def get_stock_correlation(ticker1: str, ticker2: str) -> str:
     d2 = _find_structured_data(ticker2)
 
     if not d1:
-        return f"'{ticker1}'에 해당하는 종목을 찾을 수 없습니다."
+        return _not_found_message(ticker1)
     if not d2:
-        return f"'{ticker2}'에 해당하는 종목을 찾을 수 없습니다."
+        return _not_found_message(ticker2)
 
     t1 = d1.get("ticker", "")
     t2 = d2.get("ticker", "")
@@ -1370,7 +1484,7 @@ def get_financial_statements(name_or_ticker: str, quarters: int = 4) -> str:
                 data = val
                 break
     if not data:
-        return f"'{name_or_ticker}'에 대한 종목 정보를 찾을 수 없습니다."
+        return _not_found_message(name_or_ticker)
 
     ticker = data.get("ticker", "")
     name = data.get("name", "")
@@ -1466,7 +1580,7 @@ def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
     """
     data = _find_structured_data(name_or_ticker)
     if not data:
-        return f"'{name_or_ticker}'에 해당하는 종목을 찾을 수 없습니다."
+        return _not_found_message(name_or_ticker)
 
     ticker = data.get("ticker", "")
     name = data.get("name", "")

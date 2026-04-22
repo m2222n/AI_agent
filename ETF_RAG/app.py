@@ -37,9 +37,11 @@ def load_etf_data():
 @st.cache_resource
 def load_stock_data():
     try:
-        return _load_stock_data()
+        data = _load_stock_data()
+        logger.info(f"주식 데이터 로드 성공: {len(data)}종목")
+        return data
     except Exception as e:
-        logger.warning(f"주식 데이터 로드 실패: {e}")
+        logger.error(f"주식 데이터 로드 실패: {e}", exc_info=True)
         return []
 
 
