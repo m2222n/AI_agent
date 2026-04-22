@@ -47,6 +47,13 @@ def _setup_font():
 
     plt.rcParams["axes.unicode_minus"] = False
 
+    # 0) matplotlib 폰트 캐시 강제 리빌드 (Streamlit Cloud에서 패키지 설치 후 캐시 미갱신 방지)
+    try:
+        fm._load_fontmanager(try_read_cache=False)
+        logger.info("matplotlib 폰트 캐시 리빌드 완료")
+    except Exception:
+        pass  # 구버전 matplotlib — 무시
+
     # 1) TTF 파일 직접 탐색 + 등록 (가장 확실한 방법)
     # Streamlit Cloud (Debian): fonts-nanum → /usr/share/fonts/truetype/nanum/
     # 일부 Linux: /usr/share/fonts/nanum/
