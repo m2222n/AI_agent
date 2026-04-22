@@ -23,14 +23,46 @@ from src.llm.tools import _find_structured_data, _find_similar_names, _etf_data_
 logger = logging.getLogger(__name__)
 
 
-# ── 공통 헬퍼 ─────────────────────────────────────────────
+# ── 캐싱 래퍼 (rerun마다 재계산 방지) ──────────────────────
 
-def _build_autocomplete_options() -> list[str]:
-    """인덱스에서 자동완성 옵션 목록 생성. '종목명 (티커)' 형식."""
-    cached = st.session_state.get("_autocomplete_options")
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_technical_summary(ticker: str):
+    return get_technical_summary(ticker)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_technical_chart(ticker: str, name: str, days: int = 120):
+    return generate_technical_chart(ticker, name, days=days)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_comparison_chart(tickers: tuple, names: tuple, days: int = 120):
+    return generate_comparison_chart(list(tickers), list(names), days=days)
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_financial_data(ticker: str, quarters: int = 200):
+    conn = get_connection()
+    try:
+        return get_financial_data(conn, ticker, quarters=quarters)
+    finally:
+        conn.close()
+
+def _cached_price_outlook(ticker: str, name: str, horizon: str, summary, structured_data):
+    """가격 전망 — 내부적으로 ticker+horizon 기반 캐싱."""
+    cache_key = f"_outlook_cache_{ticker}_{horizon}"
+    cached = st.session_state.get(cache_key)
     if cached:
         return cached
+    result = build_price_outlook(ticker, name, horizon=horizon,
+                                  summary=summary, structured_data=structured_data)
+    if result:
+        st.session_state[cache_key] = result
+    return result
 
+
+# ── 공통 헬퍼 ─────────────────────────────────────────────
+
+@st.cache_resource
+def _build_autocomplete_options_cached() -> list[str]:
+    """인덱스에서 자동완성 옵션 목록 생성 (앱 수명 동안 1회만)."""
     seen = set()
     options = []
     for index in (_etf_data_index, _stock_data_index):
@@ -41,11 +73,15 @@ def _build_autocomplete_options() -> list[str]:
                 continue
             seen.add(ticker)
             options.append(f"{name} ({ticker})")
-
     options.sort()
-    if options:
-        st.session_state["_autocomplete_options"] = options
     return options
+
+
+def _build_autocomplete_options() -> list[str]:
+    """자동완성 옵션 반환. 인덱스가 비어있으면 빈 리스트."""
+    if not _etf_data_index and not _stock_data_index:
+        return []
+    return _build_autocomplete_options_cached()
 
 
 def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
@@ -65,61 +101,48 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 — 타이핑하면 실시간 매칭 리스트 표시, 클릭으로 선택 가능."""
-    # 선택된 종목이 session_state에 있으면 표시
-    selected_key = f"{key}_selected"
-    if st.session_state.get(selected_key):
-        selected = st.session_state[selected_key]
-        col_sel, col_clear = st.columns([5, 1])
-        with col_sel:
-            st.success(f"**{selected}**")
-        with col_clear:
-            if st.button("✕", key=f"{key}_clear", help="선택 해제"):
-                st.session_state[selected_key] = ""
-                st.rerun()
-        return selected
-
+    """종목 입력 위젯 — text_input으로 필터링 + selectbox로 선택."""
     query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
     if not query or not query.strip():
         return ""
 
     q = query.strip()
+    ql = q.lower()
 
-    # 실시간 매칭 리스트 표시
+    # 자동완성 매칭 (selectbox 1개로 표시)
     options = _build_autocomplete_options()
     if options:
-        ql = q.lower()
         is_digit = ql.isdigit()
-        matched = [opt for opt in options if ql in opt.lower()][:20]
+        matched = [opt for opt in options if ql in opt.lower()][:30]
 
         if matched:
-            st.caption(f"{len(matched)}개 종목 매칭")
-            # 매칭 목록을 버튼으로 표시 (클릭하면 선택)
-            cols_per_row = 3
-            for i in range(0, len(matched), cols_per_row):
-                cols = st.columns(cols_per_row)
-                for j, col in enumerate(cols):
-                    idx = i + j
-                    if idx >= len(matched):
-                        break
-                    opt = matched[idx]
-                    # 숫자 검색이면 "티커 (종목명)" 형식으로 표시
-                    if is_digit and " (" in opt and opt.endswith(")"):
+            # 숫자 검색이면 "티커 (종목명)" 형식으로 표시
+            if is_digit:
+                display_map = {}
+                for opt in matched:
+                    if " (" in opt and opt.endswith(")"):
                         name_part, ticker_part = opt.rsplit(" (", 1)
                         display = f"{ticker_part.rstrip(')')} ({name_part})"
                     else:
                         display = opt
-                    with col:
-                        if st.button(display, key=f"{key}_opt_{idx}", use_container_width=True):
-                            # "종목명 (티커)" → 종목명 추출
-                            if " (" in opt and opt.endswith(")"):
-                                chosen = opt.rsplit(" (", 1)[0]
-                            else:
-                                chosen = opt
-                            st.session_state[selected_key] = chosen
-                            st.rerun()
+                    display_map[display] = opt
+                display_options = list(display_map.keys())
+            else:
+                display_options = matched
+                display_map = {opt: opt for opt in matched}
 
-    # 입력값 그대로 반환 (분석 버튼 클릭 시 _resolve_ticker로 검증)
+            selected = st.selectbox(
+                f"{len(matched)}개 매칭",
+                display_options,
+                key=f"{key}_select",
+                label_visibility="collapsed",
+            )
+            if selected:
+                original = display_map[selected]
+                if " (" in original and original.endswith(")"):
+                    return original.rsplit(" (", 1)[0]
+                return original
+
     return q
 
 
@@ -148,15 +171,15 @@ def render_technical_tab():
     name = data.get("name", query)
 
     with st.spinner(f"{name} 기술적 지표 계산 중..."):
-        summary = get_technical_summary(ticker)
+        summary = _cached_technical_summary(ticker)
 
     if not summary:
         st.error("기술적 지표 데이터가 부족합니다.")
         return
 
-    # 차트 생성
+    # 차트 생성 (캐싱)
     with st.spinner("차트 생성 중..."):
-        chart_b64 = generate_technical_chart(ticker, name, days=120)
+        chart_b64 = _cached_technical_chart(ticker, name, days=120)
 
     if chart_b64:
         st.image(base64.b64decode(chart_b64), use_container_width=True)
@@ -288,11 +311,7 @@ def render_financial_tab():
         st.error("데이터베이스 파일이 없습니다.")
         return
 
-    conn = get_connection()
-    try:
-        all_rows = get_financial_data(conn, ticker, quarters=200)
-    finally:
-        conn.close()
+    all_rows = _cached_financial_data(ticker, quarters=200)
 
     if not all_rows:
         st.warning(f"{name}의 재무제표 데이터가 없습니다. (DART 미공시 종목이거나 ETF일 수 있습니다)")
@@ -458,21 +477,17 @@ def render_comparison_tab():
         df = pd.DataFrame(chart_data).set_index("기간")
         st.bar_chart(df)
 
-    # 상대 수익률 추이 차트
+    # 상대 수익률 추이 차트 (캐싱)
     with st.spinner("비교 차트 생성 중..."):
-        chart_b64 = generate_comparison_chart([ticker1, ticker2], [name1, name2], days=120)
+        chart_b64 = _cached_comparison_chart((ticker1, ticker2), (name1, name2), days=120)
     if chart_b64:
         st.markdown("#### 기간별 상대 수익률 추이")
         st.image(base64.b64decode(chart_b64), use_container_width=True)
 
-    # 재무제표 비교 (DB 있을 때만)
+    # 재무제표 비교 (DB 있을 때만, 캐싱)
     if DB_PATH.exists():
-        conn = get_connection()
-        try:
-            fin1 = get_financial_data(conn, ticker1, quarters=1)
-            fin2 = get_financial_data(conn, ticker2, quarters=1)
-        finally:
-            conn.close()
+        fin1 = _cached_financial_data(ticker1, quarters=1)
+        fin2 = _cached_financial_data(ticker2, quarters=1)
 
         if fin1 and fin2:
             f1, f2 = fin1[0], fin2[0]
@@ -527,9 +542,9 @@ def render_outlook_tab():
     name = data.get("name", query)
 
     with st.spinner(f"{name} 전망 분석 중..."):
-        summary = get_technical_summary(ticker)
-        outlook = build_price_outlook(ticker, name, horizon=horizon,
-                                       summary=summary, structured_data=data)
+        summary = _cached_technical_summary(ticker)
+        outlook = _cached_price_outlook(ticker, name, horizon,
+                                         summary, data)
 
     if not outlook:
         st.error("전망 데이터를 생성할 수 없습니다.")
