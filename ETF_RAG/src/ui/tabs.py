@@ -18,12 +18,35 @@ from src.data.chart_generator import generate_technical_chart, generate_comparis
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
-from src.llm.tools import _find_structured_data, _find_similar_names
+from src.llm.tools import _find_structured_data, _find_similar_names, _etf_data_index, _stock_data_index
 
 logger = logging.getLogger(__name__)
 
 
 # ── 공통 헬퍼 ─────────────────────────────────────────────
+
+def _build_autocomplete_options() -> list[str]:
+    """인덱스에서 자동완성 옵션 목록 생성. '종목명 (티커)' 형식."""
+    cached = st.session_state.get("_autocomplete_options")
+    if cached:
+        return cached
+
+    seen = set()
+    options = []
+    for index in (_etf_data_index, _stock_data_index):
+        for _key, data in index.items():
+            ticker = data.get("ticker", "")
+            name = data.get("name", "")
+            if not ticker or ticker in seen:
+                continue
+            seen.add(ticker)
+            options.append(f"{name} ({ticker})")
+
+    options.sort()
+    if options:
+        st.session_state["_autocomplete_options"] = options
+    return options
+
 
 def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     """종목명/티커 → 구조화 데이터 조회. 실패 시 유사 종목 제안."""
@@ -42,11 +65,62 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (text_input — 입력값을 그대로 반환, 분석 시 _resolve_ticker로 검증)"""
+    """종목 입력 위젯 — 타이핑하면 실시간 매칭 리스트 표시, 클릭으로 선택 가능."""
+    # 선택된 종목이 session_state에 있으면 표시
+    selected_key = f"{key}_selected"
+    if st.session_state.get(selected_key):
+        selected = st.session_state[selected_key]
+        col_sel, col_clear = st.columns([5, 1])
+        with col_sel:
+            st.success(f"**{selected}**")
+        with col_clear:
+            if st.button("✕", key=f"{key}_clear", help="선택 해제"):
+                st.session_state[selected_key] = ""
+                st.rerun()
+        return selected
+
     query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
     if not query or not query.strip():
         return ""
-    return query.strip()
+
+    q = query.strip()
+
+    # 실시간 매칭 리스트 표시
+    options = _build_autocomplete_options()
+    if options:
+        ql = q.lower()
+        is_digit = ql.isdigit()
+        matched = [opt for opt in options if ql in opt.lower()][:20]
+
+        if matched:
+            st.caption(f"{len(matched)}개 종목 매칭")
+            # 매칭 목록을 버튼으로 표시 (클릭하면 선택)
+            cols_per_row = 3
+            for i in range(0, len(matched), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for j, col in enumerate(cols):
+                    idx = i + j
+                    if idx >= len(matched):
+                        break
+                    opt = matched[idx]
+                    # 숫자 검색이면 "티커 (종목명)" 형식으로 표시
+                    if is_digit and " (" in opt and opt.endswith(")"):
+                        name_part, ticker_part = opt.rsplit(" (", 1)
+                        display = f"{ticker_part.rstrip(')')} ({name_part})"
+                    else:
+                        display = opt
+                    with col:
+                        if st.button(display, key=f"{key}_opt_{idx}", use_container_width=True):
+                            # "종목명 (티커)" → 종목명 추출
+                            if " (" in opt and opt.endswith(")"):
+                                chosen = opt.rsplit(" (", 1)[0]
+                            else:
+                                chosen = opt
+                            st.session_state[selected_key] = chosen
+                            st.rerun()
+
+    # 입력값 그대로 반환 (분석 버튼 클릭 시 _resolve_ticker로 검증)
+    return q
 
 
 # ── 기술적 분석 탭 ─────────────────────────────────────────

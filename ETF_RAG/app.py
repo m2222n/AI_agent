@@ -91,12 +91,22 @@ def init_retriever():
 def main():
     st.set_page_config(page_title="투자 AI 어시스턴트", page_icon="📈", layout="wide")
     inject_custom_css()
-    st.markdown(
-        '<h1 style="margin-bottom:0;">📈 투자 AI 어시스턴트</h1>'
-        '<p style="color:#888; font-size:0.9rem; margin-top:0.2rem;">'
-        'ETF &middot; 주식 &middot; 기술적 분석 &middot; 재무제표 &middot; 가격 전망</p>',
-        unsafe_allow_html=True,
-    )
+    # 헤더 + 홈 버튼
+    hcol1, hcol2 = st.columns([9, 1])
+    with hcol1:
+        st.markdown(
+            '<h1 style="margin-bottom:0;">📈 투자 AI 어시스턴트</h1>'
+            '<p style="color:#888; font-size:0.9rem; margin-top:0.2rem;">'
+            'ETF &middot; 주식 &middot; 기술적 분석 &middot; 재무제표 &middot; 가격 전망</p>',
+            unsafe_allow_html=True,
+        )
+    with hcol2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🏠", key="home_btn", help="홈으로 돌아가기"):
+            for k in list(st.session_state.keys()):
+                if k.startswith(("tech_", "fin_", "cmp_", "outlook_")):
+                    del st.session_state[k]
+            st.rerun()
 
     # 사이드바
     etf_data = load_etf_data()
