@@ -19,6 +19,10 @@
         <integer>30</integer>
     </dict>
 
+    <!-- 30분 타임아웃 (무한 행 방지) -->
+    <key>TimeOut</key>
+    <integer>1800</integer>
+
     <!-- 환경변수 -->
     <key>EnvironmentVariables</key>
     <dict>

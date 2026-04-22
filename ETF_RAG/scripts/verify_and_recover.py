@@ -118,7 +118,7 @@ def recover_missing(conn, missing_dates: list[tuple]) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="수집 데이터 검증 + 누락 보충")
-    parser.add_argument("--days", type=int, default=5, help="검증할 최근 영업일 수")
+    parser.add_argument("--days", type=int, default=10, help="검증할 최근 영업일 수")
     parser.add_argument("--check", action="store_true", help="검증만 (보충 안 함)")
     args = parser.parse_args()
 
