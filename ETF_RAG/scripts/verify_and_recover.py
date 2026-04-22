@@ -33,25 +33,12 @@ def _is_weekend(dt: datetime) -> bool:
     return dt.weekday() >= 5
 
 
-# 한국 공휴일 (고정 + 주요 변동)
-# 매년 업데이트 필요 — 추석/설날은 음력이라 연도별로 다름
-KNOWN_HOLIDAYS_2026 = {
-    "20260101",  # 신정
-    "20260216", "20260217", "20260218",  # 설날 연휴
-    "20260301",  # 삼일절
-    "20260505",  # 어린이날
-    "20260519",  # 부처님오신날
-    "20260606",  # 현충일
-    "20260815",  # 광복절
-    "20260921", "20260922", "20260923",  # 추석 연휴
-    "20261003",  # 개천절
-    "20261009",  # 한글날
-    "20261225",  # 크리스마스
-}
+def get_expected_business_days(n_days: int = 10) -> list[str]:
+    """오늘로부터 과거 N영업일 목록 생성.
 
-
-def get_expected_business_days(n_days: int = 5) -> list[str]:
-    """오늘로부터 과거 N영업일 목록 생성 (주말+공휴일 제외)."""
+    주말은 건너뛰지만 공휴일은 하드코딩하지 않음.
+    공휴일은 find_missing_dates()에서 DB 데이터 부재 + 수집 시도 실패로 자연 감지.
+    """
     result = []
     dt = datetime.now()
 
@@ -59,7 +46,7 @@ def get_expected_business_days(n_days: int = 5) -> list[str]:
     while _is_weekend(dt):
         dt -= timedelta(days=1)
 
-    # 오늘 장마감 전(15:30)이면 어제부터
+    # 오늘 장마감 전(16:00)이면 어제부터
     if datetime.now().hour < 16:
         dt -= timedelta(days=1)
 
@@ -67,11 +54,7 @@ def get_expected_business_days(n_days: int = 5) -> list[str]:
         if _is_weekend(dt):
             dt -= timedelta(days=1)
             continue
-        date_str = dt.strftime("%Y%m%d")
-        if date_str in KNOWN_HOLIDAYS_2026:
-            dt -= timedelta(days=1)
-            continue
-        result.append(date_str)
+        result.append(dt.strftime("%Y%m%d"))
         dt -= timedelta(days=1)
 
     return sorted(result)
@@ -95,10 +78,13 @@ def find_missing_dates(conn, expected_dates: list[str]) -> list[str]:
 
 
 def recover_missing(conn, missing_dates: list[tuple]) -> dict:
-    """누락된 날짜 데이터를 재수집."""
+    """누락된 날짜 데이터를 재수집.
+
+    수집 시도 후 0건이면 공휴일로 판단 (실패가 아님).
+    """
     from scripts.backfill_historical import collect_etf_day, collect_stock_day
 
-    results = {"recovered": [], "failed": []}
+    results = {"recovered": [], "failed": [], "holidays": []}
 
     for date, existing_count in missing_dates:
         logger.info(f"보충 수집 시작: {date} (기존 {existing_count}종목)")
@@ -109,6 +95,10 @@ def recover_missing(conn, missing_dates: list[tuple]) -> dict:
         if etf_count + stock_count > 0:
             logger.info(f"보충 완료: {date} — ETF {etf_count} + 주식 {stock_count}")
             results["recovered"].append(date)
+        elif existing_count == 0:
+            # 기존 0건 + 수집 0건 = 공휴일 (KRX 데이터 자체가 없음)
+            logger.info(f"공휴일 감지: {date} — KRX 데이터 없음 (정상)")
+            results["holidays"].append(date)
         else:
             logger.error(f"보충 실패: {date}")
             results["failed"].append(date)
@@ -155,6 +145,8 @@ def main():
     conn.close()
 
     # 4. 결과 리포트
+    if results.get("holidays"):
+        logger.info(f"공휴일 (스킵): {results['holidays']}")
     if results["recovered"]:
         logger.info(f"보충 성공: {results['recovered']}")
     if results["failed"]:

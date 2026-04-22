@@ -2,9 +2,9 @@ name: Daily KRX Data Collection
 
 on:
   schedule:
-    # 18:30 KST = 09:30 UTC (월~금)
-    # KRX 장마감 15:30 → 결산 ~17:30 → 안전 마진 1시간
-    - cron: '30 9 * * 1-5'
+    # 18:30 KST = 09:30 UTC (매일, 주말 포함)
+    # 주말/공휴일에도 실행 — 비영업일이면 직전 영업일 데이터 재확인 (누락 방지)
+    - cron: '30 9 * * *'
   workflow_dispatch:  # 수동 실행 가능
 
 permissions:

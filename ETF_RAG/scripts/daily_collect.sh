@@ -21,12 +21,9 @@ mkdir -p "$LOG_DIR"
 DATE_LABEL=$(date +%Y%m%d)
 LOG_FILE="$LOG_DIR/collect_${DATE_LABEL}.log"
 
-# ── 주말 체크 (토/일이면 수집 스킵) ──────────────────────────
+# 요일 (DART 월요일 판정용)
 DAY_OF_WEEK=$(date +%u)  # 1=월 ... 7=일
-if [ "$DAY_OF_WEEK" -ge 6 ] && [ -z "${1:-}" ]; then
-    echo "=== 주말($(date +%A)) — 수집 스킵: $(date) ===" >> "$LOG_FILE"
-    exit 0
-fi
+# 주말에도 수집 시도 — 비영업일이면 find_latest_business_day()가 직전 영업일 반환
 
 # ── ETF 수집 ─────────────────────────────────────────────────
 echo "=== ETF 일배치 수집 시작: $(date) ===" >> "$LOG_FILE"
@@ -111,9 +108,9 @@ if [ "$DAY_OF_WEEK" -eq 1 ]; then
 fi
 
 # ── 수집 검증 + 누락 자동 보충 ────────────────────────────────
-# 최근 5영업일 중 누락된 날짜를 감지하고 자동으로 재수집
+# 최근 10영업일 중 누락된 날짜를 감지하고 자동으로 재수집
 echo "=== 수집 검증+보충 시작: $(date) ===" >> "$LOG_FILE"
-if $PYTHON scripts/verify_and_recover.py --days 5 >> "$LOG_FILE" 2>&1; then
+if $PYTHON scripts/verify_and_recover.py --days 10 >> "$LOG_FILE" 2>&1; then
     echo "=== 검증+보충 완료: $(date) ===" >> "$LOG_FILE"
 else
     echo "=== 검증+보충 실패 (누락 데이터 존재): $(date) ===" >> "$LOG_FILE"
