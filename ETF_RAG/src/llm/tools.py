@@ -322,7 +322,10 @@ def _find_structured_data(name_or_ticker: str) -> Optional[dict]:
 
 
 def _fallback_deploy_lookup(key: str) -> Optional[dict]:
-    """인덱스 초기화 실패 시 deploy JSON에서 직접 검색."""
+    """인덱스 초기화 실패 시 deploy JSON에서 직접 검색.
+
+    정확 매칭 우선 → 부분 매칭 fallback. loader.py의 _normalize 포맷과 호환.
+    """
     try:
         import json
         from config import DEPLOY_DIR
@@ -333,28 +336,57 @@ def _fallback_deploy_lookup(key: str) -> Optional[dict]:
             with open(path, "r", encoding="utf-8") as f:
                 raw = json.load(f)
             items = raw.get("stocks", raw.get("etfs", []))
+
+            # 1단계: 정확 매칭 (이름 또는 티커)
             for item in items:
                 name = item.get("name", "").lower()
                 ticker = item.get("ticker", "")
-                if key == name or key == ticker or key in name or name in key:
-                    # _normalize 간소화 반환
-                    ohlcv = item.get("ohlcv") or {}
-                    fund = item.get("fundamental") or {}
-                    return {
-                        "ticker": item.get("ticker", ""),
-                        "name": item.get("name", ""),
-                        "date": item.get("date", ""),
-                        "close": ohlcv.get("close", item.get("close", 0)),
-                        "change_pct": ohlcv.get("change_pct", item.get("change_pct", 0)),
-                        "volume": ohlcv.get("volume", item.get("volume", 0)),
-                        "market_cap": item.get("market_cap", 0),
-                        "per": fund.get("per", item.get("per", 0)),
-                        "pbr": fund.get("pbr", item.get("pbr", 0)),
-                        "returns": item.get("returns", {}),
-                    }
+                if key == name or key == ticker:
+                    return _normalize_deploy_item(item)
+
+            # 2단계: 부분 매칭 (이름에 포함)
+            for item in items:
+                name = item.get("name", "").lower()
+                if key in name or name in key:
+                    return _normalize_deploy_item(item)
+
     except Exception as e:
         logger.error(f"[tools] deploy fallback 실패: {e}")
     return None
+
+
+def _normalize_deploy_item(item: dict) -> dict:
+    """deploy JSON 아이템을 loader.py 호환 포맷으로 변환."""
+    ohlcv = item.get("ohlcv") or {}
+    fund = item.get("fundamental") or {}
+    result = {
+        "ticker": item.get("ticker", ""),
+        "name": item.get("name", ""),
+        "date": item.get("date", ""),
+        "close": ohlcv.get("close", item.get("close", 0)),
+        "change_pct": ohlcv.get("change_pct", item.get("change_pct", 0)),
+        "volume": ohlcv.get("volume", item.get("volume", 0)),
+        "trade_value": ohlcv.get("trade_value", item.get("trade_value", 0)),
+        "market_cap": item.get("market_cap", 0),
+        "per": fund.get("per", item.get("per", 0)),
+        "pbr": fund.get("pbr", item.get("pbr", 0)),
+        "eps": fund.get("eps", item.get("eps", 0)),
+        "bps": fund.get("bps", item.get("bps", 0)),
+        "div": fund.get("div", item.get("div", 0)),
+        "dps": fund.get("dps", item.get("dps", 0)),
+        "returns": item.get("returns", {}),
+        "sector": item.get("sector", ""),
+    }
+    # ETF 전용 필드
+    if "nav" in item or "deviation" in item:
+        result["nav"] = item.get("nav", ohlcv.get("nav", 0))
+        result["deviation"] = item.get("deviation")
+        result["tracking_error"] = item.get("tracking_error")
+        result["holdings"] = item.get("holdings", [])
+    # 재무 요약
+    if item.get("financial_summary"):
+        result["financial_summary"] = item["financial_summary"]
+    return result
 
 
 def _not_found_message(name_or_ticker: str) -> str:

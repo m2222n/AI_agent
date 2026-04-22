@@ -49,19 +49,26 @@ def load_stock_data():
 def init_retriever():
     """하이브리드 검색기 초기화 + 에이전트 도구 주입 (ETF + 주식)"""
     etf_data = load_etf_data()
+    logger.info(f"ETF 데이터 로드: {len(etf_data)}종목")
     documents = create_documents(etf_data)
     vectorstore = _create_vectorstore(documents, prefix="etf")
     etf_retriever = HybridRetriever(vectorstore, documents)
 
-    # 주식 retriever (데이터 있을 때만)
+    # 주식 retriever (데이터 있을 때만, 실패해도 진행)
     stock_data = load_stock_data()
+    logger.info(f"주식 데이터 로드: {len(stock_data)}종목")
     stock_retriever = None
     if stock_data:
-        stock_documents = create_stock_documents(stock_data)
-        stock_vectorstore = _create_vectorstore(stock_documents, prefix="stock")
-        stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
+        try:
+            stock_documents = create_stock_documents(stock_data)
+            stock_vectorstore = _create_vectorstore(stock_documents, prefix="stock")
+            stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
+            logger.info(f"주식 retriever 초기화 성공: {len(stock_documents)}개 문서")
+        except Exception as e:
+            logger.error(f"주식 retriever 초기화 실패 (인덱스는 생성): {e}", exc_info=True)
 
     # LangGraph 도구에 retriever + 원본 데이터 주입 (구조화 비교용)
+    # stock_retriever 실패해도 stock_data 인덱스는 반드시 생성
     set_retriever(etf_retriever, documents, stock_retriever=stock_retriever,
                   etf_data=etf_data, stock_data=stock_data)
 
