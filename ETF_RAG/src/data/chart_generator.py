@@ -177,14 +177,14 @@ def generate_technical_chart(ticker: str, name: str,
             sharex=True,
         )
         fig.patch.set_facecolor("white")
-        fig.subplots_adjust(hspace=0.06, left=0.08, right=0.95, top=0.93, bottom=0.06)
+        fig.subplots_adjust(hspace=0.06, left=0.08, right=0.95, top=0.88, bottom=0.06)
 
-        # 타이틀 (FontProperties 직접 전달 — rcParams fallback 방지)
+        # 타이틀 — top 마진을 확보하여 범례와 겹치지 않게
         fp = _FONT_PROP or {}
         fp_kw = {"fontproperties": fp} if fp else {}
-        fig.text(0.08, 0.96, f"{name} ({ticker})", fontsize=15, fontweight="bold",
+        fig.text(0.08, 0.98, f"{name} ({ticker})", fontsize=14, fontweight="bold",
                  color=_TEXT_COLOR, va="top", **fp_kw)
-        fig.text(0.08, 0.935,
+        fig.text(0.08, 0.955,
                  f"기준일: {_fmt_date(d_dates[-1])}  |  종가: {d_closes[-1]:,}원  |  {n}일",
                  fontsize=9, color="#888888", va="top", **fp_kw)
 
@@ -217,7 +217,7 @@ def generate_technical_chart(ticker: str, name: str,
                      fontsize=8, color=_PRICE_COLOR, fontweight="bold",
                      xytext=(5, 0), textcoords="offset points", va="center")
 
-        ax1.legend(loc="upper left", fontsize=7.5, ncol=4, framealpha=0.8,
+        ax1.legend(loc="upper right", fontsize=7.5, ncol=4, framealpha=0.8,
                    edgecolor=_GRID_COLOR, fancybox=False)
         ax1.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, p: f"{v:,.0f}"))
 

@@ -117,20 +117,25 @@ def init_session_state():
             st.session_state[key] = value
 
 
-def _render_followup_buttons(followups: list[str], suffix: str = ""):
-    """후속 질문 버튼 렌더링
+def _set_followup(fq: str):
+    """on_click 콜백: 후속 질문을 세션에 세팅 (rerun 전에 실행됨)."""
+    st.session_state["_retry_question"] = fq
 
-    클릭 시 _retry_question에 질문을 세팅하고 st.rerun()으로 새 답변 생성.
-    """
+
+def _render_followup_buttons(followups: list[str], suffix: str = ""):
+    """후속 질문 버튼 렌더링 (on_click 콜백으로 1회 rerun에 처리)."""
     if not followups:
+        return
+    # 이미 후속 질문이 세팅된 rerun에서는 버튼 렌더링 스킵
+    # (이 rerun에서 process_question이 실행되므로 버튼이 필요 없음)
+    if st.session_state.get("_retry_question"):
         return
     cols = st.columns(len(followups))
     for i, (col, fq) in enumerate(zip(cols, followups)):
         with col:
-            if st.button(f"💬 {fq}", key=f"followup_{suffix}_{i}",
-                         use_container_width=True):
-                st.session_state["_retry_question"] = fq
-                st.rerun()
+            st.button(f"💬 {fq}", key=f"followup_{suffix}_{i}",
+                      use_container_width=True,
+                      on_click=_set_followup, args=(fq,))
 
 
 def render_chat_history():
