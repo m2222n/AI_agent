@@ -226,7 +226,7 @@ def render_financial_tab():
 
     # 연도 범위로 필터링
     start_year, end_year = year_range
-    rows = [r for r in all_rows if start_year <= r.get("fiscal_year", 0) <= end_year]
+    rows = [r for r in all_rows if start_year <= int(r.get("fiscal_year", 0)) <= end_year]
 
     if not rows:
         st.warning(f"{name}의 {start_year}~{end_year}년 재무제표 데이터가 없습니다.")
