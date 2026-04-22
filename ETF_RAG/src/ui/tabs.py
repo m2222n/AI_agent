@@ -60,9 +60,15 @@ def _cached_price_outlook(ticker: str, name: str, horizon: str, summary, structu
 
 # ── 공통 헬퍼 ─────────────────────────────────────────────
 
-@st.cache_resource
-def _build_autocomplete_options_cached() -> list[str]:
-    """인덱스에서 자동완성 옵션 목록 생성 (앱 수명 동안 1회만)."""
+def _build_autocomplete_options() -> list[str]:
+    """자동완성 옵션 반환. session_state에 캐싱 (빈 결과는 캐싱 안 함)."""
+    cached = st.session_state.get("_autocomplete_options")
+    if cached:
+        return cached
+
+    if not _etf_data_index and not _stock_data_index:
+        return []
+
     seen = set()
     options = []
     for index in (_etf_data_index, _stock_data_index):
@@ -74,14 +80,10 @@ def _build_autocomplete_options_cached() -> list[str]:
             seen.add(ticker)
             options.append(f"{name} ({ticker})")
     options.sort()
+
+    if options:
+        st.session_state["_autocomplete_options"] = options
     return options
-
-
-def _build_autocomplete_options() -> list[str]:
-    """자동완성 옵션 반환. 인덱스가 비어있으면 빈 리스트."""
-    if not _etf_data_index and not _stock_data_index:
-        return []
-    return _build_autocomplete_options_cached()
 
 
 def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
