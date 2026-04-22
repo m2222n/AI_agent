@@ -40,6 +40,56 @@ TOOL_DISPLAY_NAMES = {
 }
 
 
+def _get_followup_suggestions(question: str, tools_used: list, question_type: str) -> list[str]:
+    """사용된 도구와 질문 유형 기반으로 후속 질문 2~3개 제안"""
+    suggestions = []
+
+    # 질문에서 종목명 추출 (간단한 휴리스틱)
+    # 주요 종목명이 있으면 후속 질문에 활용
+    stock_names = []
+    common_stocks = ["삼성전자", "SK하이닉스", "현대차", "LG에너지솔루션", "카카오",
+                     "네이버", "셀트리온", "기아", "포스코홀딩스", "삼성SDI"]
+    for name in common_stocks:
+        if name in question:
+            stock_names.append(name)
+
+    etf_names = []
+    common_etfs = ["KODEX 200", "TIGER 200", "KODEX 레버리지", "TIGER 미국S&P500"]
+    for name in common_etfs:
+        if name in question:
+            etf_names.append(name)
+
+    target = stock_names[0] if stock_names else (etf_names[0] if etf_names else "")
+
+    if "search_stock" in tools_used or "search_etf" in tools_used:
+        if target:
+            suggestions.append(f"{target} 기술적 분석해줘")
+            suggestions.append(f"{target} 앞으로 전망은?")
+    elif "get_technical_indicators" in tools_used:
+        if target:
+            suggestions.append(f"{target} 재무제표 보여줘")
+            suggestions.append(f"{target} 최근 실적은 어때?")
+    elif "predict_price_outlook" in tools_used:
+        if target:
+            suggestions.append(f"{target} 기술적 분석해줘")
+    elif "compare_etfs" in tools_used or "compare_stocks" in tools_used:
+        if len(stock_names) >= 1:
+            suggestions.append(f"{stock_names[0]} 기술적 분석해줘")
+    elif "get_financial_statements" in tools_used:
+        if target:
+            suggestions.append(f"{target} 기술적 분석해줘")
+            suggestions.append(f"{target} 앞으로 전망은?")
+
+    # 일반적인 후속 질문 추가
+    if question_type == "simple" and target:
+        if f"{target} 기술적 분석해줘" not in suggestions:
+            suggestions.append(f"{target} 기술적 분석해줘")
+    if not suggestions and target:
+        suggestions.append(f"{target} 기술적 분석해줘")
+
+    return suggestions[:3]
+
+
 def _get_user_error_message(error: Exception) -> str:
     """예외 유형에 따라 사용자 친화적 메시지 반환"""
     error_str = str(error).lower()
@@ -107,6 +157,7 @@ def process_question(question: str, client=None, retriever=None):
             event_count = 0
             token_count = 0
             tool_results_summary = []
+            tools_used = []
             status_placeholder.caption("🔄 에이전트 시작...")
             for event in stream_agent(question, st.session_state.messages[:-1]):
                 event_count += 1
@@ -121,6 +172,7 @@ def process_question(question: str, client=None, retriever=None):
 
                 elif event_type == "tool_call":
                     tool_name = event["data"]["name"]
+                    tools_used.append(tool_name)
                     display_name = TOOL_DISPLAY_NAMES.get(tool_name, f"🔍 {tool_name}")
                     status_placeholder.caption(f"{display_name} 중...")
 
@@ -187,6 +239,17 @@ def process_question(question: str, client=None, retriever=None):
 
         # 성능 지표 — 간결한 캡션 (일반 사용자에게 부담 없게)
         status_placeholder.caption(f"⏱️ {total_time:.1f}초")
+
+        # 후속 질문 제안
+        followups = _get_followup_suggestions(question, tools_used, question_type or "")
+        if followups:
+            cols = st.columns(len(followups))
+            for col, fq in zip(cols, followups):
+                with col:
+                    if st.button(f"💬 {fq}", key=f"followup_{hash(fq)}",
+                                 use_container_width=True):
+                        st.session_state["_retry_question"] = fq
+                        st.rerun()
 
         # 로그 저장
         log_interaction(
