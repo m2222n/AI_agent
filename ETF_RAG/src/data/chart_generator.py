@@ -37,30 +37,38 @@ _MACD_SIGNAL = "#7B1FA2"
 _FONT_SET = False
 
 
+_FONT_PROP = None  # FontProperties 객체 (한글 렌더링용)
+
+
 def _setup_font():
-    global _FONT_SET
+    global _FONT_SET, _FONT_PROP
     if _FONT_SET:
         return
     import matplotlib.font_manager as fm
-    from pathlib import Path
     import glob
 
     plt.rcParams["axes.unicode_minus"] = False
 
-    # 0) matplotlib 폰트 캐시 강제 리빌드 (Streamlit Cloud에서 패키지 설치 후 캐시 미갱신 방지)
+    # 0) matplotlib 폰트 캐시 삭제 + 리빌드 (Streamlit Cloud에서 packages.txt 설치 후 필수)
     try:
-        fm._load_fontmanager(try_read_cache=False)
-        logger.info("matplotlib 폰트 캐시 리빌드 완료")
-    except Exception:
-        pass  # 구버전 matplotlib — 무시
+        cache_dir = matplotlib.get_cachedir()
+        if cache_dir:
+            import os
+            for f in os.listdir(cache_dir):
+                if f.startswith("fontlist") and f.endswith(".json"):
+                    os.remove(os.path.join(cache_dir, f))
+                    logger.info(f"폰트 캐시 삭제: {f}")
+            fm.fontManager.__init__()  # 폰트 매니저 재초기화
+    except Exception as e:
+        logger.warning(f"폰트 캐시 리빌드 실패 (무시): {e}")
 
-    # 1) TTF 파일 직접 탐색 + 등록 (가장 확실한 방법)
+    # 1) TTF 파일 직접 탐색 + FontProperties 저장 (가장 확실한 방법)
     # Streamlit Cloud (Debian): fonts-nanum → /usr/share/fonts/truetype/nanum/
-    # 일부 Linux: /usr/share/fonts/nanum/
     search_patterns = [
-        "/usr/share/fonts/truetype/nanum/NanumGothic*.ttf",
-        "/usr/share/fonts/nanum/NanumGothic*.ttf",
-        "/usr/share/fonts/truetype/nanum/NanumBarunGothic*.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+        "/usr/share/fonts/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf",
     ]
     for pattern in search_patterns:
         found = glob.glob(pattern)
@@ -68,10 +76,9 @@ def _setup_font():
             ttf_path = found[0]
             try:
                 fm.fontManager.addfont(ttf_path)
-                prop = fm.FontProperties(fname=ttf_path)
-                font_name = prop.get_name()
+                _FONT_PROP = fm.FontProperties(fname=ttf_path)
+                font_name = _FONT_PROP.get_name()
                 plt.rcParams["font.family"] = font_name
-                # sans-serif fallback 리스트에도 추가
                 plt.rcParams["font.sans-serif"] = [font_name] + plt.rcParams.get("font.sans-serif", [])
                 _FONT_SET = True
                 logger.info(f"한글 폰트 로드 (TTF 직접): {ttf_path} → {font_name}")
@@ -80,7 +87,7 @@ def _setup_font():
                 logger.warning(f"폰트 등록 실패 ({ttf_path}): {e}")
                 continue
 
-    # 2) 이름 기반 매칭 (macOS AppleGothic 등 — 시스템 폰트가 이미 등록된 경우)
+    # 2) 이름 기반 매칭 (macOS AppleGothic 등)
     for font_name in ["AppleGothic", "NanumGothic", "Malgun Gothic"]:
         try:
             if any(font_name in f.name for f in fm.fontManager.ttflist):
@@ -107,7 +114,8 @@ def _apply_style(ax, ylabel: str = "", hide_xticklabels: bool = True):
     ax.spines["left"].set_color(_GRID_COLOR)
     ax.spines["bottom"].set_color(_GRID_COLOR)
     if ylabel:
-        ax.set_ylabel(ylabel, fontsize=9, color=_TEXT_COLOR, labelpad=8)
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+        ax.set_ylabel(ylabel, fontsize=9, color=_TEXT_COLOR, labelpad=8, **fp_kw)
     if hide_xticklabels:
         ax.tick_params(axis="x", labelbottom=False)
 
@@ -171,12 +179,14 @@ def generate_technical_chart(ticker: str, name: str,
         fig.patch.set_facecolor("white")
         fig.subplots_adjust(hspace=0.06, left=0.08, right=0.95, top=0.93, bottom=0.06)
 
-        # 타이틀
+        # 타이틀 (FontProperties 직접 전달 — rcParams fallback 방지)
+        fp = _FONT_PROP or {}
+        fp_kw = {"fontproperties": fp} if fp else {}
         fig.text(0.08, 0.96, f"{name} ({ticker})", fontsize=15, fontweight="bold",
-                 color=_TEXT_COLOR, va="top")
+                 color=_TEXT_COLOR, va="top", **fp_kw)
         fig.text(0.08, 0.935,
                  f"기준일: {_fmt_date(d_dates[-1])}  |  종가: {d_closes[-1]:,}원  |  {n}일",
-                 fontsize=9, color="#888888", va="top")
+                 fontsize=9, color="#888888", va="top", **fp_kw)
 
         # ── 상단: 가격 ──
         _apply_style(ax1, ylabel="")
@@ -459,9 +469,10 @@ def generate_comparison_chart(
         ax.set_xticks(xtick_pos)
         ax.set_xticklabels(xtick_labels, fontsize=8, color=_TEXT_COLOR)
 
-        ax.set_ylabel("상대 수익률 (기준=100)", fontsize=10, color=_TEXT_COLOR)
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+        ax.set_ylabel("상대 수익률 (기준=100)", fontsize=10, color=_TEXT_COLOR, **fp_kw)
         ax.set_title("기간별 상대 수익률 비교", fontsize=13, fontweight="bold",
-                      color=_TEXT_COLOR, pad=12)
+                      color=_TEXT_COLOR, pad=12, **fp_kw)
 
         ax.legend(fontsize=9, loc="upper left", framealpha=0.8)
         ax.grid(True, alpha=0.3, color=_GRID_COLOR)
