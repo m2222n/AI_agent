@@ -23,6 +23,22 @@ MODEL_LABELS = {
     "gpt-4o": "🧠 GPT-4o",
 }
 
+TOOL_DISPLAY_NAMES = {
+    "search_etf": "📋 ETF 정보 검색",
+    "compare_etfs": "⚖️ ETF 비교 분석",
+    "get_etf_list": "📋 ETF 목록 조회",
+    "search_stock": "📋 주식 정보 검색",
+    "compare_stocks": "⚖️ 주식 비교 분석",
+    "get_stock_list": "📋 주식 목록 조회",
+    "get_realtime_price": "💰 실시간 시세 조회",
+    "analyze_sector": "🏭 섹터 분석",
+    "get_technical_indicators": "📊 기술적 지표 분석",
+    "get_stock_correlation": "🔗 상관관계 분석",
+    "simulate_portfolio": "💼 포트폴리오 시뮬레이션",
+    "get_financial_statements": "📑 재무제표 조회",
+    "predict_price_outlook": "🔮 가격 전망 분석",
+}
+
 
 def _get_user_error_message(error: Exception) -> str:
     """예외 유형에 따라 사용자 친화적 메시지 반환"""
@@ -105,7 +121,8 @@ def process_question(question: str, client=None, retriever=None):
 
                 elif event_type == "tool_call":
                     tool_name = event["data"]["name"]
-                    status_placeholder.caption(f"🔍 {tool_name} 검색 중...")
+                    display_name = TOOL_DISPLAY_NAMES.get(tool_name, f"🔍 {tool_name}")
+                    status_placeholder.caption(f"{display_name} 중...")
 
                 elif event_type == "tool_result":
                     tool_results_summary.append(str(event["data"])[:200])
@@ -168,13 +185,8 @@ def process_question(question: str, client=None, retriever=None):
             msg["comparison_data"] = comparison_data
         st.session_state.messages.append(msg)
 
-        # 성능 지표 표시
-        model_label = MODEL_LABELS.get(model_used, model_used or "")
-        type_label = QUESTION_TYPE_LABELS.get(question_type, question_type or "")
-        status_placeholder.caption(
-            f"질문 유형: {type_label} | 모델: {model_label} | "
-            f"⏱️ {total_time:.1f}s"
-        )
+        # 성능 지표 — 간결한 캡션 (일반 사용자에게 부담 없게)
+        status_placeholder.caption(f"⏱️ {total_time:.1f}초")
 
         # 로그 저장
         log_interaction(

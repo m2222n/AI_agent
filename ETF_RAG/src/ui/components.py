@@ -2,35 +2,111 @@ import streamlit as st
 
 from src.utils.logging import log_feedback
 
-EXAMPLE_QUESTIONS = [
-    "KODEX 200 ETF에 대해 알려줘",
-    "삼성전자 주가 정보 알려줘",
-    "반도체 관련 ETF 추천해줘",
-    "삼성전자랑 SK하이닉스 비교해줘",
+# 카테고리별 예시 질문
+EXAMPLE_CATEGORIES = {
+    "기본 조회": {
+        "icon": "🔍",
+        "questions": [
+            "삼성전자 주가 정보 알려줘",
+            "KODEX 200 ETF에 대해 알려줘",
+        ],
+    },
+    "비교 분석": {
+        "icon": "⚖️",
+        "questions": [
+            "삼성전자랑 SK하이닉스 비교해줘",
+            "KODEX 200이랑 TIGER 200 비교해줘",
+        ],
+    },
+    "기술적 분석": {
+        "icon": "📊",
+        "questions": [
+            "삼성전자 기술적 분석해줘",
+            "현대차 앞으로 어떨까?",
+        ],
+    },
+    "심화 분석": {
+        "icon": "🧪",
+        "questions": [
+            "반도체 관련 ETF 추천해줘",
+            "삼성전자 60% SK하이닉스 40% 포트폴리오 시뮬레이션",
+        ],
+    },
+}
+
+# 기능 소개 카드
+FEATURE_CARDS = [
+    {
+        "icon": "📈",
+        "title": "실시간 시세",
+        "desc": "ETF/주식 4,300+ 종목의 최신 가격과 수익률",
+    },
+    {
+        "icon": "📊",
+        "title": "기술적 분석",
+        "desc": "11개 지표 + 차트 자동 생성 (MA, RSI, MACD 등)",
+    },
+    {
+        "icon": "🔮",
+        "title": "가격 전망",
+        "desc": "기술적+펀더멘털+회귀모델 3축 분석",
+    },
+    {
+        "icon": "⚖️",
+        "title": "비교/시뮬레이션",
+        "desc": "종목 비교, 포트폴리오 백테스트, 재무제표",
+    },
 ]
 
 
+def render_welcome():
+    """첫 방문자용 웰컴 화면 (대화 없을 때만)"""
+    if st.session_state.messages:
+        return
+
+    # 기능 소개 카드
+    st.markdown(
+        '<p style="text-align:center; color:#888; margin-bottom:0.5rem; font-size:0.9rem;">'
+        "무엇을 도와드릴까요?</p>",
+        unsafe_allow_html=True,
+    )
+
+    cols = st.columns(len(FEATURE_CARDS))
+    for col, card in zip(cols, FEATURE_CARDS):
+        with col:
+            st.markdown(
+                f'<div style="text-align:center; padding:0.8rem 0.4rem; '
+                f'background:rgba(59,130,246,0.04); border-radius:10px; '
+                f'border:1px solid rgba(59,130,246,0.1);">'
+                f'<div style="font-size:1.6rem;">{card["icon"]}</div>'
+                f'<div style="font-size:0.85rem; font-weight:600; margin:0.3rem 0 0.2rem;">'
+                f'{card["title"]}</div>'
+                f'<div style="font-size:0.75rem; color:#888; line-height:1.3;">'
+                f'{card["desc"]}</div>'
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("")  # spacer
+
+    # 카테고리별 예시 질문
+    for cat_name, cat_info in EXAMPLE_CATEGORIES.items():
+        st.markdown(
+            f'<p style="font-size:0.8rem; color:#666; margin:0.6rem 0 0.3rem; font-weight:500;">'
+            f'{cat_info["icon"]} {cat_name}</p>',
+            unsafe_allow_html=True,
+        )
+        cols = st.columns(2)
+        for i, q in enumerate(cat_info["questions"]):
+            with cols[i % 2]:
+                if st.button(q, use_container_width=True, key=f"ex_{cat_name}_{i}"):
+                    st.session_state.example_q = q
+                    st.rerun()
+
+
 def render_example_questions():
-    """대화 시작 전 예시 질문 버튼 표시"""
-    if not st.session_state.messages:
-        st.markdown("### 💡 이런 질문을 해보세요:")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if st.button(EXAMPLE_QUESTIONS[0], use_container_width=True):
-                st.session_state.example_q = EXAMPLE_QUESTIONS[0]
-                st.rerun()
-            if st.button(EXAMPLE_QUESTIONS[2], use_container_width=True):
-                st.session_state.example_q = EXAMPLE_QUESTIONS[2]
-                st.rerun()
-
-        with col2:
-            if st.button(EXAMPLE_QUESTIONS[1], use_container_width=True):
-                st.session_state.example_q = EXAMPLE_QUESTIONS[1]
-                st.rerun()
-            if st.button(EXAMPLE_QUESTIONS[3], use_container_width=True):
-                st.session_state.example_q = EXAMPLE_QUESTIONS[3]
-                st.rerun()
+    """대화 시작 전 예시 질문 — render_welcome()으로 대체"""
+    render_welcome()
 
 
 def render_feedback_buttons():

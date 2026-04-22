@@ -1,41 +1,19 @@
 import streamlit as st
 
 from config import is_langsmith_enabled
-from src.utils.logging import get_performance_stats, get_feedback_stats
 
 
 def render_sidebar(etf_data: list, stock_data: list = None):
     """사이드바 전체 렌더링"""
     with st.sidebar:
-        _render_service_info(has_stocks=bool(stock_data))
-        st.divider()
         _render_data_summary(etf_data, stock_data or [])
+        st.divider()
         _render_market_data(etf_data, stock_data or [])
         st.divider()
         _render_investment_warning()
-        st.divider()
-        _render_performance_dashboard()
         if is_langsmith_enabled():
             st.divider()
             st.caption("🔗 LangSmith 트레이싱 활성화됨")
-
-
-def _render_service_info(has_stocks: bool = False):
-    st.header("ℹ️ 서비스 안내")
-    features = [
-        "ETF 상품 정보 검색",
-        "ETF 비교 분석 (차트 자동 생성)",
-        "투자 전략/위험 분석",
-    ]
-    if has_stocks:
-        features.extend([
-            "개별 주식 정보 검색",
-            "주식 펀더멘털 (PER/PBR/배당)",
-        ])
-
-    st.markdown("이 챗봇은 **ETF/주식 투자 정보**를 제공합니다.")
-    for f in features:
-        st.markdown(f"- {f}")
 
 
 def _render_data_summary(etf_data: list, stock_data: list):
@@ -185,30 +163,3 @@ def _render_investment_warning():
         "투자 결정은 본인의 판단과 "
         "책임 하에 이루어져야 합니다."
     )
-
-
-def _render_performance_dashboard():
-    st.header("📊 성능 모니터링")
-    stats = get_performance_stats()
-    if stats:
-        st.metric("총 질의 수", stats["total_queries"])
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("평균 응답시간", f"{stats['avg_total_time_ms']:.0f}ms")
-        with col2:
-            st.metric("평균 검색시간", f"{stats['avg_search_time_ms']:.0f}ms")
-
-        if stats["question_types"]:
-            st.markdown("**질문 유형 분포:**")
-            for q_type, count in stats["question_types"].items():
-                pct = count / stats["total_queries"] * 100
-                st.progress(pct / 100, text=f"{q_type}: {count}건 ({pct:.0f}%)")
-    else:
-        st.info("아직 통계 데이터가 없습니다.")
-
-    # 피드백 통계
-    fb_stats = get_feedback_stats()
-    if fb_stats:
-        st.markdown("**사용자 만족도:**")
-        st.metric("만족도", f"{fb_stats['satisfaction_rate']}%",
-                  f"{fb_stats['positive']}👍 / {fb_stats['negative']}👎")

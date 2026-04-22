@@ -88,10 +88,14 @@ def init_retriever():
 
 
 def main():
-    st.set_page_config(page_title="투자 질의응답 챗봇", page_icon="📈", layout="wide")
+    st.set_page_config(page_title="투자 AI 어시스턴트", page_icon="📈", layout="wide")
     inject_custom_css()
-    st.title("📈 투자 질의응답 챗봇")
-    st.caption("LangGraph 에이전트 기반 ETF/주식 투자 정보 검색 시스템")
+    st.markdown(
+        '<h1 style="margin-bottom:0;">📈 투자 AI 어시스턴트</h1>'
+        '<p style="color:#888; font-size:0.9rem; margin-top:0.2rem;">'
+        'ETF &middot; 주식 &middot; 기술적 분석 &middot; 재무제표 &middot; 가격 전망</p>',
+        unsafe_allow_html=True,
+    )
 
     # 사이드바
     etf_data = load_etf_data()
