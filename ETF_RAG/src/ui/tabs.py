@@ -13,6 +13,7 @@ import logging
 from typing import Optional
 
 import streamlit as st
+from streamlit_searchbox import st_searchbox
 
 from src.data.chart_generator import generate_technical_chart, generate_comparison_chart
 from src.data.technical import get_technical_summary
@@ -64,42 +65,31 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     return None
 
 
-def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (text_input + 부분 매칭 selectbox)"""
+def _search_options(query: str) -> list[str]:
+    """searchbox 콜백: 타이핑할 때마다 부분 매칭 결과 반환."""
+    if not query or len(query.strip()) == 0:
+        return []
     options = _build_autocomplete_options()
+    q = query.strip().lower()
+    return [opt for opt in options if q in opt.lower()][:50]  # 최대 50개
 
-    # 텍스트 입력
-    text_key = f"{key}_text"
-    query = st.text_input(label, placeholder=placeholder, key=text_key)
-    if not query:
+
+def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
+    """종목 입력 위젯 (실시간 자동완성 searchbox)"""
+    selected = st_searchbox(
+        _search_options,
+        label=label,
+        placeholder=placeholder,
+        key=key,
+        clear_on_submit=False,
+    )
+    if not selected:
         return ""
 
-    q = query.strip().lower()
-    # 부분 매칭 필터링 (이름 또는 티커에 포함)
-    matched = [opt for opt in options if q in opt.lower()]
-
-    if not matched:
-        st.caption(f"'{query}' 검색결과 없음")
-        return query  # 그래도 원문 반환 → _resolve_ticker에서 유사 종목 제안
-
-    if len(matched) == 1:
-        # 1개만 매칭되면 자동 선택
-        selected = matched[0]
-        st.caption(f"✅ {selected}")
-    else:
-        st.caption(f"🔍 '{query}' 검색결과 ({len(matched)}건)")
-        selected = st.selectbox(
-            "종목 선택", options=matched, key=f"{key}_select",
-            label_visibility="collapsed",
-        )
-
-    if not selected:
-        return query
-
     # "종목명 (티커)" → 종목명 추출
-    if " (" in selected and selected.endswith(")"):
+    if isinstance(selected, str) and " (" in selected and selected.endswith(")"):
         return selected.rsplit(" (", 1)[0]
-    return selected
+    return selected if isinstance(selected, str) else ""
 
 
 # ── 기술적 분석 탭 ─────────────────────────────────────────
