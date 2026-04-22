@@ -256,13 +256,24 @@ def render_technical_tab():
 
 def render_financial_tab():
     """재무제표 탭: 종목 입력 → 분기별 재무 테이블"""
-    st.markdown("##### 📑 재무제표")
-    st.caption("2015년부터 재무제표를 조회합니다. (DART 공시 기준)")
+    from datetime import datetime
 
-    col1, col2 = st.columns([3, 1])
+    st.markdown("##### 📑 재무제표")
+    st.caption("2015년부터 재무제표를 조회할 수 있습니다. (DART 공시 기준)")
+
+    current_year = datetime.now().year
+
+    col1, col2, col3 = st.columns([3, 2, 1])
     with col1:
         query = _ticker_input("종목", "fin_ticker", "예: 삼성전자, 005930")
     with col2:
+        year_range = st.select_slider(
+            "조회 기간",
+            options=list(range(2015, current_year + 1)),
+            value=(current_year - 2, current_year),
+            key="fin_year_range",
+        )
+    with col3:
         st.markdown("<br>", unsafe_allow_html=True)
         run = st.button("조회", key="fin_run", use_container_width=True)
 
@@ -282,7 +293,6 @@ def render_financial_tab():
 
     conn = get_connection()
     try:
-        # 전체 데이터 조회 (충분히 큰 수로 전체 가져옴)
         all_rows = get_financial_data(conn, ticker, quarters=200)
     finally:
         conn.close()
@@ -291,18 +301,12 @@ def render_financial_tab():
         st.warning(f"{name}의 재무제표 데이터가 없습니다. (DART 미공시 종목이거나 ETF일 수 있습니다)")
         return
 
-    # 분기 수 선택 (1 ~ 전체)
-    max_q = len(all_rows)
-    # 기본값: 8분기 또는 최대 분기 중 작은 값
-    default_q = min(8, max_q)
-    quarters = st.slider(
-        "조회 분기 수", min_value=1, max_value=max_q,
-        value=default_q, key="fin_quarters",
-    )
-    rows = all_rows[:quarters]
+    # 연도 범위로 필터링
+    start_year, end_year = year_range
+    rows = [r for r in all_rows if start_year <= r.get("fiscal_year", 0) <= end_year]
 
     if not rows:
-        st.warning(f"{name}의 재무제표 데이터가 없습니다. (DART 미공시 종목이거나 ETF일 수 있습니다)")
+        st.warning(f"{name}의 {start_year}~{end_year}년 재무제표 데이터가 없습니다.")
         return
 
     st.markdown(f"#### {name} ({ticker}) 재무제표")
