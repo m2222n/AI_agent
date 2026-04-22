@@ -18,35 +18,12 @@ from src.data.chart_generator import generate_technical_chart, generate_comparis
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
-from src.llm.tools import _find_structured_data, _find_similar_names, _etf_data_index, _stock_data_index
+from src.llm.tools import _find_structured_data, _find_similar_names
 
 logger = logging.getLogger(__name__)
 
 
 # ── 공통 헬퍼 ─────────────────────────────────────────────
-
-def _build_autocomplete_options() -> list[str]:
-    """인덱스에서 자동완성 옵션 목록 생성. '종목명 (티커)' 형식."""
-    cached = st.session_state.get("_autocomplete_options")
-    if cached:
-        return cached
-
-    seen = set()
-    options = []
-    for index in (_etf_data_index, _stock_data_index):
-        for _key, data in index.items():
-            ticker = data.get("ticker", "")
-            name = data.get("name", "")
-            if not ticker or ticker in seen:
-                continue
-            seen.add(ticker)
-            options.append(f"{name} ({ticker})")
-
-    options.sort()
-    if options:  # 비어있으면 캐시하지 않음 (인덱스 미초기화 방어)
-        st.session_state["_autocomplete_options"] = options
-    return options
-
 
 def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     """종목명/티커 → 구조화 데이터 조회. 실패 시 유사 종목 제안."""
@@ -64,66 +41,12 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     return None
 
 
-def _filter_options(query: str) -> list[str]:
-    """부분 매칭 필터링. 숫자 검색 시 '티커 (종목명)' 형식으로 표시."""
-    if not query or len(query.strip()) == 0:
-        return []
-    options = _build_autocomplete_options()
-    q = query.strip().lower()
-    matched = [opt for opt in options if q in opt.lower()][:50]
-
-    # 숫자로 검색 시 "티커 (종목명)" 형식으로 재포맷
-    if q.isdigit() and matched:
-        reformatted = []
-        for opt in matched:
-            if " (" in opt and opt.endswith(")"):
-                name, ticker = opt.rsplit(" (", 1)
-                ticker = ticker.rstrip(")")
-                reformatted.append(f"{ticker} ({name})")
-            else:
-                reformatted.append(opt)
-        return reformatted
-
-    return matched
-
-
-def _extract_name(display: str) -> str:
-    """'종목명 (티커)' 또는 '티커 (종목명)' → 종목명 추출."""
-    if " (" in display and display.endswith(")"):
-        left, right = display.rsplit(" (", 1)
-        right = right.rstrip(")")
-        if left.isdigit():
-            return right  # "005930 (삼성전자)" → 삼성전자
-        return left       # "삼성전자 (005930)" → 삼성전자
-    return display
-
-
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (text_input + selectbox 실시간 필터링)"""
+    """종목 입력 위젯 (text_input — 입력값을 그대로 반환, 분석 시 _resolve_ticker로 검증)"""
     query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
-
     if not query or not query.strip():
         return ""
-
-    filtered = _filter_options(query.strip())
-    if not filtered:
-        st.caption("검색 결과 없음")
-        return ""
-
-    if len(filtered) == 1:
-        # 정확히 1개 매칭 → 바로 선택
-        st.caption(f"✅ {filtered[0]}")
-        return _extract_name(filtered[0])
-
-    selected = st.selectbox(
-        "종목 선택",
-        filtered,
-        key=f"{key}_select",
-        label_visibility="collapsed",
-    )
-    if selected:
-        return _extract_name(selected)
-    return ""
+    return query.strip()
 
 
 # ── 기술적 분석 탭 ─────────────────────────────────────────
