@@ -26,7 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pykrx requests dart-fss
+          pip install pykrx requests dart-fss python-dotenv
 
       # 월요일(KST) 여부 판정 — 재무제표 수집 + 타임아웃 조정에 사용
       - name: Check if Monday (KST)
