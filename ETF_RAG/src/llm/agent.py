@@ -596,19 +596,14 @@ def stream_agent(question: str, chat_history: list = None):
                     # 도구 호출 청크는 건너뜀 (updates 모드에서 처리)
                     if msg_chunk.tool_call_chunks:
                         continue
+                    # verify 노드의 토큰은 무시 (CoV 검증 내부 텍스트가 답변에 섞이는 것 방지)
+                    # verify 수정 답변은 updates 모드에서 완성된 AIMessage로 처리
+                    if node == "verify":
+                        continue
                     # 텍스트 토큰 누적
                     if msg_chunk.content:
-                        if node == "verify":
-                            # CoV 수정 답변이 오면 기존 답변 대체
-                            if not cov_applied:
-                                cov_applied = True
-                                final_answer = ""
-                                yield {"event": "cov_revision", "data": "검증 수정 적용 중..."}
-                            final_answer += msg_chunk.content
-                            yield {"event": "token", "data": final_answer}
-                        else:
-                            final_answer += msg_chunk.content
-                            yield {"event": "token", "data": final_answer}
+                        final_answer += msg_chunk.content
+                        yield {"event": "token", "data": final_answer}
 
             elif mode == "updates":
                 # 노드별 상태 업데이트 (도구 호출/결과 감지용)
