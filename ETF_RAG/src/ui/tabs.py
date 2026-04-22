@@ -18,12 +18,35 @@ from src.data.chart_generator import generate_technical_chart, generate_comparis
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
-from src.llm.tools import _find_structured_data, _find_similar_names
+from src.llm.tools import _find_structured_data, _find_similar_names, _etf_data_index, _stock_data_index
 
 logger = logging.getLogger(__name__)
 
 
 # ── 공통 헬퍼 ─────────────────────────────────────────────
+
+def _build_autocomplete_options() -> list[str]:
+    """인덱스에서 자동완성 옵션 목록 생성. '종목명 (티커)' 형식."""
+    cached = st.session_state.get("_autocomplete_options")
+    if cached:
+        return cached
+
+    seen = set()
+    options = []
+    for index in (_etf_data_index, _stock_data_index):
+        for _key, data in index.items():
+            ticker = data.get("ticker", "")
+            name = data.get("name", "")
+            if not ticker or ticker in seen:
+                continue
+            seen.add(ticker)
+            options.append(f"{name} ({ticker})")
+
+    options.sort()
+    if options:  # 비어있으면 캐시하지 않음 (인덱스 미초기화 방어)
+        st.session_state["_autocomplete_options"] = options
+    return options
+
 
 def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     """종목명/티커 → 구조화 데이터 조회. 실패 시 유사 종목 제안."""
@@ -42,8 +65,21 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
-    """종목 입력 위젯 (text_input)"""
-    return st.text_input(label, placeholder=placeholder, key=key).strip()
+    """종목 입력 위젯 (selectbox with search)"""
+    options = _build_autocomplete_options()
+    selected = st.selectbox(
+        label,
+        options=options,
+        index=None,
+        placeholder=placeholder,
+        key=key,
+    )
+    if not selected:
+        return ""
+    # "종목명 (티커)" → 종목명 추출
+    if " (" in selected and selected.endswith(")"):
+        return selected.rsplit(" (", 1)[0]
+    return selected
 
 
 # ── 기술적 분석 탭 ─────────────────────────────────────────
