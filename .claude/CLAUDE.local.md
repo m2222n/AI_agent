@@ -1179,5 +1179,97 @@
 
 ---
 
-_Last Updated: 2026-04-17_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 분석 지표 개선(EMA/Bootstrap/벤치마크/시계열차트) + KST 자동화 + Streamlit Cloud 빈 응답 수정 + 도구 13개 + 테스트 421개 + eval 162개 + Hit Rate 100%_
+## 답변 품질 강화 (2026-04-21)
+
+### CoV 전체 도구 확대
+- **기존**: compare/recommend/risk 유형만 CoV 검증
+- **변경**: `COV_TYPES = {"simple", "compare", "recommend", "risk", "technical", "correlation", "portfolio"}` (general만 제외)
+- agent.py `should_verify()`: question_type in COV_TYPES이면 verify 노드로 분기
+
+### force_answer 개선
+- 도구 호출 제한 도달 시 기존에는 빈 ToolMessage만 주입
+- **변경**: 이전 도구 결과 요약을 포함 ("수집된 정보: ..." + "반드시 위 정보를 바탕으로 답변하세요")
+- agent.py `force_answer()`: messages에서 ToolMessage 내용 수집 → 요약 주입
+
+### R² 신뢰도 엄격화
+- predictor.py `_calc_statistical_prediction()`:
+  - "높음" R²>0.3 (was 0.1), "보통" R²>0.1 (was 0.05)
+  - 등급 A는 score≥5 (was 4)
+  - 3단계 리스크 메시지 (R²>0.3 / R²>0.1 / R²≤0.1)
+
+### 증거 절단 한도 확대
+- agent.py: ToolMessage 2000자 (was 1000), CoV 프롬프트 5000자 (was 3000)
+
+### 차트 해석 캡션
+- chat.py: 기술적 분석 차트 렌더링 후 해석 가이드 캡션 자동 표시
+  - "상단: 종가 + MA(5/20/60) + 볼린저 밴드 | 중단: RSI(14) | 하단: 거래량 + MACD"
+
+### 에러 재시도 UI
+- chat.py: 예외 발생 시 "🔄 다시 시도" 버튼 표시
+  - `on_click` 대신 `st.button` + `st.session_state["_retry_question"]` + `st.rerun()` 패턴
+  - 실패한 user 메시지 pop 후 재실행
+
+### 테스트: 421→431개 (+10)
+- test_agent.py +6: CoV 확대 2, force_answer 증거 포함 2, ToolMessage 길이 2
+- test_predictor.py +2: R² 엄격화 등급 2
+- test_ui_features.py +2: 에러 재시도 UI 2
+
+---
+
+## 탭 UI 분리 + 후속 질문 + 데이터 범위 (2026-04-21~22)
+
+### 탭 분리 UI
+- **`src/ui/tabs.py`** (신규): 탭별 전용 렌더러
+  - `render_technical_tab()`: 종목 입력 → 11개 지표 + 차트 (chart_generator.py 직접 호출)
+  - `render_financial_tab()`: 종목 입력 → 분기별 재무 테이블 + 추이 바차트
+  - `render_comparison_tab()`: 2종목 입력 → 비교 테이블 + 수익률 바차트 + 상대 수익률 추이 차트
+  - `render_outlook_tab()`: 종목 입력 → 3축 예측 (기술적/펀더멘털/통계) + 시나리오
+  - `_resolve_ticker()`: 종목명/티커 → 구조화 데이터 조회 + 유사 종목 제안
+  - `_ticker_input()`: st.selectbox with search (자동완성, ~4,200종목)
+- **`app.py`**: `st.tabs(["💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "⚖️ 비교 분석", "🔮 가격 전망"])`
+- 탭은 에이전트 없이 직접 데이터 함수 호출 → 빠른 응답
+
+### 후속 질문 버튼
+- **구현 이력**: `st.button` 반환값 + `st.rerun()` 방식에서 `on_click` 콜백 방식으로 최종 전환
+  - 문제: st.button → True on rerun → st.rerun() → 2번째 rerun에서 True=False → 실행 안됨 (2클릭 필요)
+  - 해결: `on_click=_set_followup` 콜백 (rerun 전 실행) + guard (`_retry_question` 있으면 버튼 렌더링 스킵)
+- **`src/ui/chat.py`**:
+  - `_set_followup(fq)`: on_click 콜백 — `st.session_state["_retry_question"] = fq`
+  - `_render_followup_buttons()`: 후속 질문 버튼 렌더링 (guard + on_click)
+  - `_get_followup_suggestions()`: 도구 사용 기반 후속 질문 2~3개 제안
+  - 히스토리 렌더링 시 마지막 assistant 메시지의 followups도 표시
+
+### 프롬프트 데이터 범위 안내
+- **문제**: "데이터 언제부터?" 질문에 GPT가 학습 데이터 기준 "2023년 10월"로 답변
+- **수정**: `prompts.py` base_constraints에 데이터 범위 섹션 추가
+  - 시세(OHLCV): 2014년 4월부터
+  - 재무제표: 2015년부터 (DART 기반)
+  - "절대로 LLM 학습 데이터 기준으로 답하지 마세요"
+
+### 차트 제목/범례 겹침 수정
+- **`chart_generator.py`**: `top=0.93→0.88`, 제목 y=0.98/0.955, 범례 upper left→upper right
+
+### 종목 입력 자동완성 (2026-04-22)
+- **`src/ui/tabs.py`**: `_ticker_input()` — `st.text_input` → `st.selectbox` with search로 전환
+  - `_build_autocomplete_options()`: `_etf_data_index` + `_stock_data_index`에서 "종목명 (티커)" 형식 옵션 생성
+  - session_state 캐싱 (빈 리스트는 캐시하지 않음 — 인덱스 미초기화 방어)
+  - "삼" 입력 → 삼성전자, 삼성SDI 등 자동 필터 / "005930" 입력 → "삼성전자 (005930)" 표시
+  - 4개 탭 모두 적용 (tech_ticker, fin_ticker, cmp_ticker1, cmp_ticker2, outlook_ticker)
+
+### Streamlit Cloud 재무제표 미동작 이슈
+- **원인**: `@st.cache_resource`가 DB 다운로드 실패(404)를 캐시 → 이후 성공적 다운로드 시도 차단
+  - db-latest Release 생성 전에 앱이 먼저 부팅되어 404 캐시됨
+- **해결**: Streamlit Cloud 대시보드에서 앱 **Reboot** (캐시 초기화)
+
+### 커밋 이력 (04-21~22)
+- `37591d5`: feat: 탭 분리 UI + 후속질문 on_click 리팩토링
+- `d910cfb`: fix: 데이터 범위 질문 시 LLM 학습 데이터 대신 실제 DB 기준 안내
+- `35c7df3`: fix: 후속질문 버튼 on_click 콜백 → st.button 반환값 방식으로 변경 (중간 시도)
+- `c9a57c4`: fix: 프롬프트 데이터 범위 — 재무제표 2015년부터로 수정
+- `d6ab94f`: fix: 후속질문 on_click 재적용 + 차트 제목/범례 겹침 수정
+- `e6a87d6`: feat: 탭 종목 입력에 자동완성 검색 추가 (selectbox)
+
+---
+
+_Last Updated: 2026-04-22_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 답변 품질 강화(CoV 확대/R² 엄격화/에러 재시도) + 탭 UI(5탭/자동완성/후속질문) + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
