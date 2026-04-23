@@ -31,6 +31,11 @@ CUSTOM_CSS = """
     max-width: 900px;
 }
 
+/* 본문 텍스트 가독성 (line-height) */
+.stMarkdown, .stChatMessage {
+    line-height: 1.7 !important;
+}
+
 /* ── 헤더 영역 ──────────────────────────────────── */
 h1 {
     font-size: 1.8rem !important;
@@ -81,7 +86,7 @@ section[data-testid="stSidebar"] .stExpander {
     margin-bottom: 0.3rem !important;
 }
 
-/* ── 비교 테이블 ────────────────────────────────── */
+/* ── 비교 테이블 (가로 스크롤 지원) ───────────── */
 .stMarkdown table {
     width: 100% !important;
     border-collapse: separate !important;
@@ -90,10 +95,17 @@ section[data-testid="stSidebar"] .stExpander {
     overflow: hidden !important;
 }
 
+/* 테이블 감싸는 div에 가로 스크롤 */
+.stMarkdown div:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
 .stMarkdown table th {
     background-color: var(--primary-light) !important;
     font-weight: 600 !important;
     padding: 0.6rem !important;
+    white-space: nowrap !important;
 }
 
 .stMarkdown table td {
@@ -103,7 +115,7 @@ section[data-testid="stSidebar"] .stExpander {
 /* ── 상태 캡션 ──────────────────────────────────── */
 .stCaption {
     opacity: 0.6 !important;
-    font-size: 0.78rem !important;
+    font-size: 0.82rem !important;
 }
 
 /* ── 메트릭 카드 ────────────────────────────────── */
@@ -141,11 +153,11 @@ hr {
     border-radius: var(--radius) !important;
 }
 
-/* ── 모바일 반응형 ──────────────────────────────── */
+/* ── 모바일 반응형: 태블릿 ───────────────────────── */
 @media (max-width: 768px) {
     .main .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
         max-width: 100% !important;
     }
 
@@ -158,12 +170,88 @@ hr {
     }
 
     .stButton > button {
-        font-size: 0.8rem !important;
-        padding: 0.5rem !important;
+        font-size: 0.85rem !important;
+        padding: 0.5rem 0.7rem !important;
     }
 
     .stMarkdown table {
         font-size: 0.85rem !important;
+    }
+
+    /* 탭 라벨 축소 */
+    [role="tab"] {
+        font-size: 0.82rem !important;
+        padding: 0.4rem 0.5rem !important;
+    }
+
+    /* 멀티컬럼 줄바꿈 허용 (3~4컬럼 → 2열로 축소) */
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+        gap: 0.3rem !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        flex: 1 1 45% !important;
+        min-width: 45% !important;
+    }
+}
+
+/* ── 모바일 반응형: 소형 폰 (<480px) ─────────────── */
+@media (max-width: 480px) {
+    .main .block-container {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.25rem !important;
+    }
+
+    /* 채팅 메시지 패딩 축소 */
+    .stChatMessage {
+        padding: 0.6rem 0.7rem !important;
+    }
+
+    /* 테이블 모바일 최적화 */
+    .stMarkdown table {
+        font-size: 0.8rem !important;
+    }
+    .stMarkdown table th,
+    .stMarkdown table td {
+        padding: 0.35rem 0.4rem !important;
+    }
+
+    /* 메트릭 카드 컴팩트 */
+    [data-testid="stMetric"] {
+        padding: 0.5rem !important;
+    }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 1.1rem !important;
+    }
+
+    /* 캡션 최소 크기 보장 */
+    .stCaption {
+        font-size: 0.8rem !important;
+    }
+
+    /* 탭 라벨 더 축소 */
+    [role="tab"] {
+        font-size: 0.75rem !important;
+        padding: 0.35rem 0.3rem !important;
+    }
+
+    /* 사이드바 너비 축소 */
+    section[data-testid="stSidebar"] {
+        width: 260px !important;
+    }
+
+    /* 멀티컬럼 → 세로 스택 (st.columns 모바일 대응) */
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
     }
 }
 </style>
