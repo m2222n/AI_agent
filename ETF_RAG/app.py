@@ -152,8 +152,8 @@ def main():
         st.session_state["_goto_tab"] = 0
 
     # 탭 UI
-    tab_chat, tab_tech, tab_fin, tab_cmp, tab_outlook = st.tabs([
-        "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "⚖️ 비교 분석", "🔮 가격 전망"
+    tab_chat, tab_tech, tab_fin, tab_outlook, tab_cmp = st.tabs([
+        "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "🔮 가격 전망", "⚖️ 비교 분석"
     ])
 
     with tab_chat:
@@ -185,12 +185,18 @@ def main():
     # 카드 클릭 → 탭 자동 전환 (JS 주입)
     goto_tab = st.session_state.pop("_goto_tab", None)
     if goto_tab is not None:
-        # Streamlit 탭 버튼은 [role="tab"] 요소, 0-indexed
+        # 사이드바에도 st.tabs가 있어 [role="tab"]이 7+개 존재
+        # → 메인 영역(.stMainBlockContainer) 내 탭만 선택
         st.components.v1.html(
             f"""<script>
-            const tabs = window.parent.document.querySelectorAll('[role="tab"]');
-            if (tabs.length > {goto_tab}) {{
-                tabs[{goto_tab}].click();
+            const main = window.parent.document.querySelector(
+                '.stMainBlockContainer, [data-testid="stAppViewBlockContainer"]'
+            );
+            if (main) {{
+                const tabs = main.querySelectorAll('[role="tab"]');
+                if (tabs.length > {goto_tab}) {{
+                    tabs[{goto_tab}].click();
+                }}
             }}
             </script>""",
             height=0,

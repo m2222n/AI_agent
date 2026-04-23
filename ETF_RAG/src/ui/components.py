@@ -35,6 +35,7 @@ EXAMPLE_CATEGORIES = {
 }
 
 # 기능 소개 카드 (tab_index: st.tabs 0-indexed)
+# 탭 순서: 0=종합채팅, 1=기술적분석, 2=재무제표, 3=가격전망, 4=비교분석
 FEATURE_CARDS = [
     {
         "icon": "📈",
@@ -49,16 +50,22 @@ FEATURE_CARDS = [
         "tab_index": 1,  # 기술적 분석
     },
     {
+        "icon": "📑",
+        "title": "재무제표",
+        "desc": "분기별 매출·영업이익·순이익 추이와 성장률",
+        "tab_index": 2,  # 재무제표
+    },
+    {
         "icon": "🔮",
         "title": "가격 전망",
         "desc": "기술적+펀더멘털+회귀모델 3축 분석",
-        "tab_index": 4,  # 가격 전망
+        "tab_index": 3,  # 가격 전망
     },
     {
         "icon": "⚖️",
         "title": "비교/시뮬레이션",
-        "desc": "종목 비교, 포트폴리오 백테스트, 재무제표",
-        "tab_index": 3,  # 비교 분석
+        "desc": "종목 비교, 포트폴리오 백테스트",
+        "tab_index": 4,  # 비교 분석
     },
 ]
 
