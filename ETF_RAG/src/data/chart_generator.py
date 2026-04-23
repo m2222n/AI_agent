@@ -398,47 +398,55 @@ def _fmt_date(date_str: str) -> str:
 
 
 def _build_xlabels(dates: list[str], step: int) -> tuple[list[int], list[str]]:
-    """X축 라벨 생성 — 연도 변경 시 'YYYY년' 표시, 나머지는 MM/DD.
+    """X축 라벨 생성 — 연도 변경 시 'YYYY/MM/DD' 표시, 나머지는 MM/DD.
+
+    각 연도의 첫 데이터 지점에 연도를 표시. 데이터의 첫 날짜에도 항상 연도 표시.
+    연도 변경점은 반드시 tick에 포함되며, 너무 가까운 기존 tick은 제거.
 
     Returns:
         (xtick 위치 리스트, 라벨 문자열 리스트)
     """
     n = len(dates)
-    xticks = list(range(0, n, step))
-    labels = []
+    if n == 0:
+        return [], []
 
-    # 연도 변경 위치 찾기 (첫 번째 표시와 다른 연도가 나타나는 지점)
-    year_shown = set()
+    xticks = set(range(0, n, step))
+
+    # 각 연도가 처음 나타나는 인덱스 수집
     year_change_indices = set()
+    seen_years = set()
     for i in range(n):
         if len(dates[i]) == 8:
             yr = dates[i][:4]
-            if yr not in year_shown:
-                year_shown.add(yr)
-                if i > 0:  # 첫 번째 데이터의 연도는 변경이 아님
-                    year_change_indices.add(i)
+            if yr not in seen_years:
+                seen_years.add(yr)
+                year_change_indices.add(i)  # index 0도 포함
 
-    # xticks에 연도 변경 지점 추가 (가까운 tick이 없으면)
+    # 연도 변경점을 xticks에 강제 삽입, 너무 가까운 기존 tick 제거
+    min_gap = max(step // 3, 3)
     for yci in year_change_indices:
-        if not any(abs(yci - t) < step // 2 for t in xticks):
-            xticks.append(yci)
-    xticks = sorted(set(xticks))
+        # yci와 너무 가까운 기존 tick 제거 (yci 자체는 남김)
+        to_remove = {t for t in xticks if t != yci and abs(t - yci) < min_gap}
+        xticks -= to_remove
+        xticks.add(yci)
 
-    for i in xticks:
+    xticks_sorted = sorted(xticks)
+
+    labels = []
+    for i in xticks_sorted:
         if i >= n:
             continue
         d = dates[i]
         if len(d) == 8:
-            if i in year_change_indices or i == 0:
+            if i in year_change_indices:
                 labels.append(f"{d[:4]}/{d[4:6]}/{d[6:]}")
             else:
                 labels.append(f"{d[4:6]}/{d[6:]}")
         else:
             labels.append(d)
 
-    # xticks 길이를 labels에 맞춤
-    xticks = [t for t in xticks if t < n]
-    return xticks, labels
+    xticks_sorted = [t for t in xticks_sorted if t < n]
+    return xticks_sorted, labels
 
 
 # ══════════════════════════════════════════════════════════════
