@@ -165,10 +165,9 @@ def generate_technical_chart(ticker: str, name: str,
         d_volumes = volumes[sl]
         d_dates = dates[sl]
 
-        # X축 날짜 라벨
+        # X축 날짜 라벨 (연도 변경 시 YYYY/MM/DD 표시)
         step = max(1, n // 6)
-        xticks = list(range(0, n, step))
-        xlabels = [_fmt_date(d_dates[i]) for i in xticks]
+        xticks, xlabels = _build_xlabels(d_dates, step)
 
         # ── Figure 생성 ──
         fig, (ax1, ax2, ax3) = plt.subplots(
@@ -392,10 +391,54 @@ def _calc_bb_series(closes: list[int], period: int = 20, num_std: float = 2.0):
 
 
 def _fmt_date(date_str: str) -> str:
-    """YYYYMMDD → MM/DD 또는 YY/MM/DD"""
+    """YYYYMMDD → MM/DD"""
     if len(date_str) == 8:
         return f"{date_str[4:6]}/{date_str[6:]}"
     return date_str
+
+
+def _build_xlabels(dates: list[str], step: int) -> tuple[list[int], list[str]]:
+    """X축 라벨 생성 — 연도 변경 시 'YYYY년' 표시, 나머지는 MM/DD.
+
+    Returns:
+        (xtick 위치 리스트, 라벨 문자열 리스트)
+    """
+    n = len(dates)
+    xticks = list(range(0, n, step))
+    labels = []
+
+    # 연도 변경 위치 찾기 (첫 번째 표시와 다른 연도가 나타나는 지점)
+    year_shown = set()
+    year_change_indices = set()
+    for i in range(n):
+        if len(dates[i]) == 8:
+            yr = dates[i][:4]
+            if yr not in year_shown:
+                year_shown.add(yr)
+                if i > 0:  # 첫 번째 데이터의 연도는 변경이 아님
+                    year_change_indices.add(i)
+
+    # xticks에 연도 변경 지점 추가 (가까운 tick이 없으면)
+    for yci in year_change_indices:
+        if not any(abs(yci - t) < step // 2 for t in xticks):
+            xticks.append(yci)
+    xticks = sorted(set(xticks))
+
+    for i in xticks:
+        if i >= n:
+            continue
+        d = dates[i]
+        if len(d) == 8:
+            if i in year_change_indices or i == 0:
+                labels.append(f"{d[:4]}/{d[4:6]}/{d[6:]}")
+            else:
+                labels.append(f"{d[4:6]}/{d[6:]}")
+        else:
+            labels.append(d)
+
+    # xticks 길이를 labels에 맞춤
+    xticks = [t for t in xticks if t < n]
+    return xticks, labels
 
 
 # ══════════════════════════════════════════════════════════════
@@ -461,11 +504,10 @@ def generate_comparison_chart(
         # 100 기준선
         ax.axhline(y=100, color="#999999", linewidth=0.8, linestyle="--", alpha=0.6)
 
-        # X축 날짜 라벨 (5~7개)
+        # X축 날짜 라벨 (연도 변경 시 YYYY/MM/DD 표시)
         n_points = len(common_dates)
         step = max(1, n_points // 6)
-        xtick_pos = list(range(0, n_points, step))
-        xtick_labels = [_fmt_date(common_dates[i]) for i in xtick_pos]
+        xtick_pos, xtick_labels = _build_xlabels(common_dates, step)
         ax.set_xticks(xtick_pos)
         ax.set_xticklabels(xtick_labels, fontsize=8, color=_TEXT_COLOR)
 

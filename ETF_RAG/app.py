@@ -147,6 +147,10 @@ def main():
     user_input = st.chat_input("ETF/주식에 대해 궁금한 점을 물어보세요...")
     question = pending_question or user_input
 
+    # 질문 입력 시 종합 채팅 탭으로 자동 전환
+    if user_input and "_goto_tab" not in st.session_state:
+        st.session_state["_goto_tab"] = 0
+
     # 탭 UI
     tab_chat, tab_tech, tab_fin, tab_cmp, tab_outlook = st.tabs([
         "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "⚖️ 비교 분석", "🔮 가격 전망"
