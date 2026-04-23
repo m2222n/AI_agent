@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  actions: write
+  issues: write
 
 jobs:
   collect:
@@ -137,3 +139,31 @@ jobs:
 
           Automated daily KRX data collection via GitHub Actions"
           git push
+
+  # ── 실패 시 GitHub Issue 자동 생성 ──────────────────────
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: collect
+    if: failure()
+    steps:
+      - name: Create failure issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          # 동일 날짜 이슈 중복 방지
+          EXISTING=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --search "Data collection failed ($DATE)" \
+            --state open --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create \
+              --repo ${{ github.repository }} \
+              --title "🚨 Data collection failed ($DATE)" \
+              --body "Daily KRX data collection failed on $DATE.
+
+          [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          This issue was created automatically." \
+              --label "bug"
+          fi

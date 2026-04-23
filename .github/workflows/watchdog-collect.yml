@@ -1,0 +1,105 @@
+name: Watchdog — Verify Daily Collection
+
+on:
+  schedule:
+    # 20:30 KST = 11:30 UTC — 메인 수집(18:30 KST) 2시간 뒤 검증
+    - cron: '30 11 * * *'
+  workflow_dispatch:  # 수동 테스트 가능
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check if daily collection ran successfully
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 최근 14시간 이내에 daily-collect가 성공했는지 확인
+          RECENT_SUCCESS=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow=daily-collect.yml \
+            --limit=5 \
+            --json createdAt,conclusion \
+            --jq '[.[] | select(.conclusion=="success") | select(.createdAt > (now - 50400 | todate))] | length')
+
+          echo "Recent successful runs: $RECENT_SUCCESS"
+
+          if [ "$RECENT_SUCCESS" -gt "0" ]; then
+            echo "status=ok" >> $GITHUB_OUTPUT
+            echo "Today's collection confirmed."
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+            echo "No successful collection in the last 14 hours!"
+          fi
+
+      - name: Trigger main workflow
+        if: steps.check.outputs.status == 'missing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Re-triggering daily-collect workflow..."
+          gh workflow run daily-collect.yml --repo ${{ github.repository }}
+
+          echo "Waiting 15 minutes for workflow to complete..."
+          sleep 900
+
+      - name: Verify after re-trigger
+        if: steps.check.outputs.status == 'missing'
+        id: recheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 재트리거된 워크플로우 결과 확인
+          LATEST=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow=daily-collect.yml \
+            --limit=1 \
+            --json conclusion \
+            --jq '.[0].conclusion')
+
+          echo "Latest run conclusion: $LATEST"
+
+          if [ "$LATEST" = "success" ]; then
+            echo "result=recovered" >> $GITHUB_OUTPUT
+            echo "Collection recovered successfully."
+          else
+            echo "result=failed" >> $GITHUB_OUTPUT
+            echo "Re-trigger also failed!"
+          fi
+
+      - name: Create alert issue
+        if: steps.check.outputs.status == 'missing' && steps.recheck.outputs.result == 'failed'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          # 동일 날짜 이슈 중복 방지
+          EXISTING=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --search "Daily collection missing ($DATE)" \
+            --state open --json number --jq 'length')
+
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create \
+              --repo ${{ github.repository }} \
+              --title "🚨 Daily collection missing ($DATE)" \
+              --body "The watchdog detected that today's data collection did not complete.
+
+          **Timeline:**
+          - 18:30 KST: Scheduled collection did not run or failed
+          - 20:30 KST: Watchdog re-triggered the workflow
+          - Result: Re-trigger also failed
+
+          **Action required:** Run the workflow manually from the [Actions tab](https://github.com/${{ github.repository }}/actions/workflows/daily-collect.yml).
+
+          This issue was created automatically by the watchdog workflow." \
+              --label "bug"
+          fi
