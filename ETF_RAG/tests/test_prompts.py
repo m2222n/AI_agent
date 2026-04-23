@@ -16,7 +16,7 @@ class TestBuildSystemPrompt:
 
     def test_recommend_has_few_shot(self):
         prompt = build_system_prompt("recommend")
-        assert "KODEX 고배당" in prompt
+        assert "삼성전자" in prompt
 
     def test_risk_has_risk_grade(self):
         prompt = build_system_prompt("risk")
