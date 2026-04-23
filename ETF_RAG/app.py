@@ -34,23 +34,7 @@ from src.ui.tabs import render_technical_tab, render_financial_tab, render_compa
 logger = logging.getLogger(__name__)
 
 
-@st.cache_resource
-def load_etf_data():
-    return _load_etf_data()
-
-
-@st.cache_resource
-def load_stock_data():
-    try:
-        data = _load_stock_data()
-        logger.info(f"주식 데이터 로드 성공: {len(data)}종목")
-        return data
-    except Exception as e:
-        logger.error(f"주식 데이터 로드 실패: {e}", exc_info=True)
-        return []
-
-
-@st.cache_resource
+@st.cache_resource(show_spinner="데이터베이스 준비 중... (최초 실행 시 1~2분)")
 def download_db():
     """Streamlit Cloud 시작 시 GitHub Release에서 DB 다운로드 (1회)."""
     db_path = Path(__file__).parent / "src" / "data" / "etf_rag.db"
@@ -59,34 +43,58 @@ def download_db():
     return result
 
 
-@st.cache_resource
-def init_retriever():
-    """하이브리드 검색기 초기화 + 에이전트 도구 주입 (ETF + 주식)"""
-    etf_data = load_etf_data()
+@st.cache_resource(show_spinner="ETF/주식 데이터 로딩 중... (4,200+ 종목)")
+def load_all_data():
+    """ETF + 주식 데이터 로드 + 문서 생성."""
+    etf_data = _load_etf_data()
     logger.info(f"ETF 데이터 로드: {len(etf_data)}종목")
+
+    try:
+        stock_data = _load_stock_data()
+        logger.info(f"주식 데이터 로드 성공: {len(stock_data)}종목")
+    except Exception as e:
+        logger.error(f"주식 데이터 로드 실패: {e}", exc_info=True)
+        stock_data = []
+
     documents = create_documents(etf_data)
-    vectorstore = _create_vectorstore(documents, prefix="etf")
-    etf_retriever = HybridRetriever(vectorstore, documents)
+    stock_documents = create_stock_documents(stock_data) if stock_data else []
+    return etf_data, stock_data, documents, stock_documents
 
-    # 주식 retriever (데이터 있을 때만, 실패해도 진행)
-    stock_data = load_stock_data()
-    logger.info(f"주식 데이터 로드: {len(stock_data)}종목")
+
+@st.cache_resource(show_spinner="검색 인덱스 구축 중... (임베딩 + BM25)")
+def build_retrievers(_documents, _stock_documents):
+    """FAISS 벡터스토어 + BM25 하이브리드 검색기 생성."""
+    vectorstore = _create_vectorstore(_documents, prefix="etf")
+    etf_retriever = HybridRetriever(vectorstore, _documents)
+
     stock_retriever = None
-    if stock_data:
+    if _stock_documents:
         try:
-            stock_documents = create_stock_documents(stock_data)
-            stock_vectorstore = _create_vectorstore(stock_documents, prefix="stock")
-            stock_retriever = HybridRetriever(stock_vectorstore, stock_documents)
-            logger.info(f"주식 retriever 초기화 성공: {len(stock_documents)}개 문서")
+            stock_vectorstore = _create_vectorstore(_stock_documents, prefix="stock")
+            stock_retriever = HybridRetriever(stock_vectorstore, _stock_documents)
+            logger.info(f"주식 retriever 초기화 성공: {len(_stock_documents)}개 문서")
         except Exception as e:
-            logger.error(f"주식 retriever 초기화 실패 (인덱스는 생성): {e}", exc_info=True)
+            logger.error(f"주식 retriever 초기화 실패: {e}", exc_info=True)
 
-    # LangGraph 도구에 retriever + 원본 데이터 주입 (구조화 비교용)
-    # stock_retriever 실패해도 stock_data 인덱스는 반드시 생성
+    return etf_retriever, stock_retriever
+
+
+def init_all():
+    """전체 초기화 파이프라인 (단계별 spinner 표시)."""
+    # Step 1: DB 다운로드
+    download_db()
+
+    # Step 2: 데이터 로드 + 문서 생성
+    etf_data, stock_data, documents, stock_documents = load_all_data()
+
+    # Step 3: 검색 인덱스 구축
+    etf_retriever, stock_retriever = build_retrievers(documents, stock_documents)
+
+    # Step 4: 에이전트 도구 주입
     set_retriever(etf_retriever, documents, stock_retriever=stock_retriever,
                   etf_data=etf_data, stock_data=stock_data)
 
-    return etf_retriever
+    return etf_data, stock_data
 
 
 def main():
@@ -99,11 +107,6 @@ def main():
         'ETF &middot; 주식 &middot; 기술적 분석 &middot; 재무제표 &middot; 가격 전망</p>',
         unsafe_allow_html=True,
     )
-
-    # 사이드바
-    etf_data = load_etf_data()
-    stock_data = load_stock_data()
-    render_sidebar(etf_data, stock_data)
 
     # OpenAI API 키 확인 (Streamlit Cloud: st.secrets, 로컬: .env)
     try:
@@ -119,19 +122,17 @@ def main():
         st.info("Streamlit Cloud: Settings → Secrets에서 설정하세요.")
         st.stop()
 
-    # DB 다운로드 (Streamlit Cloud: 최초 실행 시 GitHub Release에서 다운로드)
-    with st.spinner("데이터베이스 준비 중... (최초 실행 시 1~2분 소요)"):
-        download_db()
-
-    # 하이브리드 검색기 + 에이전트 초기화
+    # 전체 초기화 (단계별 spinner: DB 다운로드 → 데이터 로드 → 인덱스 구축)
     try:
-        with st.spinner("데이터베이스 로딩 중..."):
-            init_retriever()
+        etf_data, stock_data = init_all()
     except Exception as e:
-        logger.error(f"검색기 초기화 실패: {e}")
+        logger.error(f"초기화 실패: {e}")
         st.error("데이터베이스 초기화에 실패했습니다. 페이지를 새로고침해주세요.")
         st.caption(f"오류 상세: {type(e).__name__}: {e}")
         st.stop()
+
+    # 사이드바
+    render_sidebar(etf_data, stock_data)
 
     # 세션 상태
     init_session_state()
@@ -182,23 +183,45 @@ def main():
     with tab_outlook:
         render_outlook_tab()
 
-    # 카드 클릭 → 탭 자동 전환 (JS 주입)
+    # JS 기반 탭 전환 (카드 클릭 / 홈 버튼 / 사이드바 전환)
+    js_commands = []
+
+    # 메인 탭 전환
     goto_tab = st.session_state.pop("_goto_tab", None)
     if goto_tab is not None:
-        # 사이드바에도 st.tabs가 있어 [role="tab"]이 7+개 존재
-        # → 메인 영역(.stMainBlockContainer) 내 탭만 선택
-        st.components.v1.html(
-            f"""<script>
+        js_commands.append(f"""
             const main = window.parent.document.querySelector(
                 '.stMainBlockContainer, [data-testid="stAppViewBlockContainer"]'
             );
             if (main) {{
                 const tabs = main.querySelectorAll('[role="tab"]');
-                if (tabs.length > {goto_tab}) {{
-                    tabs[{goto_tab}].click();
-                }}
+                if (tabs.length > {goto_tab}) tabs[{goto_tab}].click();
             }}
-            </script>""",
+        """)
+
+    # 사이드바 주식 탭 전환 + 검색 포커스
+    goto_sidebar = st.session_state.pop("_goto_sidebar_stock", None)
+    if goto_sidebar:
+        js_commands.append("""
+            const sidebar = window.parent.document.querySelector(
+                '[data-testid="stSidebar"]'
+            );
+            if (sidebar) {
+                const sTabs = sidebar.querySelectorAll('[role="tab"]');
+                // 주식 탭은 두 번째 (index 1)
+                if (sTabs.length > 1) sTabs[1].click();
+                // 검색 input에 포커스
+                setTimeout(function() {
+                    const inputs = sidebar.querySelectorAll('input[type="text"]');
+                    if (inputs.length > 0) inputs[inputs.length - 1].focus();
+                }, 300);
+            }
+        """)
+
+    if js_commands:
+        combined_js = "\n".join(js_commands)
+        st.components.v1.html(
+            f"<script>{combined_js}</script>",
             height=0,
         )
 

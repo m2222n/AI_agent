@@ -36,12 +36,13 @@ EXAMPLE_CATEGORIES = {
 
 # 기능 소개 카드 (tab_index: st.tabs 0-indexed)
 # 탭 순서: 0=종합채팅, 1=기술적분석, 2=재무제표, 3=가격전망, 4=비교분석
+# action="sidebar_stock" → 사이드바 주식 탭 전환 (tab_index 무시)
 FEATURE_CARDS = [
     {
         "icon": "📈",
         "title": "실시간 시세",
         "desc": "ETF/주식 4,300+ 종목의 최신 가격과 수익률",
-        "tab_index": 0,  # 종합 채팅
+        "action": "sidebar_stock",
     },
     {
         "icon": "📊",
@@ -91,7 +92,10 @@ def render_welcome():
                 use_container_width=True,
                 help=card["desc"],
             ):
-                st.session_state["_goto_tab"] = card["tab_index"]
+                if card.get("action") == "sidebar_stock":
+                    st.session_state["_goto_sidebar_stock"] = True
+                else:
+                    st.session_state["_goto_tab"] = card["tab_index"]
                 st.rerun()
             st.caption(card["desc"])
 

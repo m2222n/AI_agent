@@ -6,13 +6,14 @@ from config import is_langsmith_enabled
 def render_sidebar(etf_data: list, stock_data: list = None):
     """사이드바 전체 렌더링"""
     with st.sidebar:
-        # 홈 버튼 (최상단) — 앱 초기 상태로 완전 리셋
+        # 홈 버튼 (최상단) — 앱 초기 상태로 완전 리셋 + 종합 채팅 탭으로 이동
         if st.button("🏠 홈으로 돌아가기", key="home_btn", use_container_width=True):
-            # 홈 버튼 자체 키와 위젯 내부 키를 제외하고 전부 삭제
             preserve = {"home_btn"}
             for k in list(st.session_state.keys()):
                 if k not in preserve:
                     del st.session_state[k]
+            # 종합 채팅 탭(index 0)으로 전환
+            st.session_state["_goto_tab"] = 0
             st.rerun()
         st.divider()
         _render_data_summary(etf_data, stock_data or [])
