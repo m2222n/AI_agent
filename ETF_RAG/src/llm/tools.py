@@ -1107,13 +1107,15 @@ def _format_sector_analysis(sector: str, stocks: list) -> str:
 
 
 @tool
-def get_technical_indicators(name_or_ticker: str) -> str:
+def get_technical_indicators(name_or_ticker: str, days: int = 120) -> str:
     """ETF/주식의 기술적 지표를 분석합니다. 이동평균(MA), RSI, MACD, 볼린저 밴드, 골든크로스/데드크로스,
     스토캐스틱, 일목균형표, CCI, ADX, OBV, ATR 등 종합 기술적 분석을 제공합니다.
+    차트 이미지도 함께 생성됩니다.
     "삼성전자 골든크로스 났어?", "KODEX 200 기술적 분석", "SK하이닉스 RSI", "삼성전자 일목균형표" 등의 질문에 사용합니다.
 
     Args:
         name_or_ticker: ETF/주식 이름 또는 티커 (예: "삼성전자", "005930", "KODEX 200")
+        days: 차트 및 분석 기간 (영업일 수). 기본 120일(약 6개월). 1년=250, 3년=750, 5년=1250, 10년=2500.
     """
     # 종목 조회
     data = _find_structured_data(name_or_ticker)
@@ -1293,7 +1295,8 @@ def get_technical_indicators(name_or_ticker: str) -> str:
     # 차트 이미지 생성
     try:
         from src.data.chart_generator import generate_technical_chart
-        chart_b64 = generate_technical_chart(ticker, name, days=120)
+        chart_days = max(days, 120)  # 최소 120일
+        chart_b64 = generate_technical_chart(ticker, name, days=chart_days)
         if chart_b64:
             chart_json = json.dumps(
                 {"__type__": "technical_chart", "image_b64": chart_b64, "name": name},
