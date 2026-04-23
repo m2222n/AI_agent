@@ -114,8 +114,9 @@ graph LR
 
 ### 📈 데이터 파이프라인
 
-- **자동 수집 (이중화)**:
+- **자동 수집 (이중화 + Watchdog)**:
   - **GitHub Actions** — 매일 18:30 KST, deploy/ JSON + SQLite DB Release 갱신 → auto-commit → Streamlit Cloud 자동 재배포
+  - **Watchdog** — 20:30 KST 수집 검증, 미실행 시 자동 재트리거 + GitHub Issue 알림
   - **macOS launchd** — 매일 18:30 로컬 SQLite DB 업데이트 + 19:00 DART 재무제표 백필
 - **12년 과거 데이터**: 2014~2026, ETF+주식 전종목, 800만 행 (SQLite 1.5GB)
 - **재무제표**: OpenDart API 전종목 147,048건 백필 완료 + 주간 자동 갱신
@@ -146,9 +147,9 @@ graph LR
 | **예측** | scikit-learn Ridge 회귀 + Bootstrap CI + 3축 종합 (기술적+펀더멘털+통계) |
 | **평가** | RAGAS (Hit Rate 100%, 162개 데이터셋, 8개 유형) |
 | **테스트** | pytest 431개 |
-| **자동 수집** | GitHub Actions (deploy/ + DB Release) + macOS launchd (로컬 DB + DART) |
+| **자동 수집** | GitHub Actions (deploy/ + DB Release) + Watchdog (자동 재트리거) + macOS launchd |
 | **모니터링** | LangSmith (free tier) |
-| **UI** | Streamlit (탭 UI, 자동완성 검색, 후속질문 버튼, 커스텀 CSS) |
+| **UI** | Streamlit (탭 UI, 자동완성 검색, 후속질문 버튼, 반응형 CSS — 태블릿/모바일 대응) |
 | **배포** | Streamlit Cloud |
 
 **월 비용**: $5~17 (OpenAI API 기준, 개인 프로젝트)
@@ -222,7 +223,8 @@ ETF_RAG/
 │   ├── com.etfrag.daily-collect.plist  # launchd 스케줄 (18:30)
 │   └── com.etfrag.dart-backfill.plist  # launchd 스케줄 (19:00, DART)
 └── .github/workflows/
-    └── daily-collect.yml               # GitHub Actions (18:30 KST, deploy/ + DB Release)
+    ├── daily-collect.yml               # GitHub Actions (18:30 KST, deploy/ + DB Release + 실패 Issue)
+    └── watchdog-collect.yml            # 수집 Watchdog (20:30 KST, 자동 재트리거 + Issue 알림)
 ```
 
 ---
@@ -284,6 +286,7 @@ pytest tests/ -v
 - [x] **Phase C**: 정량 분석 — 기술적 지표 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 (OpenDart)
 - [x] **Phase D**: 기술적 지표 확장 (11개) + matplotlib 차트 + 가격 전망 모델 (3축 Ridge회귀)
 - [x] **품질 강화**: CoV 검증 + Structured Output + FAISS persist + force_answer + Bootstrap CI
+- [x] **안정성 + 모바일**: 수집 Watchdog (자동 재트리거) + 반응형 CSS (태블릿/모바일 대응)
 - [ ] **추후**: Pinecone + Cohere Rerank + KIS OpenAPI 실시간 + 시계열 예측 모델 (Prophet/LSTM)
 
 ---

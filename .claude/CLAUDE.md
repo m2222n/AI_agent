@@ -93,6 +93,8 @@
 - [x] 12년 백필 완료 (2014-01-01 ~ 2026-04-10, ETF+주식 전종목, 800만 행, 1.5GB)
 - [x] yfinance 백필 스크립트 — KRX 슬라이딩 윈도우 밖 구간(2014-01-01~04-17) 보충 (auto_adjust=False 원시 가격)
 - [x] 데이터 영구 보존 정책 — prune_old_data에서 daily_prices/returns/stock_fundamentals 삭제 중단 (KRX 재수집 불가)
+- [x] 수집 Watchdog 워크플로우 (`.github/workflows/watchdog-collect.yml`) — 20:30 KST 검증, 미실행 시 자동 재트리거 + GitHub Issue 알림
+- [x] 수집 실패 알림 (`daily-collect.yml` notify-failure job) — 실패 시 GitHub Issue 자동 생성
 
 **자기 검증:** "내일 실제 ETF 가격이 반영되나?" → No면 실패
 
@@ -227,6 +229,7 @@
 - [x] 차트 X축 연도 변경점 강제 표시 + 차트 제목 기준일 연도 표시
 - [x] 기술 분석 days 파라미터 파이프라인 (사용자 기간 지정, 데이터 범위 안내)
 - [x] 사이드바: st.metric→st.markdown (잘림 수정) + 업데이트 시간 안내
+- [x] 모바일 반응형 CSS 강화 (line-height, 테이블 가로 스크롤, 768px 태블릿 + 480px 소형 폰 breakpoint, 멀티컬럼 스택)
 
 **4-3. 데이터/분석 확장**
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
@@ -369,7 +372,7 @@ ETF_RAG/
 │   │   ├── chat.py         # process_question() (structured_data 이벤트 처리, 후속질문 on_click 콜백)
 │   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 시계열 차트 + 기술적 분석 차트)
 │   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망, text_input 부분매칭 자동완성)
-│   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응)
+│   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응: 768px 태블릿 + 480px 소형 폰)
 │   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
@@ -380,7 +383,8 @@ ETF_RAG/
 ├── tests/                  # pytest 431개
 ├── .github/
 │   └── workflows/
-│       └── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신)
+│       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
+│       └── watchdog-collect.yml       # 수집 검증 Watchdog (20:30 KST, 미실행 시 재트리거 + Issue 알림)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 (ETF+주식+월요일DART+검증/복구, 로컬 Mac용)
 │   ├── collect_for_deploy.py          # GitHub Actions용 경량 수집 (deploy/ JSON 전용)
@@ -438,4 +442,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-23 (프롬프트 6차: 종목 추천 품질 강화 + 면책 문구 순화. 도구 13개, 테스트 431개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-23 (수집 Watchdog + 모바일 반응형 CSS + 프롬프트 6차. 도구 13개, 테스트 431개, eval 162개, Hit Rate 100%)_

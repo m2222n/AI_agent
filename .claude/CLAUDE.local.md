@@ -1374,5 +1374,39 @@
 
 ---
 
+## 수집 자동화 안정성 강화 + 모바일 가독성 개선 (2026-04-23 야간)
+
+### 수집 자동화 안정성
+- **문제**: GitHub Actions scheduled workflow가 간헐적으로 실행 안 됨 (4/23 수집 누락 발견)
+- **Watchdog 워크플로우** (`.github/workflows/watchdog-collect.yml`):
+  - 20:30 KST (수집 2시간 후) 실행
+  - `gh run list` + jq로 최근 14시간 내 daily-collect 성공 여부 확인
+  - 미실행 시 자동 재트리거 → 15분 대기 → 재확인
+  - 재트리거도 실패 시 GitHub Issue 자동 생성 (중복 방지)
+- **실패 알림** (`daily-collect.yml` 확장):
+  - `notify-failure` job 추가 (`needs: collect`, `if: failure()`)
+  - 실패 시 GitHub Issue 자동 생성 (날짜별 중복 방지)
+  - permissions에 `actions: write`, `issues: write` 추가
+
+### 모바일 가독성 개선 (`src/ui/styles.py`)
+- **line-height 1.7**: `.stMarkdown, .stChatMessage` 본문 텍스트 가독성 향상
+- **테이블 가로 스크롤**: `overflow-x: auto` + `-webkit-overflow-scrolling: touch` (넓은 비교표 모바일 대응)
+- **테이블 헤더**: `white-space: nowrap` (헤더 줄바꿈 방지)
+- **캡션 크기**: 0.78rem → 0.82rem
+- **768px 태블릿 breakpoint 추가**:
+  - 탭 라벨 축소 (0.82rem, 패딩 축소)
+  - 멀티컬럼 2열 축소 (`flex: 1 1 45%`, `flex-wrap: wrap`)
+- **480px 소형 폰 breakpoint 신규**:
+  - 멀티컬럼 세로 스택 (`flex: 1 1 100%`, `min-width: 100%`)
+  - h1 1.25rem, 채팅 메시지 패딩 축소
+  - 테이블 0.8rem + 셀 패딩 축소
+  - 메트릭 카드 컴팩트 (패딩 0.5rem, 값 1.1rem)
+  - 탭 라벨 0.75rem
+  - 사이드바 260px
+
+### 테스트: 431개 전체 통과
+
+---
+
 _Last Updated: 2026-04-23_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차(종목 추천 품질+면책 순화) + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
