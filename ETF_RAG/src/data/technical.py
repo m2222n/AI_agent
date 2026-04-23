@@ -565,12 +565,18 @@ def calc_atr(highs: list[int], lows: list[int], closes: list[int],
     }
 
 
-def get_technical_summary(ticker: str) -> Optional[dict]:
+def get_technical_summary(ticker: str, days: int = 250) -> Optional[dict]:
     """종목의 기술적 지표 종합 요약.
+
+    Args:
+        ticker: 종목 티커
+        days: 분석 기간 (영업일 수). 기본 250일(약 1년).
+              지표 계산에 최소 120일 이상 필요 (MA120 등).
 
     Returns:
         {
             "ticker": str, "date": str, "close": int, "data_days": int,
+            "first_date": str, "last_date": str,
             "ma": {"ma5", "ma20", "ma60", "ma120"},
             "rsi": float,
             "macd": {"macd", "signal", "histogram"},
@@ -585,8 +591,9 @@ def get_technical_summary(ticker: str) -> Optional[dict]:
             "atr": {"atr", "atr_pct", "volatility"} | None,
         }
     """
-    # OHLCV 데이터 조회 (고급 지표용)
-    ohlcv = _get_ohlcv(ticker, days=250)
+    # OHLCV 데이터 조회 — 지표 계산에 최소 여유분 확보
+    fetch_days = max(days, 250)
+    ohlcv = _get_ohlcv(ticker, days=fetch_days)
     if len(ohlcv) < 20:
         return None
 
@@ -628,6 +635,8 @@ def get_technical_summary(ticker: str) -> Optional[dict]:
         "date": latest["date"],
         "close": latest["close"],
         "data_days": len(ohlcv),
+        "first_date": ohlcv[0]["date"],
+        "last_date": latest["date"],
         "ma": {
             "ma5": round(ma5) if ma5 else None,
             "ma20": round(ma20) if ma20 else None,

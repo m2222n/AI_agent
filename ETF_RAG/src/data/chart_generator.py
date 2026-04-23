@@ -184,7 +184,7 @@ def generate_technical_chart(ticker: str, name: str,
         fig.text(0.08, 0.98, f"{name} ({ticker})", fontsize=14, fontweight="bold",
                  color=_TEXT_COLOR, va="top", **fp_kw)
         fig.text(0.08, 0.955,
-                 f"기준일: {_fmt_date(d_dates[-1])}  |  종가: {d_closes[-1]:,}원  |  {n}일",
+                 f"기준일: {_fmt_date_full(d_dates[-1])}  |  종가: {d_closes[-1]:,}원  |  {n}일",
                  fontsize=9, color="#888888", va="top", **fp_kw)
 
         # ── 상단: 가격 ──
@@ -394,6 +394,13 @@ def _fmt_date(date_str: str) -> str:
     """YYYYMMDD → MM/DD"""
     if len(date_str) == 8:
         return f"{date_str[4:6]}/{date_str[6:]}"
+    return date_str
+
+
+def _fmt_date_full(date_str: str) -> str:
+    """YYYYMMDD → YYYY/MM/DD (차트 제목용)"""
+    if len(date_str) == 8:
+        return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}"
     return date_str
 
 

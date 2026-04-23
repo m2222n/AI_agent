@@ -27,20 +27,24 @@ def render_sidebar(etf_data: list, stock_data: list = None):
 
 
 def _render_data_summary(etf_data: list, stock_data: list):
-    """데이터 현황 요약 메트릭"""
-    cols = st.columns(2 if stock_data else 1)
-    with cols[0]:
-        st.metric("ETF", f"{len(etf_data)}종목")
-    if stock_data:
-        with cols[1]:
-            st.metric("주식", f"{len(stock_data)}종목")
+    """데이터 현황 요약"""
+    # 종목 수 요약
+    etf_count = f"{len(etf_data):,}"
+    stock_count = f"{len(stock_data):,}" if stock_data else None
+    if stock_count:
+        st.markdown(
+            f"📊 **ETF** {etf_count}종목 · **주식** {stock_count}종목"
+        )
+    else:
+        st.markdown(f"📊 **ETF** {etf_count}종목")
 
-    # 데이터 기준일
+    # 데이터 기준일 + 업데이트 안내
     if etf_data and "date" in etf_data[0]:
         date_str = etf_data[0]["date"]
         if len(date_str) == 8:
             date_str = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
         st.caption(f"📅 기준일: {date_str}")
+    st.caption("🔄 매일 18:30 (장 마감 후) 자동 업데이트")
 
 
 def _render_market_data(etf_data: list, stock_data: list):

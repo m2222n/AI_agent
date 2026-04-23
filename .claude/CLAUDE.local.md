@@ -1312,7 +1312,29 @@
 - 기술적 지표/차트/재무제표 DB → `@st.cache_data` (ttl=1h/10m)
 - 비교 차트/가격 전망도 캐싱 적용
 
+### 커밋 이력 (04-23 오후)
+- `7171b7d`: fix: 탭 순서 변경 + 재무제표 카드 추가 + 카드 네비게이션 버그 수정
+- `2b078de`: feat: 단계별 로딩 spinner + 실시간 시세 사이드바 연동 + 홈 버튼 탭 리셋
+- `0dd5cb2`: fix: X축 연도 변경점 라벨 개선 (연도 시작 시 강제 표시)
+- `d9ef610`: feat: 기술적 분석 차트 기간 파라미터 추가 (days)
+
+### UI/UX 2차 개선 (04-23 오후)
+- **탭 순서**: 종합채팅/기술적분석/재무제표/가격전망/비교분석 (전망↔비교 교환)
+- **기능 카드 5개**: 실시간 시세(→사이드바)/기술적분석/재무제표/가격전망/비교분석
+- **단계별 로딩**: `@st.cache_resource(show_spinner=...)` 3단계 분리 (DB→데이터→인덱스)
+- **사이드바 연동**: 실시간 시세 카드 → 주식 탭 전환 + 검색 input 포커스 (JS `setTimeout`)
+- **홈 버튼**: 세션 초기화 + `_goto_tab=0` → JS 종합채팅 탭 전환
+- **카드 네비게이션 버그**: JS가 사이드바+메인 탭을 모두 선택 → `.stMainBlockContainer` 스코핑
+- **X축 연도 라벨**: `_build_xlabels()` 재작성 — 연도 변경점 강제 삽입, 근접 라벨 `min_gap` 제거
+- **기술 분석 days 파이프라인**:
+  - `get_technical_summary(ticker, days=250)` — days 파라미터 추가, fetch_days = max(days, 250)
+  - `first_date`/`last_date` 반환 → 도구 출력에 "데이터 범위" 표시
+  - `get_technical_indicators(days)` → `get_technical_summary(days)` + `generate_technical_chart(days)` 전달
+  - 프롬프트: days 사용법 + 데이터 범위 안내 지침
+- **차트 기준일 연도**: `_fmt_date_full()` (YYYY/MM/DD) 추가
+- **사이드바 개선**: st.metric→st.markdown (종목수 잘림 수정), "🔄 매일 18:30 자동 업데이트" 안내
+
 ---
 
 _Last Updated: 2026-04-23_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 탭 UI 성능 최적화(캐싱/selectbox) + 홈 버튼/카드 네비게이션 + 자동완성 개선 중 + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + UI/UX 2차(탭 순서/로딩/사이드바/days 파이프라인) + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_

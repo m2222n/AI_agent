@@ -1127,7 +1127,8 @@ def get_technical_indicators(name_or_ticker: str, days: int = 120) -> str:
 
     try:
         from src.data.technical import get_technical_summary
-        summary = get_technical_summary(ticker)
+        analysis_days = max(days, 250)
+        summary = get_technical_summary(ticker, days=analysis_days)
     except Exception as e:
         logger.warning(f"기술적 지표 계산 실패: {e}")
         return f"'{name}'의 기술적 지표 계산에 실패했습니다. (데이터 부족 또는 오류)"
@@ -1136,8 +1137,12 @@ def get_technical_indicators(name_or_ticker: str, days: int = 120) -> str:
         return f"'{name}'의 일봉 데이터가 부족합니다 (최소 20일 필요)."
 
     # 포맷팅
-    lines = [f"[{name} ({ticker})] 기술적 분석 (기준일: {_fmt_date(summary['date'])}, "
-             f"종가: {summary['close']:,}원, 분석 기간: {summary['data_days']}일)\n"]
+    first_date = _fmt_date(summary.get("first_date", ""))
+    last_date = _fmt_date(summary.get("last_date", summary["date"]))
+    lines = [f"[{name} ({ticker})] 기술적 분석 (기준일: {last_date}, "
+             f"종가: {summary['close']:,}원, 분석 기간: {summary['data_days']}일)"]
+    lines.append(f"**데이터 범위:** {first_date} ~ {last_date} ({summary['data_days']}영업일)")
+    lines.append("")
 
     # 이동평균
     ma = summary["ma"]
