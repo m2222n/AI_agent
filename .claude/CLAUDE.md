@@ -22,7 +22,7 @@
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
 | 데이터 | **pykrx** (ETF ~1,088 + 주식 ~3,100 전종목, 12년 보존) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
-| 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF 결합) | + **Cohere Rerank v3** |
+| 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF + **Cohere Rerank v3.5** + MMR) | ✅ 완료 |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
 | 에이전트 | **LangGraph** + Function Calling + 모델 라우팅 | ✅ 구현 완료 |
@@ -125,8 +125,9 @@
 - [ ] FAISS → **Pinecone** 마이그레이션 (free tier, 서버리스)
 - [ ] Pinecone sparse-dense 하이브리드 검색으로 전환
 
-**2-4. Re-ranking (추후)**
-- [ ] **Cohere Rerank v3** 적용 (1차 검색 → 재정렬)
+**2-4. Re-ranking** ✅ 완료
+- [x] **Cohere Rerank v3.5** 적용 — RRF 결합 후 cross-encoder 재정렬, MMR 전 삽입
+- [x] Graceful fallback: API 키 없으면 자동 비활성화, API 오류 시 원래 순서 유지
 
 **2-5. 평가 체계** ✅ 기본 구축 완료
 - [x] RAGAS 평가 파이프라인 구축 (`eval/run_eval.py` — retrieval-only + full RAGAS 모드)
@@ -240,7 +241,7 @@
 
 **4-4. 아키텍처 고도화 (추후)**
 - [ ] Multi-Agent 구조 (리서치 → 분석 → 답변 에이전트 분리)
-- [ ] Pinecone + Cohere Rerank (문서 수 증가 시)
+- [ ] Pinecone (문서 수 증가 시 FAISS 대체)
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small A/B 테스트)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
@@ -361,7 +362,7 @@ ETF_RAG/
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
 │   │   ├── vectorstore.py  # create_vectorstore() — FAISS persist (MD5 해시 캐시) + text-embedding-3-small
-│   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
+│   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+Cohere Rerank+MMR), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer + 병렬 도구 호출)
 │   │   ├── tools.py        # Function Calling 도구 13개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
@@ -381,7 +382,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 461개
+├── tests/                  # pytest 473개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -443,4 +444,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (E-1 완료: 병렬 도구+대화 맥락+응답 포맷+동적 예시. 도구 13개, 테스트 461개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-24 (E-1 완료 + E-2 Cohere Rerank. 도구 13개, 테스트 473개, eval 162개, Hit Rate 100%)_

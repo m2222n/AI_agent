@@ -1451,9 +1451,20 @@
 - 히스토리 재렌더링에도 동일 적용
 - 테스트 14개 추가 (461개 전체 통과)
 
-### 테스트: 461개 전체 통과 (+27 today)
+### Cohere Rerank v3.5 (E-2 #5 완료)
+- `retriever.py`: `_rerank()` 메서드 추가 (RRF 후, MMR 전)
+- Cohere `rerank-v3.5` cross-encoder로 후보 재정렬
+- COHERE_API_KEY 없으면 자동 비활성화 (graceful fallback)
+- API 오류/패키지 미설치 시에도 원래 순서로 fallback
+- `config.py`: RERANK 설정 dict (enabled, model, top_n)
+- `requirements.txt`: `cohere>=5.0` 추가
+- `.env.example`: COHERE_API_KEY 안내 추가
+- 파이프라인: Stage 0(이름매칭) → Stage 1(FAISS) → Stage 2(BM25) → Stage 3(RRF) → **Stage 4(Rerank)** → Stage 5(MMR)
+- 테스트 12개 추가 (473개 전체 통과)
+
+### 테스트: 473개 전체 통과 (+39 today)
 
 ---
 
 _Last Updated: 2026-04-24_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + 멀티 도구 병렬 + 대화 맥락 + 동적 예시 + 응답 포맷 개선 + 도구 13개 + 테스트 461개 + eval 162개 + Hit Rate 100%_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + E-1(병렬도구/대화맥락/동적예시/응답포맷) + E-2(Cohere Rerank) + 도구 13개 + 테스트 473개 + eval 162개 + Hit Rate 100%_
