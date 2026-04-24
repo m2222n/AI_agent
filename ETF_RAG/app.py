@@ -161,8 +161,8 @@ def main():
         # 대화 히스토리
         render_chat_history()
 
-        # 예시 질문
-        render_example_questions()
+        # 예시 질문 (동적 + 기본)
+        render_example_questions(etf_data, stock_data)
 
         if question:
             process_question(question)

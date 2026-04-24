@@ -1,8 +1,13 @@
+import logging
+from typing import Optional
+
 import streamlit as st
 
 from src.utils.logging import log_feedback
 
-# 카테고리별 예시 질문
+logger = logging.getLogger(__name__)
+
+# 하드코딩 예시 (데이터 없을 때 fallback)
 EXAMPLE_CATEGORIES = {
     "기본 조회": {
         "icon": "🔍",
@@ -33,6 +38,90 @@ EXAMPLE_CATEGORIES = {
         ],
     },
 }
+
+
+def generate_dynamic_examples(
+    etf_data: Optional[list] = None,
+    stock_data: Optional[list] = None,
+) -> Optional[dict]:
+    """당일 수집 데이터 기반 동적 예시 질문 생성.
+
+    Returns:
+        카테고리별 예시 dict (EXAMPLE_CATEGORIES와 동일 형식) 또는 None (데이터 부족)
+    """
+    all_data = []
+    if etf_data:
+        all_data.extend(etf_data)
+    if stock_data:
+        all_data.extend(stock_data)
+
+    if len(all_data) < 10:
+        return None
+
+    # change_pct가 있는 종목만 필터 (종가 0 제외)
+    with_change = [
+        d for d in all_data
+        if d.get("change_pct") is not None
+        and d.get("close", 0) > 0
+        and d.get("name")
+    ]
+    if len(with_change) < 5:
+        return None
+
+    # 급등 상위 (change_pct > 0)
+    gainers = sorted(with_change, key=lambda d: d.get("change_pct", 0), reverse=True)
+    # 급락 하위 (change_pct < 0)
+    losers = sorted(with_change, key=lambda d: d.get("change_pct", 0))
+    # 거래대금 상위
+    by_volume = sorted(all_data, key=lambda d: d.get("trade_value", 0), reverse=True)
+
+    # 이름 추출 헬퍼 (ETF는 길어서 앞 부분만)
+    def _name(d: dict) -> str:
+        name = d["name"]
+        return name if len(name) <= 15 else name[:15]
+
+    categories = {}
+
+    # 1) 오늘의 급등주 — 상위 2개
+    top_gainers = [g for g in gainers[:5] if g.get("change_pct", 0) > 0][:2]
+    if top_gainers:
+        questions = []
+        for g in top_gainers:
+            pct = g["change_pct"]
+            questions.append(f"{_name(g)} 오늘 {pct:+.1f}% 왜 올랐어?")
+        categories["오늘의 급등주"] = {"icon": "🔥", "questions": questions}
+
+    # 2) 오늘의 급락주 — 하위 2개
+    top_losers = [l for l in losers[:5] if l.get("change_pct", 0) < 0][:2]
+    if top_losers:
+        questions = []
+        for l in top_losers:
+            pct = l["change_pct"]
+            questions.append(f"{_name(l)} {pct:+.1f}% 하락, 기술적 분석해줘")
+        categories["오늘의 급락주"] = {"icon": "📉", "questions": questions}
+
+    # 3) 거래대금 상위 — 상위 2개
+    top_volume = [v for v in by_volume[:5] if v.get("trade_value", 0) > 0 and v.get("name")][:2]
+    if top_volume:
+        questions = []
+        for v in top_volume:
+            questions.append(f"{_name(v)} 앞으로 어떨까?")
+        categories["거래대금 TOP"] = {"icon": "💰", "questions": questions}
+
+    # 4) 비교 질문 — 급등 1위 vs 거래대금 1위 (겹치지 않을 때)
+    if top_gainers and top_volume:
+        g_name = _name(top_gainers[0])
+        v_name = _name(top_volume[0])
+        if g_name != v_name:
+            categories["비교 분석"] = {
+                "icon": "⚖️",
+                "questions": [f"{g_name}이랑 {v_name} 비교해줘"],
+            }
+
+    if not categories:
+        return None
+
+    return categories
 
 # 기능 소개 카드 (tab_index: st.tabs 0-indexed)
 # 탭 순서: 0=종합채팅, 1=기술적분석, 2=재무제표, 3=가격전망, 4=비교분석
@@ -71,7 +160,27 @@ FEATURE_CARDS = [
 ]
 
 
-def render_welcome():
+def _render_example_categories(categories: dict, key_prefix: str = "ex") -> None:
+    """카테고리별 예시 질문 버튼 렌더링 (공통 로직)."""
+    for cat_name, cat_info in categories.items():
+        st.markdown(
+            f'<p style="font-size:0.8rem; color:#666; margin:0.6rem 0 0.3rem; font-weight:500;">'
+            f'{cat_info["icon"]} {cat_name}</p>',
+            unsafe_allow_html=True,
+        )
+        questions = cat_info["questions"]
+        cols = st.columns(min(len(questions), 2))
+        for i, q in enumerate(questions):
+            with cols[i % len(cols)]:
+                if st.button(q, use_container_width=True, key=f"{key_prefix}_{cat_name}_{i}"):
+                    st.session_state.example_q = q
+                    st.rerun()
+
+
+def render_welcome(
+    etf_data: Optional[list] = None,
+    stock_data: Optional[list] = None,
+):
     """첫 방문자용 웰컴 화면 (대화 없을 때만)"""
     if st.session_state.messages:
         return
@@ -101,27 +210,24 @@ def render_welcome():
 
     st.markdown("")  # spacer
 
-    # 예시 질문 라벨
+    # 동적 예시 질문 (당일 급등/급락/거래대금 기반)
+    dynamic = generate_dynamic_examples(etf_data, stock_data)
+    if dynamic:
+        st.caption("🔥 오늘의 추천 질문")
+        _render_example_categories(dynamic, key_prefix="dyn")
+        st.markdown("")
+
+    # 기본 예시 질문 (항상 표시)
     st.caption("💡 예시 질문")
-
-    # 카테고리별 예시 질문
-    for cat_name, cat_info in EXAMPLE_CATEGORIES.items():
-        st.markdown(
-            f'<p style="font-size:0.8rem; color:#666; margin:0.6rem 0 0.3rem; font-weight:500;">'
-            f'{cat_info["icon"]} {cat_name}</p>',
-            unsafe_allow_html=True,
-        )
-        cols = st.columns(2)
-        for i, q in enumerate(cat_info["questions"]):
-            with cols[i % 2]:
-                if st.button(q, use_container_width=True, key=f"ex_{cat_name}_{i}"):
-                    st.session_state.example_q = q
-                    st.rerun()
+    _render_example_categories(EXAMPLE_CATEGORIES, key_prefix="ex")
 
 
-def render_example_questions():
+def render_example_questions(
+    etf_data: Optional[list] = None,
+    stock_data: Optional[list] = None,
+):
     """대화 시작 전 예시 질문 — render_welcome()으로 대체"""
-    render_welcome()
+    render_welcome(etf_data, stock_data)
 
 
 def render_feedback_buttons():
