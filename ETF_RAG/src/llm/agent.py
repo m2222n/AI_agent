@@ -16,6 +16,7 @@ LangGraph 기반 ETF 에이전트
 import json
 import logging
 import operator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -215,32 +216,62 @@ def _strip_chart_json(content: str) -> tuple:
     return content, None
 
 
+def _execute_single_tool(tool_call: dict, tool_map: dict) -> tuple:
+    """단일 도구 실행 (병렬 실행 워커).
+
+    Returns:
+        (tool_call_id, result_str)
+    """
+    tool_name = tool_call["name"]
+    tool_args = tool_call["args"]
+
+    logger.info(f"도구 호출: {tool_name}({tool_args})")
+
+    try:
+        if tool_name in tool_map:
+            result = tool_map[tool_name].invoke(tool_args)
+        else:
+            result = f"알 수 없는 도구: {tool_name}"
+    except Exception as e:
+        logger.error(f"도구 실행 실패 ({tool_name}): {e}")
+        result = f"검색 중 오류가 발생했습니다: {type(e).__name__}"
+
+    return tool_call["id"], str(result)
+
+
 def call_tools(state: AgentState) -> dict:
-    """도구 실행"""
+    """도구 실행 (2개 이상이면 병렬 처리)"""
     last_message = state["messages"][-1]
+    tool_calls = last_message.tool_calls
 
     tool_map = {t.name: t for t in ALL_TOOLS}
+
+    # 결과를 tool_call 순서대로 매핑
+    results: dict[str, str] = {}
+
+    if len(tool_calls) >= 2:
+        # 병렬 실행 — I/O 바운드 도구가 대부분이므로 ThreadPool 사용
+        logger.info(f"도구 {len(tool_calls)}개 병렬 실행: {[tc['name'] for tc in tool_calls]}")
+        with ThreadPoolExecutor(max_workers=min(len(tool_calls), 4)) as executor:
+            futures = {
+                executor.submit(_execute_single_tool, tc, tool_map): tc
+                for tc in tool_calls
+            }
+            for future in as_completed(futures):
+                tc_id, result_str = future.result()
+                results[tc_id] = result_str
+    else:
+        # 단일 도구는 순차 실행 (오버헤드 방지)
+        for tc in tool_calls:
+            tc_id, result_str = _execute_single_tool(tc, tool_map)
+            results[tc_id] = result_str
+
+    # tool_call 순서 보장하여 ToolMessage 생성
     tool_messages = []
-
-    for tool_call in last_message.tool_calls:
-        tool_name = tool_call["name"]
-        tool_args = tool_call["args"]
-
-        logger.info(f"도구 호출: {tool_name}({tool_args})")
-
-        try:
-            if tool_name in tool_map:
-                result = tool_map[tool_name].invoke(tool_args)
-            else:
-                result = f"알 수 없는 도구: {tool_name}"
-        except Exception as e:
-            logger.error(f"도구 실행 실패 ({tool_name}): {e}")
-            result = f"검색 중 오류가 발생했습니다: {type(e).__name__}"
-
-        result_str = str(result)
+    for tool_call in tool_calls:
+        result_str = results[tool_call["id"]]
 
         # 차트 JSON은 LLM context에서 제거 (base64 이미지가 수십 KB → 토큰 낭비 + 혼란)
-        # 원본은 _raw_tool_results에 보관하여 stream에서 structured_data 이벤트 발행
         llm_content, chart_json = _strip_chart_json(result_str)
 
         msg = ToolMessage(content=llm_content, tool_call_id=tool_call["id"])

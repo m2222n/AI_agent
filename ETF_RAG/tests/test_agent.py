@@ -484,6 +484,89 @@ def test_call_tools_handles_exception():
         assert "오류가 발생" in result["messages"][0].content
 
 
+def test_call_tools_parallel_execution():
+    """2개 이상 도구 호출 시 병렬 실행되고 결과 순서가 보장되는지 확인"""
+    tool_call_msg = AIMessage(
+        content="",
+        tool_calls=[
+            {"id": "tc1", "name": "get_technical_indicators", "args": {"ticker": "005930"}},
+            {"id": "tc2", "name": "get_financial_statements", "args": {"ticker": "005930"}},
+        ],
+    )
+    state: AgentState = {
+        "messages": [tool_call_msg],
+        "question_type": "simple",
+        "tool_call_count": 0,
+    }
+    mock_tech = MagicMock()
+    mock_tech.name = "get_technical_indicators"
+    mock_tech.invoke.return_value = "기술적 분석 결과"
+
+    mock_fin = MagicMock()
+    mock_fin.name = "get_financial_statements"
+    mock_fin.invoke.return_value = "재무제표 결과"
+
+    with patch("src.llm.agent.ALL_TOOLS", [mock_tech, mock_fin]):
+        result = call_tools(state)
+        assert len(result["messages"]) == 2
+        # 순서 보장: tc1(기술적) → tc2(재무제표)
+        assert result["messages"][0].tool_call_id == "tc1"
+        assert "기술적 분석" in result["messages"][0].content
+        assert result["messages"][1].tool_call_id == "tc2"
+        assert "재무제표" in result["messages"][1].content
+        assert result["tool_call_count"] == 1
+
+
+def test_call_tools_parallel_partial_failure():
+    """병렬 실행 중 일부 도구 실패 시 나머지는 정상 반환"""
+    tool_call_msg = AIMessage(
+        content="",
+        tool_calls=[
+            {"id": "tc1", "name": "search_etf", "args": {"query": "test"}},
+            {"id": "tc2", "name": "get_realtime_price", "args": {"ticker": "005930"}},
+        ],
+    )
+    state: AgentState = {
+        "messages": [tool_call_msg],
+        "question_type": "simple",
+        "tool_call_count": 0,
+    }
+    mock_search = MagicMock()
+    mock_search.name = "search_etf"
+    mock_search.invoke.return_value = "ETF 검색 결과"
+
+    mock_price = MagicMock()
+    mock_price.name = "get_realtime_price"
+    mock_price.invoke.side_effect = RuntimeError("네트워크 오류")
+
+    with patch("src.llm.agent.ALL_TOOLS", [mock_search, mock_price]):
+        result = call_tools(state)
+        assert len(result["messages"]) == 2
+        assert "ETF 검색 결과" in result["messages"][0].content
+        assert "오류가 발생" in result["messages"][1].content
+
+
+def test_call_tools_single_sequential():
+    """단일 도구는 순차 실행 (ThreadPool 오버헤드 방지)"""
+    tool_call_msg = AIMessage(
+        content="",
+        tool_calls=[{"id": "tc1", "name": "search_etf", "args": {"query": "test"}}],
+    )
+    state: AgentState = {
+        "messages": [tool_call_msg],
+        "question_type": "simple",
+        "tool_call_count": 0,
+    }
+    mock_tool = MagicMock()
+    mock_tool.name = "search_etf"
+    mock_tool.invoke.return_value = "검색 결과"
+
+    with patch("src.llm.agent.ALL_TOOLS", [mock_tool]):
+        result = call_tools(state)
+        assert len(result["messages"]) == 1
+        assert result["messages"][0].tool_call_id == "tc1"
+
+
 def test_stream_agent_error_event():
     """스트리밍 중 에러 발생 시 error 이벤트가 전달되는지 확인"""
     with patch("src.llm.agent.classify_with_llm", return_value="simple"), \
