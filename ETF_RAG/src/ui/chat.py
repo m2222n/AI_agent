@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 import traceback
 
@@ -9,6 +10,10 @@ from src.ui.charts import try_parse_comparison, render_comparison, try_parse_str
 from src.utils.logging import log_interaction
 
 logger = logging.getLogger(__name__)
+
+# 긴 답변 섹션 분리 기준
+_MIN_LEN_FOR_SECTIONS = 500       # 이 길이 미만이면 섹션 분리 안 함
+_MIN_SECTIONS_FOR_EXPANDER = 3    # 섹션 3개 이상일 때만 expander 적용
 
 QUESTION_TYPE_LABELS = {
     "simple": "📝 단순 정보",
@@ -38,6 +43,66 @@ TOOL_DISPLAY_NAMES = {
     "get_financial_statements": "📑 재무제표 조회",
     "predict_price_outlook": "🔮 가격 전망 분석",
 }
+
+
+def split_into_sections(text: str) -> list[dict]:
+    """마크다운 텍스트를 ##/### 헤더 기준으로 섹션 분리.
+
+    Returns:
+        [{"title": str or None, "body": str}, ...] — 첫 섹션은 title=None (헤더 없는 도입부)
+    """
+    # ## 또는 ### 로 시작하는 줄에서 분리 (# 한 개는 너무 드물어 제외)
+    pattern = re.compile(r'^(#{2,3})\s+(.+)$', re.MULTILINE)
+    matches = list(pattern.finditer(text))
+
+    if not matches:
+        return [{"title": None, "body": text}]
+
+    sections = []
+
+    # 첫 헤더 이전 텍스트 (도입부)
+    intro = text[:matches[0].start()].strip()
+    if intro:
+        sections.append({"title": None, "body": intro})
+
+    for i, match in enumerate(matches):
+        title = match.group(2).strip()
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+        sections.append({"title": title, "body": body})
+
+    return sections
+
+
+def render_sectioned_answer(text: str, container=None) -> None:
+    """긴 답변을 섹션별 expander로 렌더링.
+
+    짧은 답변이나 섹션이 적으면 단순 마크다운으로 렌더링.
+    """
+    target = container or st
+
+    if len(text) < _MIN_LEN_FOR_SECTIONS:
+        target.markdown(text)
+        return
+
+    sections = split_into_sections(text)
+    if len(sections) < _MIN_SECTIONS_FOR_EXPANDER:
+        target.markdown(text)
+        return
+
+    # 첫 번째 섹션 (도입부 또는 첫 헤더) — 항상 펼쳐서 표시
+    first = sections[0]
+    if first["title"]:
+        target.markdown(f"## {first['title']}\n\n{first['body']}")
+    else:
+        target.markdown(first["body"])
+
+    # 나머지 섹션 — expander로 접기
+    for section in sections[1:]:
+        title = section["title"] or "상세 내용"
+        with target.expander(title, expanded=False):
+            st.markdown(section["body"])
 
 
 def _get_followup_suggestions(question: str, tools_used: list, question_type: str) -> list[str]:
@@ -133,7 +198,10 @@ def render_chat_history():
     """대화 히스토리 표시"""
     for idx, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            if message["role"] == "assistant":
+                render_sectioned_answer(message["content"])
+            else:
+                st.markdown(message["content"])
             # 저장된 구조화 데이터가 있으면 차트도 렌더링
             comparison = message.get("comparison_data")
             if comparison:
@@ -160,7 +228,8 @@ def process_question(question: str, client=None, retriever=None):
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        answer_placeholder = st.empty()
+        answer_placeholder = st.empty()   # 스트리밍 중 사용 (단일 마크다운)
+        answer_container = st.container()  # 완료 후 섹션별 expander 렌더링
         status_placeholder = st.empty()
         chart_placeholder = st.container()
 
@@ -239,7 +308,9 @@ def process_question(question: str, client=None, retriever=None):
         total_time = time.time() - total_start_time
 
         if full_response:
-            answer_placeholder.markdown(full_response)
+            # 스트리밍 placeholder 비우고 → 섹션별 expander로 재렌더링
+            answer_placeholder.empty()
+            render_sectioned_answer(full_response, container=answer_container)
         st.session_state.last_answer = full_response
 
         # 구조화 데이터 렌더링 (비교 테이블, 기술적 차트 등)
