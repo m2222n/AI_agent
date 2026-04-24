@@ -18,8 +18,7 @@ from src.data.chart_generator import generate_technical_chart, generate_comparis
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
-import src.llm.tools as _tools_module
-from src.llm.tools import _find_structured_data, _find_similar_names
+from src.llm.tools import _find_structured_data, _find_similar_names, get_available_tickers
 
 logger = logging.getLogger(__name__)
 
@@ -67,21 +66,7 @@ def _build_autocomplete_options() -> list[str]:
     if cached:
         return cached
 
-    if not _tools_module._etf_data_index and not _tools_module._stock_data_index:
-        return []
-
-    seen = set()
-    options = []
-    for index in (_tools_module._etf_data_index, _tools_module._stock_data_index):
-        for _key, data in index.items():
-            ticker = data.get("ticker", "")
-            name = data.get("name", "")
-            if not ticker or ticker in seen:
-                continue
-            seen.add(ticker)
-            options.append(f"{name} ({ticker})")
-    options.sort()
-
+    options = get_available_tickers()
     if options:
         st.session_state["_autocomplete_options"] = options
     return options

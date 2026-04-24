@@ -113,15 +113,60 @@ def set_retriever(retriever, documents=None, stock_retriever=None,
         _data_initialized = True
 
 
+def get_available_tickers() -> list[str]:
+    """자동완성용 종목 옵션 리스트 반환 — 'name (ticker)' 형식, 정렬됨"""
+    seen = set()
+    options = []
+    for index in (_etf_data_index, _stock_data_index):
+        for _key, data in index.items():
+            ticker = data.get("ticker", "")
+            name = data.get("name", "")
+            if not ticker or ticker in seen:
+                continue
+            seen.add(ticker)
+            options.append(f"{name} ({ticker})")
+    options.sort()
+    return options
+
+
+def get_data_indices():
+    """ETF/주식 데이터 인덱스 반환 (읽기 전용)"""
+    return _etf_data_index, _stock_data_index
+
+
 def _enrich_with_structured_data(sources: list, index: dict) -> str:
     """검색 출처의 종목에 대해 구조화 데이터를 보강 텍스트로 반환"""
-    enriched = []
+    # 1단계: 매칭되는 종목 + 재무 데이터 배치 조회
+    matched = []
+    stock_tickers = []
     for s in sources:
         ticker = s.get("ticker", "")
         name = s.get("name", "")
         data = index.get(ticker) or index.get(name.lower()) if index else None
         if not data:
             continue
+        matched.append(data)
+        if "per" in data and data.get("ticker"):
+            stock_tickers.append(data["ticker"])
+
+    # 재무 데이터 배치 조회 (단일 DB 연결)
+    fin_cache = {}
+    if stock_tickers:
+        try:
+            from src.data.database import get_financial_data, get_connection
+            fin_conn = get_connection()
+            try:
+                for t in stock_tickers:
+                    fin_cache[t] = get_financial_data(fin_conn, t, quarters=4)
+            finally:
+                fin_conn.close()
+        except Exception as e:
+            logger.debug(f"재무제표 배치 조회 실패: {e}")
+
+    # 2단계: enrichment 텍스트 구성
+    enriched = []
+    for data in matched:
+        ticker = data.get("ticker", "")
 
         returns = data.get("returns", {})
         returns_parts = []
@@ -158,92 +203,84 @@ def _enrich_with_structured_data(sources: list, index: dict) -> str:
 
         enriched.append(line)
 
-        # 최근 분기 실적 + 4분기 추세 추가 (DB에서 조회)
+        # 최근 분기 실적 + 4분기 추세 추가 (배치 캐시에서 조회)
         if "per" in data and ticker:
-            try:
-                from src.data.database import get_financial_data, get_connection
-                fin_conn = get_connection()
-                try:
-                    fin_list = get_financial_data(fin_conn, ticker, quarters=4)
-                finally:
-                    fin_conn.close()
-                if fin_list:
-                    # 최근 1분기 요약
-                    fin = fin_list[0]
-                    fy = fin.get("fiscal_year", "")
-                    fq = fin.get("fiscal_quarter", "")
-                    rev = fin.get("revenue")
-                    op = fin.get("operating_profit")
-                    om = fin.get("operating_margin")
-                    rg = fin.get("revenue_growth_yoy")
-                    parts = [f"최근 실적({fy}Q{fq})"]
-                    if rev:
-                        if abs(rev) >= 1_0000_0000_0000:
-                            parts.append(f"매출 {rev / 1_0000_0000_0000:.1f}조")
-                        else:
-                            parts.append(f"매출 {rev / 1_0000_0000:,.0f}억")
-                    if op is not None and om is not None:
-                        if abs(op) >= 1_0000_0000_0000:
-                            parts.append(f"영업이익 {op / 1_0000_0000_0000:.1f}조(마진 {om:.1f}%)")
-                        else:
-                            parts.append(f"영업이익 {op / 1_0000_0000:,.0f}억(마진 {om:.1f}%)")
-                    if rg is not None:
-                        parts.append(f"매출 YoY {rg:+.1f}%")
-                    if len(parts) > 1:
-                        enriched.append("  " + ", ".join(parts))
+            fin_list = fin_cache.get(ticker)
+            if fin_list:
+                # 최근 1분기 요약
+                fin = fin_list[0]
+                fy = fin.get("fiscal_year", "")
+                fq = fin.get("fiscal_quarter", "")
+                rev = fin.get("revenue")
+                op = fin.get("operating_profit")
+                om = fin.get("operating_margin")
+                rg = fin.get("revenue_growth_yoy")
+                parts = [f"최근 실적({fy}Q{fq})"]
+                if rev:
+                    if abs(rev) >= 1_0000_0000_0000:
+                        parts.append(f"매출 {rev / 1_0000_0000_0000:.1f}조")
+                    else:
+                        parts.append(f"매출 {rev / 1_0000_0000:,.0f}억")
+                if op is not None and om is not None:
+                    if abs(op) >= 1_0000_0000_0000:
+                        parts.append(f"영업이익 {op / 1_0000_0000_0000:.1f}조(마진 {om:.1f}%)")
+                    else:
+                        parts.append(f"영업이익 {op / 1_0000_0000:,.0f}억(마진 {om:.1f}%)")
+                if rg is not None:
+                    parts.append(f"매출 YoY {rg:+.1f}%")
+                if len(parts) > 1:
+                    enriched.append("  " + ", ".join(parts))
 
-                    # 4분기 추세 + 가속/둔화 신호 (2개 이상일 때만)
-                    if len(fin_list) >= 2:
-                        trend_parts = []
-                        yoy_values = []
-                        margin_values = []
-                        for q in reversed(fin_list):  # 과거→최신 순
-                            qy = q.get("fiscal_year", "")
-                            qq = q.get("fiscal_quarter", "")
-                            qr = q.get("revenue")
-                            qo = q.get("operating_margin")
-                            q_yoy = q.get("revenue_growth_yoy")
-                            if qr is not None:
-                                if abs(qr) >= 1_0000_0000_0000:
-                                    rev_s = f"{qr / 1_0000_0000_0000:.1f}조"
-                                else:
-                                    rev_s = f"{qr / 1_0000_0000:,.0f}억"
-                                margin_s = f"({qo:.1f}%)" if qo is not None else ""
-                                trend_parts.append(f"{qy}Q{qq} {rev_s}{margin_s}")
-                            if q_yoy is not None:
-                                yoy_values.append(q_yoy)
-                            if qo is not None:
-                                margin_values.append(qo)
-                        if len(trend_parts) >= 2:
-                            enriched.append(f"  실적추세: {' → '.join(trend_parts)}")
+                # 4분기 추세 + 가속/둔화 신호 (2개 이상일 때만)
+                if len(fin_list) >= 2:
+                    trend_parts = []
+                    yoy_values = []
+                    margin_values = []
+                    for q in reversed(fin_list):  # 과거→최신 순
+                        qy = q.get("fiscal_year", "")
+                        qq = q.get("fiscal_quarter", "")
+                        qr = q.get("revenue")
+                        qo = q.get("operating_margin")
+                        q_yoy = q.get("revenue_growth_yoy")
+                        if qr is not None:
+                            if abs(qr) >= 1_0000_0000_0000:
+                                rev_s = f"{qr / 1_0000_0000_0000:.1f}조"
+                            else:
+                                rev_s = f"{qr / 1_0000_0000:,.0f}억"
+                            margin_s = f"({qo:.1f}%)" if qo is not None else ""
+                            trend_parts.append(f"{qy}Q{qq} {rev_s}{margin_s}")
+                        if q_yoy is not None:
+                            yoy_values.append(q_yoy)
+                        if qo is not None:
+                            margin_values.append(qo)
+                    if len(trend_parts) >= 2:
+                        enriched.append(f"  실적추세: {' → '.join(trend_parts)}")
 
-                        # 성장 가속/둔화 판정
-                        signals = []
-                        if len(yoy_values) >= 2:
-                            latest_yoy = yoy_values[-1]
-                            prev_yoy = yoy_values[-2]
-                            if latest_yoy > 0 and prev_yoy > 0 and latest_yoy > prev_yoy:
-                                signals.append("매출 성장 가속")
-                            elif latest_yoy > 0 and prev_yoy > 0 and latest_yoy < prev_yoy:
-                                signals.append("매출 성장 둔화")
-                            elif latest_yoy < 0 and prev_yoy >= 0:
-                                signals.append("매출 역성장 전환")
-                            elif latest_yoy >= 0 and prev_yoy < 0:
-                                signals.append("매출 턴어라운드")
+                    # 성장 가속/둔화 판정
+                    signals = []
+                    if len(yoy_values) >= 2:
+                        latest_yoy = yoy_values[-1]
+                        prev_yoy = yoy_values[-2]
+                        if latest_yoy > 0 and prev_yoy > 0 and latest_yoy > prev_yoy:
+                            signals.append("매출 성장 가속")
+                        elif latest_yoy > 0 and prev_yoy > 0 and latest_yoy < prev_yoy:
+                            signals.append("매출 성장 둔화")
+                        elif latest_yoy < 0 and prev_yoy >= 0:
+                            signals.append("매출 역성장 전환")
+                        elif latest_yoy >= 0 and prev_yoy < 0:
+                            signals.append("매출 턴어라운드")
 
-                        if len(margin_values) >= 2:
-                            latest_m = margin_values[-1]
-                            prev_m = margin_values[-2]
-                            diff = latest_m - prev_m
-                            if diff >= 3:
-                                signals.append("수익성 개선")
-                            elif diff <= -3:
-                                signals.append("수익성 악화")
+                    if len(margin_values) >= 2:
+                        latest_m = margin_values[-1]
+                        prev_m = margin_values[-2]
+                        diff = latest_m - prev_m
+                        if diff >= 3:
+                            signals.append("수익성 개선")
+                        elif diff <= -3:
+                            signals.append("수익성 악화")
 
-                        if signals:
-                            enriched.append(f"  실적신호: {', '.join(signals)}")
-            except Exception as e:
-                logger.debug(f"재무제표 enrichment 실패 ({ticker}): {e}")
+                    if signals:
+                        enriched.append(f"  실적신호: {', '.join(signals)}")
 
         # 보유종목 정보 추가 (ETF)
         holdings = data.get("holdings", [])

@@ -4,7 +4,7 @@ import traceback
 
 import streamlit as st
 
-from src.llm.agent import stream_agent
+from src.llm.agent import stream_agent, _make_error_message
 from src.ui.charts import try_parse_comparison, render_comparison, try_parse_structured_data, render_structured_data
 from src.utils.logging import log_interaction
 
@@ -91,17 +91,8 @@ def _get_followup_suggestions(question: str, tools_used: list, question_type: st
 
 
 def _get_user_error_message(error: Exception) -> str:
-    """예외 유형에 따라 사용자 친화적 메시지 반환"""
-    error_str = str(error).lower()
-    if "rate" in error_str or "429" in error_str:
-        return "⚠️ API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
-    if "timeout" in error_str or "timed out" in error_str:
-        return "⚠️ 응답 시간이 초과되었습니다. 질문을 다시 시도해주세요."
-    if "connection" in error_str or "network" in error_str:
-        return "⚠️ 네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요."
-    if "api key" in error_str or "auth" in error_str:
-        return "⚠️ API 인증에 실패했습니다. 설정을 확인해주세요."
-    return "⚠️ 일시적인 오류가 발생했습니다. 다시 시도해주세요."
+    """예외 유형에 따라 사용자 친화적 메시지 반환 (agent.py 통합 함수 위임)"""
+    return _make_error_message(error)
 
 
 def init_session_state():
