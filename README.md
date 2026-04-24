@@ -8,7 +8,7 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 [![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-431_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-515_Passed-2ea44f?style=for-the-badge)](#)
 [![RAGAS](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agent-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](#)
@@ -70,7 +70,7 @@ graph LR
 
 | 도구 | 기능 |
 |------|------|
-| `search_etf` | 하이브리드 RAG 검색 (FAISS + Kiwi BM25 + RRF + MMR) |
+| `search_etf` | 하이브리드 RAG 검색 (FAISS + Kiwi BM25 + RRF + Cohere Rerank + MMR) |
 | `compare_etfs` | ETF 비교 분석 (표/차트 자동 생성) |
 | `get_etf_list` | 카테고리별 ETF 목록 검색 |
 | `search_stock` | 주식 RAG 검색 |
@@ -93,8 +93,9 @@ graph LR
   ├─ Step 1: FAISS Dense 검색 (벡터 유사도, k=20)
   ├─ Step 2: Kiwi BM25 Sparse 검색 (한국어 형태소, k=20)
   ├─ Step 3: RRF 결합 (dense 70% + sparse 30%)
-  ├─ Step 4: MMR 다양성 확보 (λ=0.7)
-  └─ Step 5: 구조화 데이터 enrichment → 최종 답변
+  ├─ Step 4: Cohere Rerank v3.5 (cross-encoder 재정렬)
+  ├─ Step 5: MMR 다양성 확보 (λ=0.7)
+  └─ Step 6: 구조화 데이터 enrichment → 최종 답변
 ```
 
 ### 📊 탭 기반 UI
@@ -139,14 +140,14 @@ graph LR
 | **LLM** | GPT-4o (복잡 질문) + GPT-4o-mini (단순 질문) + Structured Output |
 | **임베딩** | OpenAI text-embedding-3-small + FAISS persist (MD5 캐시) |
 | **Vector DB** | FAISS (인메모리, 디스크 캐싱) |
-| **검색** | Kiwi BM25 + FAISS Dense + RRF + MMR + 이름/접두어/별칭 매칭 |
+| **검색** | Kiwi BM25 + FAISS Dense + RRF + Cohere Rerank v3.5 + MMR + 이름/접두어/별칭 매칭 |
 | **데이터** | pykrx (ETF 1,088 + 주식 전종목) + yfinance (장중) + dart-fss (재무제표) |
 | **저장** | SQLite WAL (12년 보존, 1.5GB, 800만 행) + JSON fallback |
 | **분석** | 기술적 지표 11개 + 상관관계/베타 + 포트폴리오 백테스트 + Ridge 회귀 전망 |
 | **차트** | matplotlib (기술적 분석 3단 + 비교 시계열, base64 PNG) |
 | **예측** | scikit-learn Ridge 회귀 + Bootstrap CI + 3축 종합 (기술적+펀더멘털+통계) |
-| **평가** | RAGAS (Hit Rate 100%, 162개 데이터셋, 8개 유형) |
-| **테스트** | pytest 431개 |
+| **평가** | RAGAS (Hit Rate 100%, F 0.688, AR 0.709, CR 0.854, 162개 데이터셋) |
+| **테스트** | pytest 515개 (단위 + E2E 통합) |
 | **자동 수집** | GitHub Actions (deploy/ + DB Release) + Watchdog (자동 재트리거) + macOS launchd |
 | **모니터링** | LangSmith (free tier) |
 | **UI** | Streamlit (탭 UI, 자동완성 검색, 후속질문 버튼, 반응형 CSS — 태블릿/모바일 대응) |
@@ -170,12 +171,14 @@ graph LR
 **Hit Rate 개선 과정**: 45% → 75% (이름 매칭) → 88% (에이전트) → 91.9% (도구 확장) → 95.2% (프롬프트) → **100%** (접두어/별칭 매칭)
 
 ### RAGAS 답변 품질
-| 지표 | 값 |
-|------|-----|
-| Hit Rate | 100% (162/162) |
-| Faithfulness | 0.411 |
-| Answer Relevancy | 0.108 |
-| Context Recall | 0.333 |
+| 지표 | 값 | 개선 |
+|------|-----|------|
+| Hit Rate | 100% (162/162) | — |
+| Faithfulness | **0.688** | +0.277 |
+| Answer Relevancy | **0.709** | +0.601 |
+| Context Recall | **0.854** | +0.521 |
+
+**개선 방법**: 컨텍스트 조립 강화 (도구 결과 5000자, 비교 테이블 텍스트화) + 프롬프트 수치 인용 강제 + AR 한국어 역질문 프롬프트 커스텀 (strictness 5) + ground_truth 44개 보정
 
 ---
 
@@ -212,7 +215,7 @@ ETF_RAG/
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
 ├── eval/                      # RAGAS 평가 (162개 질문, 8개 유형)
-├── tests/                     # pytest 431개
+├── tests/                     # pytest 515개 (단위 + E2E 통합)
 ├── scripts/
 │   ├── daily_collect.sh                # ETF+주식+DART 일배치 수집
 │   ├── collect_for_deploy.py           # GitHub Actions용 경량 수집
@@ -287,7 +290,9 @@ pytest tests/ -v
 - [x] **Phase D**: 기술적 지표 확장 (11개) + matplotlib 차트 + 가격 전망 모델 (3축 Ridge회귀)
 - [x] **품질 강화**: CoV 검증 + Structured Output + FAISS persist + force_answer + Bootstrap CI
 - [x] **안정성 + 모바일**: 수집 Watchdog (자동 재트리거) + 반응형 CSS (태블릿/모바일 대응)
-- [ ] **추후**: Pinecone + Cohere Rerank + KIS OpenAPI 실시간 + 시계열 예측 모델 (Prophet/LSTM)
+- [x] **Phase E-1**: 답변 품질 + UX — 멀티 도구 병렬 호출, 대화 맥락 유지, 섹션 접기/펼치기, 동적 예시 질문
+- [x] **Phase E-2**: 검색 + 평가 고도화 — Cohere Rerank v3.5, E2E 통합 테스트 42개, RAGAS 답변 품질 재개선 (F 0.688, AR 0.709, CR 0.854)
+- [ ] **추후**: Pinecone + KIS OpenAPI 실시간 + 시계열 예측 모델 (Prophet/LSTM)
 
 ---
 
