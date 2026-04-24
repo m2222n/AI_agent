@@ -172,6 +172,7 @@
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
+- [x] 멀티 도구 병렬 호출 (`ThreadPoolExecutor`, 2개+ 도구 동시 실행, 순서 보장)
 
 **3-2. 모델 라우팅** ✅ 구현 완료
 - [x] 단순 질문 (simple/general) → GPT-4o-mini, 복잡한 비교/분석 (compare/recommend/risk) → GPT-4o
@@ -362,7 +363,7 @@ ETF_RAG/
 │   │   ├── vectorstore.py  # create_vectorstore() — FAISS persist (MD5 해시 캐시) + text-embedding-3-small
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+MMR), retrieve_relevant_docs()
 │   ├── llm/
-│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer)
+│   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer + 병렬 도구 호출)
 │   │   ├── tools.py        # Function Calling 도구 13개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
@@ -380,7 +381,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 431개
+├── tests/                  # pytest 434개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -442,4 +443,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-23 (수집 Watchdog + 모바일 반응형 CSS + 프롬프트 6차. 도구 13개, 테스트 431개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-24 (코드 품질 리팩토링 + 멀티 도구 병렬 호출. 도구 13개, 테스트 434개, eval 162개, Hit Rate 100%)_

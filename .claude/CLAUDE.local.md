@@ -1408,5 +1408,26 @@
 
 ---
 
-_Last Updated: 2026-04-23_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + 도구 13개 + 테스트 431개 + eval 162개 + Hit Rate 100%_
+## 코드 품질 리팩토링 + 멀티 도구 병렬 호출 (2026-04-24)
+
+### 코드 품질 개선
+- **에러 처리 통합**: `chat.py`의 `_get_user_error_message()` → `agent.py`의 `_make_error_message()`로 위임 (중복 제거)
+- **모듈 캡슐화**: `tabs.py`가 `_tools_module._etf_data_index` 직접 접근 → `tools.py`에 공개 API 추가
+  - `get_available_tickers()`: 자동완성용 종목 옵션 반환
+  - `get_data_indices()`: ETF/주식 데이터 인덱스 반환 (읽기 전용)
+- **N+1 DB 쿼리 제거**: `_enrich_with_structured_data()` — 종목별 DB 연결 → 1회 배치 조회로 개선
+
+### 멀티 도구 병렬 호출 (E-1 #1 완료)
+- `call_tools()` — 2개+ 도구 호출 시 `ThreadPoolExecutor` 병렬 실행 (max_workers=4)
+- 단일 도구는 순차 실행 (스레드풀 오버헤드 방지)
+- tool_call 순서 보장 (dict 매핑 → 원본 순서로 ToolMessage 생성)
+- **효과**: 예측 질문에서 `get_technical_indicators` + `get_financial_statements` 동시 실행 → ~10초 → ~5초
+- 모든 도구가 read-only (초기화 후), SQLite WAL 모드 → 스레드 안전
+- 스트리밍/UI 변경 없음 (병렬화가 call_tools 내부에서 완결)
+
+### 테스트: 434개 전체 통과 (+3)
+
+---
+
+_Last Updated: 2026-04-24_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + 멀티 도구 병렬 + 도구 13개 + 테스트 434개 + eval 162개 + Hit Rate 100%_
