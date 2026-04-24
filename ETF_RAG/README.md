@@ -1,6 +1,8 @@
 # 투자 질의응답 챗봇 (ETF + 주식)
 
 > KRX 전종목 실시간 데이터 기반 하이브리드 검색 + LangGraph 에이전트 금융 질의응답 시스템
+>
+> **[라이브 데모 바로가기](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)** — 별도 설치 없이 브라우저에서 바로 사용 가능
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
