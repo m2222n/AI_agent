@@ -2,20 +2,46 @@ import streamlit as st
 
 from config import is_langsmith_enabled
 
+# ── 관심종목 헬퍼 ──────────────────────────────────────────
+
+def _get_watchlist() -> set:
+    """관심종목 set 반환 (session_state에서)."""
+    if "watchlist" not in st.session_state:
+        st.session_state["watchlist"] = set()
+    return st.session_state["watchlist"]
+
+
+def toggle_watchlist(ticker: str):
+    """관심종목 추가/제거 토글."""
+    wl = _get_watchlist()
+    if ticker in wl:
+        wl.discard(ticker)
+    else:
+        wl.add(ticker)
+
+
+def is_in_watchlist(ticker: str) -> bool:
+    """관심종목에 포함되어 있는지 확인."""
+    return ticker in _get_watchlist()
+
 
 def render_sidebar(etf_data: list, stock_data: list = None):
     """사이드바 전체 렌더링"""
     with st.sidebar:
         # 홈 버튼 (최상단) — 앱 초기 상태로 완전 리셋 + 종합 채팅 탭으로 이동
         if st.button("🏠 홈으로 돌아가기", key="home_btn", use_container_width=True):
+            # 관심종목은 보존
+            saved_watchlist = st.session_state.get("watchlist", set()).copy()
             preserve = {"home_btn"}
             for k in list(st.session_state.keys()):
                 if k not in preserve:
                     del st.session_state[k]
+            st.session_state["watchlist"] = saved_watchlist
             # 종합 채팅 탭(index 0)으로 전환
             st.session_state["_goto_tab"] = 0
             st.rerun()
         st.divider()
+        _render_watchlist(etf_data, stock_data or [])
         _render_data_summary(etf_data, stock_data or [])
         st.divider()
         _render_market_data(etf_data, stock_data or [])
@@ -24,6 +50,43 @@ def render_sidebar(etf_data: list, stock_data: list = None):
         if is_langsmith_enabled():
             st.divider()
             st.caption("🔗 LangSmith 트레이싱 활성화됨")
+
+
+def _render_watchlist(etf_data: list, stock_data: list):
+    """관심종목 표시 (있을 때만)."""
+    wl = _get_watchlist()
+    if not wl:
+        return
+
+    # 데이터에서 관심종목 찾기
+    all_data = {d.get("ticker", d.get("id", "")): d for d in etf_data}
+    for s in stock_data:
+        all_data[s.get("ticker", "")] = s
+
+    items = [all_data[t] for t in wl if t in all_data]
+    if not items:
+        return
+
+    st.markdown("⭐ **관심종목**")
+    for item in items:
+        ticker = item.get("ticker", item.get("id", ""))
+        name = item.get("name", "")
+        close = item.get("close", 0)
+        change_pct = item.get("change_pct", 0)
+        change_str = _format_change(change_pct) if close else ""
+
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.markdown(
+                f"**{name}** {close:,}원 {change_str}",
+                help=ticker,
+            )
+        with col2:
+            if st.button("✕", key=f"wl_rm_{ticker}", help="관심종목 해제"):
+                wl.discard(ticker)
+                st.rerun()
+
+    st.divider()
 
 
 def _render_data_summary(etf_data: list, stock_data: list):
@@ -89,7 +152,9 @@ def _render_etf_list(etf_data: list):
     for etf in display_data:
         change_pct = etf.get("change_pct", 0)
         change_indicator = _format_change(change_pct) if "close" in etf else ""
-        label = f"{etf['name']}  {change_indicator}" if change_indicator else etf["name"]
+        ticker = etf.get("ticker", etf.get("id", ""))
+        star = "⭐ " if is_in_watchlist(ticker) else ""
+        label = f"{star}{etf['name']}  {change_indicator}" if change_indicator else f"{star}{etf['name']}"
 
         with st.expander(label):
             if "category" in etf:
@@ -105,6 +170,11 @@ def _render_etf_list(etf_data: list):
                 with col2:
                     tv = etf.get("trade_value", 0)
                     st.write(f"**거래대금:** {_format_trade_value(tv)}")
+            # 관심종목 토글
+            btn_label = "⭐ 관심종목 해제" if is_in_watchlist(ticker) else "☆ 관심종목 추가"
+            if st.button(btn_label, key=f"wl_etf_{ticker}", use_container_width=True):
+                toggle_watchlist(ticker)
+                st.rerun()
 
 
 def _render_stock_list(stock_data: list):
@@ -146,8 +216,10 @@ def _render_stock_list(stock_data: list):
     for s in display_data:
         change_pct = s.get("change_pct", 0)
         change_indicator = _format_change(change_pct)
+        ticker = s.get("ticker", "")
         sector_badge = f" [{s.get('sector', '')}]" if s.get("sector") else ""
-        label = f"{s['name']}{sector_badge}  {change_indicator}"
+        star = "⭐ " if is_in_watchlist(ticker) else ""
+        label = f"{star}{s['name']}{sector_badge}  {change_indicator}"
 
         with st.expander(label):
             col1, col2 = st.columns(2)
@@ -167,6 +239,11 @@ def _render_stock_list(stock_data: list):
                 st.write(f"**시가총액:** {market_cap / 1_000_000_000_000:.1f}조원")
             elif market_cap >= 100_000_000:
                 st.write(f"**시가총액:** {market_cap / 100_000_000:.0f}억원")
+            # 관심종목 토글
+            btn_label = "⭐ 관심종목 해제" if is_in_watchlist(ticker) else "☆ 관심종목 추가"
+            if st.button(btn_label, key=f"wl_stk_{ticker}", use_container_width=True):
+                toggle_watchlist(ticker)
+                st.rerun()
 
 
 def _render_investment_warning():
