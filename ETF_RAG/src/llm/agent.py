@@ -17,7 +17,7 @@ import json
 import logging
 import operator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Annotated, Sequence, TypedDict
+from typing import Annotated, Optional, Sequence, TypedDict
 
 from langchain_core.messages import (
     AIMessage,
@@ -109,8 +109,53 @@ def _get_structured_classifier():
     return _structured_classifier
 
 
+def _keyword_pre_classify(question: str) -> Optional[str]:
+    """키워드 기반 사전 분류 — 확신도 높은 경우만 반환, 애매하면 None.
+
+    LLM 호출 없이 ~1ms로 분류 가능한 명확한 패턴만 처리.
+    """
+    import re
+    q = re.sub(r"\s+", " ", question.lower()).strip()
+
+    # 비교 패턴 (최우선)
+    compare_kw = ["비교", " vs ", "차이점", "뭐가 더"]
+    if any(kw in q for kw in compare_kw):
+        return "compare"
+
+    # 추천 패턴
+    recommend_kw = ["추천", "골라줘", "찾아줘", "어떤 etf", "어떤 주식",
+                    "좋은 etf", "좋은 주식", "목록"]
+    if any(kw in q for kw in recommend_kw):
+        return "recommend"
+
+    # 위험 패턴 (종목명 없이 위험 개념만)
+    risk_kw = ["리스크", "위험", "폭락", "손실"]
+    # 종목명이 포함된 위험 질문은 simple로 갈 수 있으므로 단독일 때만
+    has_ticker = bool(re.search(r"\b\d{6}\b", q))
+    brands = ["kodex", "tiger", "ace", "arirang", "kbstar", "삼성", "sk하이닉스",
+              "현대", "lg", "카카오", "네이버", "셀트리온", "포스코"]
+    has_brand = any(b in q for b in brands)
+    if any(kw in q for kw in risk_kw) and not has_ticker and not has_brand:
+        return "risk"
+
+    # general 패턴 (순수 개념 질문)
+    general_kw = ["이란", "이 뭐", "란 뭐", "뜻이", "의미", "개념", "설명해"]
+    if any(kw in q for kw in general_kw) and not has_ticker and not has_brand:
+        return "general"
+
+    return None  # 불확실 → LLM 분류 필요
+
+
 def classify_with_llm(question: str) -> str:
-    """LLM으로 질문 유형 분류 (Structured Output + 키워드 fallback)"""
+    """LLM으로 질문 유형 분류 (키워드 사전분류 → Structured Output → 키워드 fallback)"""
+
+    # 1단계: 키워드 사전 분류 (확신도 높은 패턴만, ~1ms)
+    pre = _keyword_pre_classify(question)
+    if pre:
+        logger.info(f"키워드 사전 분류: {pre} (LLM 호출 스킵)")
+        return pre
+
+    # 2단계: LLM Structured Output 분류
     prompt = f"""다음 질문을 분류하세요. 반드시 아래 5가지 중 하나를 선택합니다.
 
 - simple: 특정 ETF/주식의 정보 질문 (가격, 수익률, 기술적 분석, 차트, 지표, 재무제표, 동향, 전망, 시세 등). 특정 종목명이 포함되면 대부분 simple입니다.
@@ -330,7 +375,7 @@ def verify_answer(state: AgentState) -> dict:
 [도구 결과]의 데이터와 일치하는지 검증하세요.
 
 [도구 결과]
-{evidence[:5000]}
+{evidence[:2000]}
 
 [답변]
 {answer}
@@ -444,6 +489,10 @@ def should_verify(state: AgentState) -> str:
             and not last_message.tool_calls
             and last_message.content
             and question_type in COV_TYPES):
+        # 짧은 답변은 검증 불필요 (단순 조회 결과)
+        if len(last_message.content) < 100:
+            logger.info("CoV 스킵: 짧은 답변 (<100자)")
+            return "end"
         # 도구 호출이 있었는지 확인 (도구 없이 답변한 경우는 스킵)
         has_tool_results = any(
             isinstance(msg, ToolMessage) for msg in state["messages"]

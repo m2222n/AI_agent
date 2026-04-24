@@ -73,7 +73,7 @@ def test_should_verify_complex_with_tools():
         state: AgentState = {
             "messages": [
                 ToolMessage(content="데이터", tool_call_id="1"),
-                AIMessage(content="최종 답변입니다"),
+                AIMessage(content="삼성전자(005930)의 현재 주가는 75,000원이며, 최근 1개월 수익률은 +5.2%입니다. RSI(14)는 62.5로 중립 구간이며, MACD는 골든크로스 직후로 단기 상승 모멘텀이 확인됩니다."),
             ],
             "question_type": qtype,
             "tool_call_count": 1,
@@ -135,7 +135,7 @@ def test_route_verify_after_answer():
     state: AgentState = {
         "messages": [
             ToolMessage(content="근거", tool_call_id="1"),
-            AIMessage(content="비교 결과입니다"),
+            AIMessage(content="KODEX 200과 TIGER S&P500을 비교하면, KODEX 200의 최근 1년 수익률은 +8.5%인 반면 TIGER S&P500은 +15.2%입니다. 변동성 측면에서는 TIGER S&P500이 14.2%로 더 높습니다."),
         ],
         "question_type": "compare",
         "tool_call_count": 1,
@@ -273,7 +273,7 @@ def test_should_verify_simple_with_tools():
     state: AgentState = {
         "messages": [
             ToolMessage(content="삼성전자 종가 70,000원", tool_call_id="1"),
-            AIMessage(content="삼성전자의 현재 종가는 70,000원입니다."),
+            AIMessage(content="삼성전자(005930)의 현재 종가는 70,000원이며, 전일 대비 +1,500원(+2.19%) 상승했습니다. 거래대금은 5,432억원으로 최근 20일 평균 대비 높은 수준을 보이고 있습니다."),
         ],
         "question_type": "simple",
         "tool_call_count": 1,
@@ -286,7 +286,7 @@ def test_should_verify_technical_with_tools():
     state: AgentState = {
         "messages": [
             ToolMessage(content="RSI: 72.5 (과매수)", tool_call_id="1"),
-            AIMessage(content="RSI가 72.5로 과매수 구간입니다."),
+            AIMessage(content="삼성전자의 RSI(14)는 72.5로 과매수 구간에 진입했습니다. 단기적으로 매도 압력이 커질 수 있으며, MACD 히스토그램도 감소 추세를 보이고 있어 조정 가능성을 염두에 두시기 바랍니다."),
         ],
         "question_type": "technical",
         "tool_call_count": 1,
