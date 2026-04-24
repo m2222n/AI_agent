@@ -4,7 +4,7 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-431_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-522_Passed-2ea44f?style=for-the-badge)](#)
 [![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 ---
@@ -61,6 +61,12 @@
 ### 정량 평가 (RAGAS)
 - 162개 평가 데이터셋 (8개 유형: simple, compare, recommend, risk, general, technical, correlation, portfolio)
 - **전체 Hit Rate 100%** (162/162) — 4단계 이름 매칭 + eval 데이터셋 보정으로 달성
+
+### UI/UX
+- **6탭 분리**: 종합 채팅 / 기술적 분석 / 재무제표 / 가격 전망 / 비교 분석 / 섹터 분석
+- 종목 자동완성 검색 (~4,200종목, 이름/티커 부분 매칭)
+- 후속 질문 버튼 (도구 사용 기반 자동 제안)
+- 모바일 반응형 CSS (768px 태블릿 + 480px 소형 폰 breakpoint)
 
 ---
 
@@ -135,7 +141,7 @@ flowchart TB
 | **모니터링** | LangSmith (무료 5,000 traces/월) |
 | **자동 수집** | GitHub Actions (deploy/ JSON) + macOS launchd (로컬 DB) |
 | **배포** | Streamlit Cloud |
-| **테스트** | pytest 431개 |
+| **테스트** | pytest 522개 |
 
 ---
 
@@ -191,7 +197,7 @@ ETF_RAG/
 │   │   ├── collector.py        # pykrx ETF 일배치 수집
 │   │   ├── stock_collector.py  # pykrx 주식 일배치 수집
 │   │   ├── technical.py        # 기술적 지표 (MA/RSI/MACD/볼린저/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
-│   │   ├── chart_generator.py  # matplotlib 기술적 분석 차트 (base64 PNG)
+│   │   ├── chart_generator.py  # matplotlib 차트 8종 (기술적/포트폴리오/재무/밸류에이션/장중/섹터, base64 PNG)
 │   │   ├── dart_collector.py    # OpenDart 분기 재무제표 수집
 │   │   ├── predictor.py        # 3축 가격 전망 모델
 │   │   ├── realtime.py         # yfinance 장중 시세 (15분 지연)
@@ -207,6 +213,7 @@ ETF_RAG/
 │   └── ui/
 │       ├── chat.py             # 질문 처리 + 스트리밍 UI
 │       ├── sidebar.py          # 사이드바 (ETF/주식 목록)
+│       ├── tabs.py             # 6탭 UI (종합채팅/기술적분석/재무제표/가격전망/비교분석/섹터분석)
 │       └── components.py       # 예시 질문, 피드백 버튼
 │
 ├── eval/
@@ -214,7 +221,7 @@ ETF_RAG/
 │   ├── run_eval.py             # 평가 실행 스크립트
 │   └── results/                # 평가 결과 JSON
 │
-├── tests/                      # pytest 431개
+├── tests/                      # pytest 522개
 ├── packages.txt                # Streamlit Cloud 시스템 패키지 (한글 폰트)
 ├── scripts/
 │   ├── daily_collect.sh        # 일배치 수집 (ETF+주식+월요일DART+검증/복구)

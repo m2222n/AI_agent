@@ -1486,7 +1486,21 @@
 
 ### 테스트: 515개 전체 통과 (+54 today)
 
+### E-3 차트 시각화 + 섹터 탭 (2026-04-24 오후)
+- **포트폴리오 시뮬레이션 차트** (#13): wealth curve + drawdown 2패널, BM(KODEX 200) 비교
+- **속도 최적화** (#10): DB 싱글턴(`_get_db_conn`), TTL 캐시(`_ohlcv_cache`/`_closes_cache`), 키워드 사전분류(`_keyword_pre_classify`), CoV evidence 2000자
+- **재무제표 실적 추이 차트** (#14): `generate_financial_chart()` — 매출/영업이익/순이익 바 + 영업이익률 라인 2패널
+- **관심종목(watchlist)** (#18): `sidebar.py` ⭐/☆ 토글, `_get_watchlist()`/`toggle_watchlist()`/`is_in_watchlist()`, 홈 리셋 시 보존
+- **밸류에이션 비교 차트** (#12): `generate_valuation_chart()` — 비교 탭에 PER/PBR/배당 side-by-side 바
+- **장중 시세 차트** (#15): `generate_intraday_chart()` — 기술 탭에 "📈 장중 시세 보기" 버튼 → yfinance 15분봉
+- **섹터(업종) 분석 탭**: `render_sector_tab()` — 업종별 등락률 수평 바 + 상세 종목 2패널 + 밸류에이션 요약
+- **6탭 UI**: 종합채팅/기술적분석/재무제표/가격전망/비교분석/🏭섹터
+- `chart_generator.py`: 8개 차트 함수 (technical/comparison/portfolio/financial/valuation/intraday/sector_overview/sector_detail)
+- 테스트 7개 추가 (test_sector_chart.py)
+
+### 테스트: 522개 전체 통과
+
 ---
 
 _Last Updated: 2026-04-24_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + E-1(병렬도구/대화맥락/동적예시/응답포맷) + E-2(Cohere Rerank + E2E + RAGAS 개선) + 도구 13개 + 테스트 515개 + eval 162개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 완료 + 도구 13개 + 테스트 522개 + eval 162개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_

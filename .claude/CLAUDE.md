@@ -216,7 +216,7 @@
 - [x] 에러 핸들링 완성 (API 타임아웃/인증/네트워크/Rate Limit 분류, graceful degradation)
 - [x] 사용자 피드백 루프 (부정 피드백 사유 수집, 만족도 통계, sidebar 표시)
 - [x] LangSmith 모니터링 연동 (환경변수 설정 시 자동 트레이싱)
-- [x] 탭 분리 UI (종합 채팅 / 기술적 분석 / 재무제표 / 비교 분석 / 가격 전망) — tabs.py
+- [x] 탭 분리 UI (종합 채팅 / 기술적 분석 / 재무제표 / 비교 분석 / 가격 전망 / 섹터 분석) — tabs.py
 - [x] 후속 질문 버튼 (on_click 콜백 + session_state 패턴)
 - [x] 탭 종목 입력 자동완성 (text_input + 부분 매칭 selectbox, ~4,200종목 검색, 이름/티커 매칭)
 - [x] 재무제표 탭 분기 수 동적 조정 (slider 1~최대분기, 2015년부터 전체 데이터)
@@ -233,6 +233,10 @@
 - [x] 기술 분석 days 파라미터 파이프라인 (사용자 기간 지정, 데이터 범위 안내)
 - [x] 사이드바: st.metric→st.markdown (잘림 수정) + 업데이트 시간 안내
 - [x] 모바일 반응형 CSS 강화 (line-height, 테이블 가로 스크롤, 768px 태블릿 + 480px 소형 폰 breakpoint, 멀티컬럼 스택)
+- [x] 섹터(업종) 분석 탭 추가 (업종별 등락률/시총 차트, 업종 상세 종목 차트, 밸류에이션 요약)
+- [x] 관심종목(watchlist) 기능 (사이드바 ⭐ 토글, 홈 리셋 시 보존)
+- [x] 비교 탭 밸류에이션 차트 (PER/PBR/배당 side-by-side), 기술 탭 장중 시세 차트 (yfinance 15분봉)
+- [x] 포트폴리오 시뮬레이션 차트 (wealth curve + drawdown), 재무제표 실적 추이 차트 (매출/이익 바 + 마진 라인)
 
 **4-3. 데이터/분석 확장**
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
@@ -351,7 +355,7 @@ ETF_RAG/
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
 │   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
-│   │   ├── chart_generator.py  # matplotlib 차트 (기술적 분석 3단 + 비교 시계열 base=100, base64 PNG)
+│   │   ├── chart_generator.py  # matplotlib 차트 (기술적 분석/포트폴리오/재무제표/밸류에이션/장중시세/섹터, base64 PNG)
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
@@ -374,7 +378,7 @@ ETF_RAG/
 │   │   ├── sidebar.py      # render_sidebar()
 │   │   ├── chat.py         # process_question() (structured_data 이벤트 처리, 후속질문 on_click 콜백)
 │   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 시계열 차트 + 기술적 분석 차트)
-│   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망, text_input 부분매칭 자동완성)
+│   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망/섹터 분석, text_input 부분매칭 자동완성)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응: 768px 태블릿 + 480px 소형 폰)
 │   │   └── components.py   # render_example_questions(동적+기본), generate_dynamic_examples(급등/급락/거래대금), render_feedback_buttons(부정사유 수집)
 │   └── utils/
@@ -383,7 +387,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 515개
+├── tests/                  # pytest 522개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -445,4 +449,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (E-1 + E-2 Cohere Rerank + E2E + RAGAS 개선. 도구 13개, 테스트 515개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-04-24 (E-3 차트 시각화 + 섹터 탭. 도구 13개, 테스트 522개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
