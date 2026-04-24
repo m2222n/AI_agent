@@ -788,3 +788,188 @@ def generate_financial_chart(
     except Exception as e:
         logger.error(f"재무제표 차트 생성 실패: {e}")
         return None
+
+
+# ══════════════════════════════════════════════════════════════
+# 밸류에이션 비교 차트
+# ══════════════════════════════════════════════════════════════
+
+_VAL_COLORS = ["#1A73E8", "#E8453C"]  # 종목1, 종목2
+
+
+def generate_valuation_chart(
+    name1: str, name2: str,
+    metrics: dict,
+) -> Optional[str]:
+    """2종목 밸류에이션 비교 바 차트 → base64 PNG.
+
+    Args:
+        name1, name2: 종목명
+        metrics: {label: (val1, val2)} — 예: {"PER (배)": (12.5, 18.3), ...}
+
+    Returns:
+        base64 PNG, 실패 시 None
+    """
+    labels = [k for k, (v1, v2) in metrics.items() if v1 or v2]
+    if len(labels) < 2:
+        return None
+
+    _setup_font()
+
+    try:
+        vals1 = [metrics[l][0] or 0 for l in labels]
+        vals2 = [metrics[l][1] or 0 for l in labels]
+        n = len(labels)
+        x = list(range(n))
+        bar_w = 0.35
+
+        fig, ax = plt.subplots(figsize=(max(7, n * 1.5), 4.5), facecolor=_BG_COLOR)
+        ax.set_facecolor(_BG_COLOR)
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+
+        x1 = [i - bar_w / 2 for i in x]
+        x2 = [i + bar_w / 2 for i in x]
+
+        bars1 = ax.bar(x1, vals1, width=bar_w, color=_VAL_COLORS[0],
+                       label=name1, alpha=0.85, zorder=3)
+        bars2 = ax.bar(x2, vals2, width=bar_w, color=_VAL_COLORS[1],
+                       label=name2, alpha=0.85, zorder=3)
+
+        # 값 라벨
+        for bars in [bars1, bars2]:
+            for bar in bars:
+                h = bar.get_height()
+                if h != 0:
+                    ax.text(bar.get_x() + bar.get_width() / 2, h,
+                            f"{h:.1f}", ha="center", va="bottom",
+                            fontsize=7, color=_TEXT_COLOR)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax.set_title(f"{name1} vs {name2} 밸류에이션 비교", fontsize=12,
+                     fontweight="bold", color=_TEXT_COLOR, pad=10, **fp_kw)
+        ax.legend(fontsize=8, framealpha=0.8)
+        ax.grid(True, axis="y", alpha=0.3, color=_GRID_COLOR, zorder=0)
+        ax.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        fig.subplots_adjust(left=0.10, right=0.95, top=0.88, bottom=0.15)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"밸류에이션 차트 생성 실패: {e}")
+        return None
+
+
+# ══════════════════════════════════════════════════════════════
+# 장중 시세 차트 (yfinance 인트라데이)
+# ══════════════════════════════════════════════════════════════
+
+_INTRA_COLOR = "#1A73E8"
+_INTRA_PREV = "#999999"
+
+
+def generate_intraday_chart(
+    ticker: str,
+    name: str,
+    prev_close: Optional[float] = None,
+) -> Optional[str]:
+    """yfinance에서 당일 장중 데이터 조회 + 차트 생성 → base64 PNG.
+
+    Args:
+        ticker: KRX 6자리 코드
+        name: 종목명
+        prev_close: 전일 종가 (기준선 표시)
+
+    Returns:
+        base64 PNG, 실패/장외 시 None
+    """
+    _setup_font()
+
+    try:
+        import yfinance as yf
+        from src.data.realtime import krx_to_yfinance
+
+        yf_ticker = krx_to_yfinance(ticker, "stock")
+        df = yf.download(yf_ticker, period="1d", interval="15m", progress=False)
+
+        if df.empty or len(df) < 3:
+            return None
+
+        # MultiIndex 처리
+        if hasattr(df.columns, "levels") and len(df.columns.levels) > 1:
+            df = df.droplevel("Ticker", axis=1)
+
+        closes = df["Close"].values.flatten()
+        times = [idx.strftime("%H:%M") for idx in df.index]
+        volumes = df["Volume"].values.flatten()
+
+        n = len(closes)
+        x = list(range(n))
+
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=(10, 5), facecolor=_BG_COLOR,
+            gridspec_kw={"height_ratios": [3, 1], "hspace": 0.20},
+        )
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+
+        # ── 상단: 가격 라인 ──
+        ax1.set_facecolor(_BG_COLOR)
+        ax1.plot(x, closes, color=_INTRA_COLOR, linewidth=1.8, alpha=0.9)
+        ax1.fill_between(x, closes, closes[0], alpha=0.08, color=_INTRA_COLOR)
+
+        if prev_close:
+            ax1.axhline(y=prev_close, color=_INTRA_PREV, linewidth=1.0,
+                        linestyle="--", alpha=0.7)
+            ax1.text(0, prev_close, f" 전일종가 {prev_close:,.0f}",
+                     fontsize=7, color=_INTRA_PREV, va="bottom", **fp_kw)
+
+        ax1.set_title(f"{name} 장중 시세 (15분봉)", fontsize=12,
+                      fontweight="bold", color=_TEXT_COLOR, pad=8, **fp_kw)
+        ax1.set_ylabel("가격 (원)", fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax1.grid(True, alpha=0.3, color=_GRID_COLOR)
+        ax1.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax1.spines.values():
+            spine.set_visible(False)
+
+        # ── 하단: 거래량 ──
+        ax2.set_facecolor(_BG_COLOR)
+        colors = [_VOL_UP if i > 0 and closes[i] >= closes[i - 1] else _VOL_DOWN
+                  for i in range(n)]
+        ax2.bar(x, volumes, color=colors, alpha=0.6, width=0.8, zorder=3)
+        ax2.set_ylabel("거래량", fontsize=8, color=_TEXT_COLOR, **fp_kw)
+        ax2.grid(True, alpha=0.3, color=_GRID_COLOR, zorder=0)
+        ax2.tick_params(colors=_TEXT_COLOR, labelsize=7)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
+
+        # X축 라벨
+        step = max(1, n // 6)
+        xtick_pos = list(range(0, n, step))
+        xtick_labels = [times[i] for i in xtick_pos]
+        for ax in (ax1, ax2):
+            ax.set_xticks(xtick_pos)
+            ax.set_xticklabels(xtick_labels, fontsize=7, color=_TEXT_COLOR)
+
+        fig.subplots_adjust(left=0.10, right=0.95, top=0.90, bottom=0.10)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except ImportError:
+        logger.warning("yfinance 미설치 — 장중 차트 생성 불가")
+        return None
+    except Exception as e:
+        logger.error(f"장중 시세 차트 생성 실패: {e}")
+        return None

@@ -14,7 +14,12 @@ from typing import Optional
 
 import streamlit as st
 
-from src.data.chart_generator import generate_technical_chart, generate_comparison_chart
+from src.data.chart_generator import (
+    generate_technical_chart,
+    generate_comparison_chart,
+    generate_valuation_chart,
+    generate_intraday_chart,
+)
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
@@ -287,6 +292,18 @@ def render_technical_tab():
             st.metric("ATR(14)", f"{atr['atr']:,.0f}원",
                       delta=f"{atr['atr_pct']:.1f}% ({atr.get('volatility', '')})")
 
+    # 장중 시세 차트 (yfinance 15분봉)
+    st.divider()
+    if st.button("📈 장중 시세 보기", key="intraday_btn", use_container_width=True):
+        with st.spinner("장중 시세 조회 중..."):
+            prev_close = summary.get("close")
+            intra_b64 = generate_intraday_chart(ticker, name, prev_close=prev_close)
+        if intra_b64:
+            st.image(base64.b64decode(intra_b64), use_container_width=True)
+            st.caption("⏱ yfinance 15분봉 데이터 (약 15분 지연)")
+        else:
+            st.info("장중 시세를 불러올 수 없습니다. 장 운영 시간(09:00~15:30)에 다시 시도해주세요.")
+
 
 # ── 재무제표 탭 ────────────────────────────────────────────
 
@@ -534,6 +551,18 @@ def render_comparison_tab():
             sep = "|------|------|------|"
             body = "\n".join(f"| {l} | {a} | {b} |" for l, a, b in fin_rows)
             st.markdown(f"{header}\n{sep}\n{body}")
+
+    # 밸류에이션 비교 차트 (PER/PBR/배당수익률)
+    val_metrics = {}
+    for key, label in [("per", "PER (배)"), ("pbr", "PBR (배)"), ("div", "배당수익률 (%)")]:
+        v1, v2 = data1.get(key), data2.get(key)
+        if v1 is not None or v2 is not None:
+            val_metrics[label] = (v1 or 0, v2 or 0)
+    if val_metrics:
+        st.markdown("#### 밸류에이션 비교")
+        val_b64 = generate_valuation_chart(name1, name2, val_metrics)
+        if val_b64:
+            st.image(base64.b64decode(val_b64), use_container_width=True)
 
 
 # ── 가격 전망 탭 ──────────────────────────────────────────
