@@ -374,14 +374,14 @@ ETF_RAG/
 │   │   ├── charts.py       # 구조화 데이터 렌더링 (비교 테이블 + 시계열 차트 + 기술적 분석 차트)
 │   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망, text_input 부분매칭 자동완성)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응: 768px 태블릿 + 480px 소형 폰)
-│   │   └── components.py   # render_example_questions(), render_feedback_buttons(부정사유 수집)
+│   │   └── components.py   # render_example_questions(동적+기본), generate_dynamic_examples(급등/급락/거래대금), render_feedback_buttons(부정사유 수집)
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 434개
+├── tests/                  # pytest 447개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -443,4 +443,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (코드 품질 리팩토링 + 멀티 도구 병렬 호출. 도구 13개, 테스트 434개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-24 (코드 품질 리팩토링 + 멀티 도구 병렬 호출 + 대화 맥락 + 동적 예시. 도구 13개, 테스트 447개, eval 162개, Hit Rate 100%)_
