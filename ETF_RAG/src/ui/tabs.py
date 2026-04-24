@@ -160,12 +160,20 @@ def render_technical_tab():
     st.markdown("##### 📊 기술적 분석")
     st.caption("종목명 또는 티커를 입력하면 11개 기술적 지표와 차트를 바로 확인합니다.")
 
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([3, 1.5, 1])
     with col1:
         query = _ticker_input("종목", "tech_ticker", "예: 삼성전자, 005930")
     with col2:
+        period = st.selectbox(
+            "분석 기간",
+            ["6개월", "1년", "3년", "5년", "10년"],
+            key="tech_period",
+        )
+    with col3:
         st.markdown("<br>", unsafe_allow_html=True)
         run = st.button("분석", key="tech_run", use_container_width=True)
+
+    _PERIOD_DAYS = {"6개월": 120, "1년": 250, "3년": 750, "5년": 1250, "10년": 2500}
 
     if not run or not query:
         return
@@ -185,8 +193,9 @@ def render_technical_tab():
         return
 
     # 차트 생성 (캐싱)
+    chart_days = _PERIOD_DAYS.get(period, 120)
     with st.spinner("차트 생성 중..."):
-        chart_b64 = _cached_technical_chart(ticker, name, days=120)
+        chart_b64 = _cached_technical_chart(ticker, name, days=chart_days)
 
     if chart_b64:
         st.image(base64.b64decode(chart_b64), use_container_width=True)
@@ -384,14 +393,22 @@ def render_comparison_tab():
     st.markdown("##### ⚖️ 비교 분석")
     st.caption("2개 종목을 입력하면 가격, 수익률, 밸류에이션을 비교합니다.")
 
-    col1, col2, col3 = st.columns([2, 2, 1])
+    col1, col2, col3, col4 = st.columns([2, 2, 1.5, 1])
     with col1:
         q1 = _ticker_input("종목 1", "cmp_ticker1", "예: 삼성전자")
     with col2:
         q2 = _ticker_input("종목 2", "cmp_ticker2", "예: SK하이닉스")
     with col3:
+        cmp_period = st.selectbox(
+            "차트 기간",
+            ["6개월", "1년", "3년", "5년", "10년"],
+            key="cmp_period",
+        )
+    with col4:
         st.markdown("<br>", unsafe_allow_html=True)
         run = st.button("비교", key="cmp_run", use_container_width=True)
+
+    _CMP_PERIOD_DAYS = {"6개월": 120, "1년": 250, "3년": 750, "5년": 1250, "10년": 2500}
 
     if not run or not q1 or not q2:
         return
@@ -485,8 +502,9 @@ def render_comparison_tab():
         st.bar_chart(df)
 
     # 상대 수익률 추이 차트 (캐싱)
+    cmp_chart_days = _CMP_PERIOD_DAYS.get(cmp_period, 120)
     with st.spinner("비교 차트 생성 중..."):
-        chart_b64 = _cached_comparison_chart((ticker1, ticker2), (name1, name2), days=120)
+        chart_b64 = _cached_comparison_chart((ticker1, ticker2), (name1, name2), days=cmp_chart_days)
     if chart_b64:
         st.markdown("#### 기간별 상대 수익률 추이")
         st.image(base64.b64decode(chart_b64), use_container_width=True)
