@@ -109,7 +109,7 @@
   },
   {
     "question": "TIGER 200이랑 KODEX 200 비교해줘",
-    "ground_truth": "두 ETF 모두 KOSPI 200 지수를 추종합니다.",
+    "ground_truth": "두 ETF 모두 KOSPI 200 지수를 추종합니다. TIGER 200(102110)과 KODEX 200(069500)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 괴리율, 추적오차율, 보유종목 상위 비중을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "069500",
@@ -118,7 +118,7 @@
   },
   {
     "question": "KODEX 반도체와 KODEX 200 중에 수익률이 더 좋은 건?",
-    "ground_truth": "KODEX 반도체와 KODEX 200의 수익률을 비교합니다.",
+    "ground_truth": "KODEX 반도체(091160)와 KODEX 200(069500)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년)을 비교하여 어느 쪽이 더 높은 수익률인지 분석합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "091160",
@@ -127,13 +127,24 @@
   },
   {
     "question": "나스닥이랑 반도체 ETF 뭐가 더 좋아?",
-    "ground_truth": "나스닥 관련 ETF와 반도체 관련 ETF를 비교 분석합니다.",
+    "ground_truth": "나스닥 관련 ETF와 반도체 관련 ETF의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 보유종목을 비교 분석합니다.",
     "question_type": "compare",
-    "expected_ticker": ["133690", "091160", "368590", "381180", "395160", "390390", "0069M0", "091230", "367380", "476030"]
+    "expected_ticker": [
+      "133690",
+      "091160",
+      "368590",
+      "381180",
+      "395160",
+      "390390",
+      "0069M0",
+      "091230",
+      "367380",
+      "476030"
+    ]
   },
   {
     "question": "KODEX 레버리지와 KODEX 인버스 비교해줘",
-    "ground_truth": "KODEX 레버리지는 상승장에서, KODEX 인버스는 하락장에서 수익을 추구합니다.",
+    "ground_truth": "KODEX 레버리지(122630)와 KODEX 인버스(114800)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 보유종목을 비교합니다. 레버리지는 상승장 2배, 인버스는 하락장 역방향 추종입니다.",
     "question_type": "compare",
     "expected_ticker": [
       "122630",
@@ -142,7 +153,7 @@
   },
   {
     "question": "TIGER 미국S&P500이랑 KODEX 미국S&P500 차이가 뭐야?",
-    "ground_truth": "둘 다 S&P500을 추종하며 운용사가 다릅니다.",
+    "ground_truth": "TIGER 미국S&P500(360750)과 KODEX 미국S&P500(379800)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 괴리율, 추적오차율을 비교합니다. 둘 다 S&P500을 추종하며 운용사가 다릅니다.",
     "question_type": "compare",
     "expected_ticker": [
       "360750",
@@ -151,7 +162,7 @@
   },
   {
     "question": "KODEX 200이랑 RISE 200 중에 뭐가 나아?",
-    "ground_truth": "둘 다 KOSPI 200을 추종하는 ETF입니다.",
+    "ground_truth": "KODEX 200(069500)과 RISE 200(148020)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 괴리율, 추적오차율을 비교합니다. 둘 다 KOSPI 200 추종 ETF입니다.",
     "question_type": "compare",
     "expected_ticker": [
       "069500",
@@ -160,7 +171,7 @@
   },
   {
     "question": "KODEX 코스닥150레버리지와 KODEX 코스닥150 비교",
-    "ground_truth": "레버리지는 2배 추종, 일반은 1배 추종입니다.",
+    "ground_truth": "KODEX 코스닥150레버리지(233740)와 KODEX 코스닥150(229200)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV를 비교합니다. 레버리지는 2배 추종으로 변동성이 더 큽니다.",
     "question_type": "compare",
     "expected_ticker": [
       "233740",
@@ -169,7 +180,7 @@
   },
   {
     "question": "KODEX 반도체레버리지와 TIGER 반도체TOP10레버리지 어떤 게 좋아?",
-    "ground_truth": "두 레버리지 ETF의 수익률과 보유종목을 비교합니다.",
+    "ground_truth": "두 레버리지 ETF의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), NAV, 보유종목 상위 비중을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "494310",
@@ -226,31 +237,38 @@
   },
   {
     "question": "인버스 ETF 투자할 때 위험한 점이 뭐야?",
-    "ground_truth": "인버스 ETF는 장기 보유 시 복리 효과로 손실이 커질 수 있습니다.",
+    "ground_truth": "인버스 ETF(KODEX 200선물인버스2X, KODEX 인버스 등)의 종가, 등락률, 수익률 데이터를 기반으로 장기 보유 시 복리 효과에 의한 손실 누적 위험을 분석합니다.",
     "question_type": "risk",
-    "expected_ticker": ["252670", "114800", "252410", "251340", "145670", "123310"]
+    "expected_ticker": [
+      "252670",
+      "114800",
+      "252410",
+      "251340",
+      "145670",
+      "123310"
+    ]
   },
   {
     "question": "레버리지 ETF 위험성에 대해 알려줘",
-    "ground_truth": "레버리지 ETF는 기초지수 변동의 2배를 추종하므로 변동성이 매우 큽니다.",
+    "ground_truth": "레버리지 ETF의 종가, 등락률, 수익률 데이터를 기반으로, 기초지수 변동의 2배를 추종하므로 변동성이 매우 큰 점을 분석합니다.",
     "question_type": "risk",
     "expected_ticker": null
   },
   {
     "question": "KODEX 코스닥150레버리지 투자해도 되나?",
-    "ground_truth": "코스닥150레버리지는 고위험 상품으로 단기 투자에 적합합니다.",
+    "ground_truth": "KODEX 코스닥150레버리지(233740)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 변동성과 수익률 추이를 분석하고 고위험 특성을 안내합니다.",
     "question_type": "risk",
     "expected_ticker": "233740"
   },
   {
     "question": "KODEX 200선물인버스2X 장기 보유하면 어떻게 돼?",
-    "ground_truth": "인버스2X는 장기 보유 시 복리 손실이 누적되어 큰 손실이 발생할 수 있습니다.",
+    "ground_truth": "KODEX 200선물인버스2X(252670)의 종가, 등락률, 수익률 데이터를 기반으로 장기 보유 시 복리 손실 누적 구조를 분석합니다.",
     "question_type": "risk",
     "expected_ticker": "252670"
   },
   {
     "question": "2차전지 ETF 지금 투자해도 괜찮을까?",
-    "ground_truth": "2차전지 ETF의 최근 수익률과 변동성을 고려하여 안내합니다.",
+    "ground_truth": "2차전지 관련 ETF의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년) 데이터를 기반으로 최근 변동성과 투자 시점 적절성을 분석합니다.",
     "question_type": "risk",
     "expected_ticker": null
   },
@@ -306,7 +324,13 @@
     "question": "반도체 ETF 보유종목 알려줘",
     "ground_truth": "반도체 관련 ETF의 주요 보유종목(삼성전자, SK하이닉스 등)을 안내합니다.",
     "question_type": "simple",
-    "expected_ticker": ["091160", "395160", "390390", "381180", "091230"]
+    "expected_ticker": [
+      "091160",
+      "395160",
+      "390390",
+      "381180",
+      "091230"
+    ]
   },
   {
     "question": "코스닥 ETF 뭐가 있어?",
@@ -371,7 +395,7 @@
   },
   {
     "question": "삼성전자랑 SK하이닉스 비교해줘",
-    "ground_truth": "삼성전자와 SK하이닉스의 주가, PER, 시가총액을 비교합니다.",
+    "ground_truth": "삼성전자(005930)와 SK하이닉스(000660)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), PER, PBR, EPS, 시가총액, 배당수익률, 최근 분기 실적(매출/영업이익/영업이익률)을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "005930",
@@ -381,7 +405,7 @@
   },
   {
     "question": "현대차와 삼성SDI 중에 PER이 낮은 건?",
-    "ground_truth": "현대차와 삼성SDI의 PER을 비교합니다.",
+    "ground_truth": "현대차(005380)와 삼성SDI(006400)의 PER, PBR, 시가총액, 종가, 등락률, 수익률을 비교하여 PER이 낮은 종목을 확인합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "005380",
@@ -432,7 +456,7 @@
   },
   {
     "question": "NAVER랑 카카오 비교해줘",
-    "ground_truth": "NAVER와 카카오의 주가, PER, 시가총액을 비교합니다.",
+    "ground_truth": "NAVER(035420)와 카카오(035720)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), PER, PBR, EPS, 시가총액, 배당수익률, 최근 분기 실적을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "035420",
@@ -442,7 +466,7 @@
   },
   {
     "question": "LG에너지솔루션이랑 삼성SDI 중에 뭐가 나아?",
-    "ground_truth": "LG에너지솔루션과 삼성SDI의 주가, PER, PBR을 비교합니다.",
+    "ground_truth": "LG에너지솔루션(373220)과 삼성SDI(006400)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년), PER, PBR, EPS, 시가총액, 배당수익률, 최근 분기 재무제표를 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "373220",
@@ -494,7 +518,7 @@
   },
   {
     "question": "삼성전자 주가랑 KODEX 반도체 ETF 비교하면 어때?",
-    "ground_truth": "삼성전자 주가와 KODEX 반도체 ETF의 수익률을 비교합니다.",
+    "ground_truth": "삼성전자(005930)와 KODEX 반도체(091160)의 종가, 등락률, 수익률(1일/1주/1개월/3개월/1년)을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": [
       "005930",
@@ -630,7 +654,7 @@
   },
   {
     "question": "삼성전자와 SK하이닉스 상관관계가 어때?",
-    "ground_truth": "삼성전자와 SK하이닉스의 주가 상관계수를 안내합니다.",
+    "ground_truth": "삼성전자(005930)와 SK하이닉스(000660)의 120일 일봉 수익률 기반 상관계수와 해석(강한/약한 양/음의 상관관계), 각 종목의 베타 계수(KODEX 200 벤치마크 대비)를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "005930",
@@ -640,7 +664,7 @@
   },
   {
     "question": "현대차랑 기아 주가 연동성이 높아?",
-    "ground_truth": "현대차와 기아의 상관관계를 분석합니다.",
+    "ground_truth": "현대차(005380)와 기아(000270)의 120일 일봉 수익률 기반 상관계수, 해석(강한/약한 양/음의 상관관계), 각 종목의 시장 대비 베타 계수(KODEX 200 기준)를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "005380",
@@ -650,14 +674,14 @@
   },
   {
     "question": "삼성전자 베타가 얼마야?",
-    "ground_truth": "삼성전자의 시장(KODEX 200) 대비 베타 계수를 안내합니다.",
+    "ground_truth": "삼성전자(005930)의 KODEX 200(069500) 대비 베타 계수와 해석(공격적/시장 평균/방어적), 분석 기간(250일)을 안내합니다.",
     "question_type": "correlation",
     "expected_ticker": "005930",
     "asset_type": "stock"
   },
   {
     "question": "NAVER와 카카오 상관계수 알려줘",
-    "ground_truth": "NAVER와 카카오의 주가 상관계수를 안내합니다.",
+    "ground_truth": "NAVER(035420)와 카카오(035720)의 120일 일봉 수익률 기반 상관계수, 해석(강한/약한 양/음의 상관관계), 각 종목의 베타 계수(KODEX 200 대비)를 안내합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "035420",
@@ -667,7 +691,7 @@
   },
   {
     "question": "LG에너지솔루션이랑 삼성SDI 같이 움직여?",
-    "ground_truth": "LG에너지솔루션과 삼성SDI의 상관관계를 분석합니다.",
+    "ground_truth": "LG에너지솔루션(373220)과 삼성SDI(006400)의 120일 일봉 수익률 기반 상관계수, 해석(동반 등락 경향 등), 각 종목의 시장 대비 베타 계수를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "373220",
@@ -677,14 +701,14 @@
   },
   {
     "question": "SK하이닉스 베타 계수 알려줘",
-    "ground_truth": "SK하이닉스의 시장 대비 베타 계수를 안내합니다.",
+    "ground_truth": "SK하이닉스(000660)의 KODEX 200 대비 베타 계수, 해석(공격적/시장 평균/방어적), 분석 기간(250일)을 안내합니다.",
     "question_type": "correlation",
     "expected_ticker": "000660",
     "asset_type": "stock"
   },
   {
     "question": "삼성전자랑 KODEX 200 상관관계는?",
-    "ground_truth": "삼성전자와 KODEX 200의 상관관계를 분석합니다.",
+    "ground_truth": "삼성전자(005930)와 KODEX 200(069500)의 120일 일봉 수익률 기반 상관계수, 해석(강한/약한 양/음의 상관관계), 각 종목의 베타 계수를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "005930",
@@ -694,7 +718,7 @@
   },
   {
     "question": "KB금융이랑 신한지주 같이 움직이나?",
-    "ground_truth": "KB금융과 신한지주의 상관관계를 분석합니다.",
+    "ground_truth": "KB금융(105560)과 신한지주(055550)의 120일 일봉 수익률 기반 상관계수, 해석(동반 등락 경향 등), 각 종목의 시장 대비 베타 계수(KODEX 200 기준)를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "105560",
@@ -704,14 +728,14 @@
   },
   {
     "question": "한화에어로스페이스 베타가 높아?",
-    "ground_truth": "한화에어로스페이스의 베타 계수를 안내합니다.",
+    "ground_truth": "한화에어로스페이스(012450)의 KODEX 200 대비 베타 계수, 해석(공격적/시장 평균/방어적), 분석 기간(250일)을 안내합니다.",
     "question_type": "correlation",
     "expected_ticker": "012450",
     "asset_type": "stock"
   },
   {
     "question": "포스코홀딩스랑 현대제철 상관관계 어때?",
-    "ground_truth": "POSCO홀딩스와 현대제철의 상관관계를 분석합니다.",
+    "ground_truth": "POSCO홀딩스(005490)와 현대제철(004020)의 120일 일봉 수익률 기반 상관계수, 해석(강한/약한 양/음의 상관관계), 각 종목의 시장 대비 베타 계수를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "005490",
@@ -721,7 +745,7 @@
   },
   {
     "question": "셀트리온이랑 삼성바이오로직스 연관성 알려줘",
-    "ground_truth": "셀트리온과 삼성바이오로직스의 상관관계를 분석합니다.",
+    "ground_truth": "셀트리온(068270)과 삼성바이오로직스(207940)의 120일 일봉 수익률 기반 상관계수, 해석(강한/약한 양/음의 상관관계), 각 종목의 시장 대비 베타 계수를 분석합니다.",
     "question_type": "correlation",
     "expected_ticker": [
       "068270",
@@ -731,14 +755,14 @@
   },
   {
     "question": "기아 베타 계수가 1보다 커?",
-    "ground_truth": "기아의 베타 계수를 안내하고 시장 대비 민감도를 설명합니다.",
+    "ground_truth": "기아(000270)의 KODEX 200 대비 베타 계수, 해석(공격적=1.2 초과/시장 평균=0.8~1.2/방어적=0.8 미만), 분석 기간(250일)을 안내합니다.",
     "question_type": "correlation",
     "expected_ticker": "000270",
     "asset_type": "stock"
   },
   {
     "question": "삼성전자 50% SK하이닉스 50%로 포트폴리오 시뮬레이션 해줘",
-    "ground_truth": "삼성전자 50%, SK하이닉스 50% 포트폴리오의 수익률, MDD, 샤프 비율을 안내합니다.",
+    "ground_truth": "삼성전자(005930) 50%, SK하이닉스(000660) 50% 포트폴리오의 총 수익률, 연환산 수익률, 변동성(연환산), 샤프 비율, 최대 낙폭(MDD)을 시뮬레이션하고, KODEX 200 벤치마크 대비 초과 수익을 비교합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "005930",
@@ -748,7 +772,7 @@
   },
   {
     "question": "삼성전자 30% 현대차 30% KODEX 200 40% 백테스트 해줘",
-    "ground_truth": "3종목 포트폴리오의 과거 성과를 시뮬레이션합니다.",
+    "ground_truth": "삼성전자(005930) 30%, 현대차(005380) 30%, KODEX 200(069500) 40% 포트폴리오의 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션하고 벤치마크 대비 성과를 비교합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "005930",
@@ -759,14 +783,14 @@
   },
   {
     "question": "반도체 주식으로만 포트폴리오 만들면 어때?",
-    "ground_truth": "반도체 관련 종목으로 포트폴리오를 구성하여 시뮬레이션합니다.",
+    "ground_truth": "반도체 관련 종목으로 포트폴리오를 구성하여 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션하고 KODEX 200 벤치마크 대비 성과를 비교합니다.",
     "question_type": "portfolio",
     "expected_ticker": null,
     "asset_type": "stock"
   },
   {
     "question": "KODEX 200이랑 TIGER 미국S&P500 반반 넣으면 수익률이 어때?",
-    "ground_truth": "KODEX 200 50%, TIGER 미국S&P500 50% 포트폴리오를 시뮬레이션합니다.",
+    "ground_truth": "KODEX 200(069500) 50%, TIGER 미국S&P500(360750) 50% 포트폴리오의 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "069500",
@@ -776,7 +800,7 @@
   },
   {
     "question": "삼성전자 SK하이닉스 NAVER 균등 비중으로 3년 백테스트",
-    "ground_truth": "3종목 균등 비중 포트폴리오의 3년 성과를 시뮬레이션합니다.",
+    "ground_truth": "삼성전자, SK하이닉스, NAVER 균등 비중(각 33.3%) 포트폴리오의 3년 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD와 KODEX 200 벤치마크 대비 성과를 제공합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "005930",
@@ -787,7 +811,7 @@
   },
   {
     "question": "현대차 50% 기아 50% 포트폴리오 MDD가 어떻게 돼?",
-    "ground_truth": "현대차-기아 포트폴리오의 최대 낙폭(MDD)을 안내합니다.",
+    "ground_truth": "현대차(005380) 50%, 기아(000270) 50% 포트폴리오의 총 수익률, 연환산 수익률, 변동성, 샤프 비율, 최대 낙폭(MDD)을 시뮬레이션합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "005380",
@@ -797,14 +821,14 @@
   },
   {
     "question": "삼성전자 100% 단일 종목 투자하면 샤프 비율이 어때?",
-    "ground_truth": "삼성전자 단일 종목의 샤프 비율과 변동성을 안내합니다.",
+    "ground_truth": "삼성전자(005930) 100% 단일 포트폴리오의 총 수익률, 연환산 수익률, 변동성(연환산), 샤프 비율, MDD를 시뮬레이션하고 KODEX 200 벤치마크 대비 성과를 비교합니다.",
     "question_type": "portfolio",
     "expected_ticker": "005930",
     "asset_type": "stock"
   },
   {
     "question": "은행주 포트폴리오 시뮬레이션 해줘. KB금융 50% 신한지주 50%",
-    "ground_truth": "KB금융-신한지주 포트폴리오의 수익률과 위험지표를 안내합니다.",
+    "ground_truth": "KB금융(105560) 50%, 신한지주(055550) 50% 포트폴리오의 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "105560",
@@ -814,7 +838,7 @@
   },
   {
     "question": "KODEX 200 60% KODEX 미국S&P500 40%로 2년 시뮬레이션",
-    "ground_truth": "국내+해외 ETF 혼합 포트폴리오의 2년 성과를 시뮬레이션합니다.",
+    "ground_truth": "KODEX 200(069500) 60%, KODEX 미국S&P500(379800) 40% 포트폴리오의 2년 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "069500",
@@ -824,7 +848,7 @@
   },
   {
     "question": "LG에너지솔루션 삼성SDI 포스코홀딩스 균등 비중 백테스트",
-    "ground_truth": "2차전지 관련 3종목 포트폴리오를 시뮬레이션합니다.",
+    "ground_truth": "LG에너지솔루션(373220), 삼성SDI(006400), POSCO홀딩스(005490) 균등 비중 포트폴리오의 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD와 KODEX 200 벤치마크 대비 성과를 제공합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "373220",
@@ -835,14 +859,14 @@
   },
   {
     "question": "방어적인 포트폴리오 만들어줘",
-    "ground_truth": "변동성이 낮은 종목으로 포트폴리오를 구성하여 안내합니다.",
+    "ground_truth": "변동성이 낮은 종목(배당주, 대형주 등)으로 포트폴리오를 구성하여 총 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션합니다.",
     "question_type": "portfolio",
     "expected_ticker": null,
     "asset_type": "stock"
   },
   {
     "question": "삼성전자 40% KODEX 200 30% TIGER 미국나스닥100 30% 5년 백테스트",
-    "ground_truth": "주식+ETF 혼합 포트폴리오의 5년 성과를 시뮬레이션합니다.",
+    "ground_truth": "삼성전자 40%, KODEX 200 30%, TIGER 미국나스닥100 30% 포트폴리오의 5년 총 수익률, 연환산 수익률, 변동성, 샤프 비율, MDD를 시뮬레이션하고 벤치마크 대비 성과를 비교합니다.",
     "question_type": "portfolio",
     "expected_ticker": [
       "005930",
@@ -929,7 +953,7 @@
   },
   {
     "question": "삼성전자랑 SK하이닉스 영업이익률 비교해줘",
-    "ground_truth": "삼성전자와 SK하이닉스의 영업이익률을 비교합니다.",
+    "ground_truth": "삼성전자(005930)와 SK하이닉스(000660)의 최근 분기 재무제표(매출/영업이익/영업이익률/매출 YoY)와 종가, PER, PBR, 시가총액을 비교합니다.",
     "question_type": "compare",
     "expected_ticker": "005930",
     "asset_type": "stock"
@@ -956,7 +980,7 @@
   },
   {
     "question": "반도체 관련 종목 실적 비교해줘",
-    "ground_truth": "삼성전자, SK하이닉스 등 반도체 종목의 영업이익률을 비교합니다.",
+    "ground_truth": "반도체 관련 종목(삼성전자, SK하이닉스 등)의 종가, 수익률, PER, PBR, 시가총액과 최근 분기 재무제표(매출/영업이익/영업이익률)를 비교 분석합니다.",
     "question_type": "compare",
     "asset_type": "mixed"
   },

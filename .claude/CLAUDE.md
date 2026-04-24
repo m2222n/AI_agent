@@ -145,6 +145,7 @@
 - [x] 5차: 구조화 데이터 활용 원칙 프롬프트 추가 + enrichment 헤더 강화 + min_rrf_score 0.002→0.01 → **Hit Rate 91.9%→95.2%**
 - [x] 6차: ground_truth 날짜 독립 개선 + 도구 결과 context 포함 + stratified sampling (8유형 균등) → **Hit Rate 95.5%, CR(RAG)=0.371**
 - [x] 7차: eval 데이터셋 보정 (4개) + retriever 검색 개선 (부분 키워드 매칭, 접두어 매칭, 한글 별칭) → **Hit Rate 100.0% (162/162)**
+- [x] 8차: RAGAS 답변 품질 재개선 — 컨텍스트 조립 강화 + 프롬프트 수치 인용 강제 + AR 한국어 역질문 프롬프트 + ground_truth 44개 보정 → **F=0.688(+0.277), AR=0.709(+0.601), CR=0.854(+0.521)**
 
 **자기 검증:** "100개 문서에서 정확한 답을 찾는가?" → 정량 평가 없으면 실패
 
@@ -444,4 +445,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (E-1 + E-2 Cohere Rerank + E2E 통합 테스트. 도구 13개, 테스트 515개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-24 (E-1 + E-2 Cohere Rerank + E2E + RAGAS 개선. 도구 13개, 테스트 515개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

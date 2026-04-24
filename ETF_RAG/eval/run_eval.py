@@ -287,9 +287,27 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
         if context:
             all_contexts.append(context)
         for tc in tool_contexts:
-            # JSON 구조화 데이터(차트 등)는 제외, 텍스트만 포함
-            if tc and not tc.startswith("{\"__type__\""):
-                all_contexts.append(tc[:3000])  # 도구 결과는 3000자 제한
+            if not tc:
+                continue
+            # 차트 이미지 base64는 제외 (평가에 무의미)
+            if "image_b64" in tc or tc.startswith("{\"__type__\": \"technical_chart\""):
+                continue
+            # 비교 테이블 JSON은 텍스트로 변환하여 포함
+            if tc.startswith("{\"__type__\""):
+                try:
+                    data = json.loads(tc)
+                    if data.get("__type__") == "comparison_table":
+                        # 비교 테이블 헤더+행을 텍스트로 변환
+                        headers = data.get("headers", [])
+                        rows = data.get("rows", [])
+                        lines = [" | ".join(headers)]
+                        for row in rows:
+                            lines.append(" | ".join(str(v) for v in row))
+                        all_contexts.append("\n".join(lines))
+                    continue
+                except (json.JSONDecodeError, KeyError):
+                    pass
+            all_contexts.append(tc[:5000])  # 도구 결과 제한 확대 (3000→5000자)
 
         retrieved_contexts = all_contexts if all_contexts else ["관련 문서 없음"]
 
@@ -321,9 +339,39 @@ def evaluate_with_ragas(etf_retriever, stock_retriever, dataset, sample_size=Non
     ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0))
     ragas_emb = LangchainEmbeddingsWrapper(LCOpenAIEmbeddings(model="text-embedding-3-small"))
 
+    # Answer Relevancy 한국어 최적화 — 역질문 생성 프롬프트를 한국어로 변경
+    ar_metric = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb)
+    try:
+        from ragas.metrics._answer_relevance import ResponseRelevanceInput, ResponseRelevanceOutput
+        ar_metric.question_generation.instruction = (
+            "주어진 답변에 대한 질문을 한국어로 생성하고, 답변이 비표준적(회피적, 모호함)인지 판단하세요. "
+            "비표준적이면 noncommittal=1, 명확하면 noncommittal=0. "
+            "비표준적 답변 예시: '잘 모르겠습니다', '확실하지 않습니다', '상황에 따라 다릅니다'. "
+            "질문은 반드시 한국어로 생성하세요."
+        )
+        ar_metric.question_generation.examples = [
+            (
+                ResponseRelevanceInput(response="삼성전자(005930)의 현재 종가는 70,300원이며 PER 9.5배입니다."),
+                ResponseRelevanceOutput(question="삼성전자의 현재 주가와 PER은 얼마인가요?", noncommittal=0),
+            ),
+            (
+                ResponseRelevanceInput(response="KODEX 200 ETF의 최근 1년 수익률은 +12.5%이며 보유종목 상위 3개는 삼성전자, SK하이닉스, 현대차입니다."),
+                ResponseRelevanceOutput(question="KODEX 200 ETF의 수익률과 주요 보유종목은 무엇인가요?", noncommittal=0),
+            ),
+            (
+                ResponseRelevanceInput(response="해당 정보는 현재 데이터에 포함되어 있지 않아 정확한 답변을 드리기 어렵습니다."),
+                ResponseRelevanceOutput(question="요청하신 정보를 알려주세요.", noncommittal=1),
+            ),
+        ]
+        ar_metric.question_generation.language = "korean"
+        ar_metric.strictness = 5  # 한국어 형태소 다양성 보완 (기본 3→5)
+        logger.info("  AR 메트릭: 한국어 프롬프트 적용 (strictness=5)")
+    except ImportError:
+        logger.warning("  AR 한국어 커스텀 실패, 기본 영어 프롬프트 사용")
+
     metrics = [
         Faithfulness(llm=ragas_llm),
-        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_emb),
+        ar_metric,
         LLMContextRecall(llm=ragas_llm),
     ]
 
