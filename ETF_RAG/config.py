@@ -73,6 +73,14 @@ HYBRID_SEARCH = {
     "min_rrf_score": 0.01,    # RRF 최소 점수 (이 이하는 무관한 결과로 판단)
 }
 
+# Rerank settings (Cohere)
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
+RERANK = {
+    "enabled": bool(os.getenv("COHERE_API_KEY")),  # API 키 있으면 자동 활성화
+    "model": "rerank-v3.5",         # Cohere Rerank 모델
+    "top_n": 5,                     # Rerank 후 최종 반환 수 (= final_k)
+}
+
 # Embedding model
 EMBEDDING_MODEL = "text-embedding-3-small"
 

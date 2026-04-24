@@ -20,7 +20,7 @@ from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
-from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH
+from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -270,13 +270,17 @@ class HybridRetriever:
             if doc_key in doc_map:
                 candidates.append((doc_map[doc_key], score))
 
-        # 4. MMR — 관련성과 다양성의 균형
+        # 4. Cohere Rerank — cross-encoder 재정렬 (API 키 있을 때만)
+        if RERANK.get("enabled") and len(candidates) > 1:
+            candidates = self._rerank(query, candidates)
+
+        # 5. MMR — 관련성과 다양성의 균형
         if use_mmr and len(candidates) > final_k:
             candidates = self._apply_mmr(
                 candidates, final_k, lambda_param=HYBRID_SEARCH.get("mmr_lambda", 0.7)
             )
 
-        # 5. 이름 매칭 결과를 최상위에 병합 (중복 제거)
+        # 6. 이름 매칭 결과를 최상위에 병합 (중복 제거)
         if name_matched:
             remaining_k = final_k - len(name_matched)
             hybrid_filtered = [
@@ -286,6 +290,45 @@ class HybridRetriever:
             return name_matched + hybrid_filtered
 
         return candidates[:final_k]
+
+    def _rerank(
+        self,
+        query: str,
+        candidates: List[Tuple[Document, float]],
+    ) -> List[Tuple[Document, float]]:
+        """Cohere Rerank로 후보 문서 재정렬.
+
+        RRF 결합 후 호출되며, cross-encoder가 query-document 관련성을 직접 평가.
+        실패 시 원래 순서 그대로 반환 (graceful fallback).
+        """
+        try:
+            import cohere
+
+            co = cohere.ClientV2(api_key=COHERE_API_KEY)
+            docs_text = [doc.page_content for doc, _ in candidates]
+            top_n = RERANK.get("top_n", HYBRID_SEARCH.get("final_k", 5))
+
+            response = co.rerank(
+                model=RERANK.get("model", "rerank-v3.5"),
+                query=query,
+                documents=docs_text,
+                top_n=min(top_n, len(candidates)),
+            )
+
+            reranked = []
+            for result in response.results:
+                doc, _ = candidates[result.index]
+                reranked.append((doc, result.relevance_score))
+
+            logger.info(
+                f"Cohere Rerank 완료: {len(candidates)}개 → {len(reranked)}개, "
+                f"top score={reranked[0][1]:.4f}" if reranked else "empty"
+            )
+            return reranked
+
+        except Exception as e:
+            logger.warning(f"Cohere Rerank 실패, RRF 결과 사용: {e}")
+            return candidates
 
     def _apply_mmr(
         self,
