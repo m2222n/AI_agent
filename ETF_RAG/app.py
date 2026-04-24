@@ -29,7 +29,7 @@ from src.ui.sidebar import render_sidebar
 from src.ui.chat import init_session_state, render_chat_history, process_question
 from src.ui.components import render_example_questions, render_feedback_buttons, render_reset_button
 from src.ui.styles import inject_custom_css
-from src.ui.tabs import render_technical_tab, render_financial_tab, render_comparison_tab, render_outlook_tab
+from src.ui.tabs import render_technical_tab, render_financial_tab, render_comparison_tab, render_outlook_tab, render_sector_tab
 
 logger = logging.getLogger(__name__)
 
@@ -153,8 +153,8 @@ def main():
         st.session_state["_goto_tab"] = 0
 
     # 탭 UI
-    tab_chat, tab_tech, tab_fin, tab_outlook, tab_cmp = st.tabs([
-        "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "🔮 가격 전망", "⚖️ 비교 분석"
+    tab_chat, tab_tech, tab_fin, tab_outlook, tab_cmp, tab_sector = st.tabs([
+        "💬 종합 채팅", "📊 기술적 분석", "📑 재무제표", "🔮 가격 전망", "⚖️ 비교 분석", "🏭 섹터"
     ])
 
     with tab_chat:
@@ -182,6 +182,9 @@ def main():
 
     with tab_outlook:
         render_outlook_tab()
+
+    with tab_sector:
+        render_sector_tab()
 
     # JS 기반 탭 전환 (카드 클릭 / 홈 버튼 / 사이드바 전환)
     js_commands = []

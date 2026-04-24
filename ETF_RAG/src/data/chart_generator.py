@@ -973,3 +973,162 @@ def generate_intraday_chart(
     except Exception as e:
         logger.error(f"장중 시세 차트 생성 실패: {e}")
         return None
+
+
+# ══════════════════════════════════════════════════════════════
+# 섹터(업종) 분석 차트
+# ══════════════════════════════════════════════════════════════
+
+_SECTOR_PALETTE = [
+    "#1A73E8", "#E8453C", "#34A853", "#FBBC04", "#9C27B0",
+    "#FF6D00", "#00BCD4", "#795548", "#607D8B", "#E91E63",
+    "#3F51B5", "#009688", "#CDDC39", "#FF5722", "#673AB7",
+    "#4CAF50", "#FFC107", "#03A9F4", "#8BC34A", "#F44336",
+]
+
+
+def generate_sector_overview_chart(
+    sector_stats: list[dict],
+) -> Optional[str]:
+    """업종별 등락률 + 시가총액 수평 바 차트 → base64 PNG.
+
+    Args:
+        sector_stats: [{sector, change_pct, market_cap, count}, ...] 시총 내림차순
+    """
+    if not sector_stats or len(sector_stats) < 2:
+        return None
+
+    _setup_font()
+
+    try:
+        top = sector_stats[:20]
+        sectors = [s["sector"] for s in top]
+        changes = [s["change_pct"] for s in top]
+        n = len(sectors)
+        y = list(range(n))
+
+        fig, ax = plt.subplots(figsize=(10, max(5, n * 0.35)), facecolor=_BG_COLOR)
+        ax.set_facecolor(_BG_COLOR)
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+
+        colors = ["#E8453C" if c >= 0 else "#1A73E8" for c in changes]
+        bars = ax.barh(y, changes, color=colors, alpha=0.8, height=0.6, zorder=3)
+
+        # 값 라벨
+        for i, (bar, val) in enumerate(zip(bars, changes)):
+            ha = "left" if val >= 0 else "right"
+            offset = 0.1 if val >= 0 else -0.1
+            ax.text(val + offset, i, f"{val:+.2f}%", va="center", ha=ha,
+                    fontsize=8, color=_TEXT_COLOR)
+
+        ax.set_yticks(y)
+        ax.set_yticklabels(sectors, fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax.invert_yaxis()
+        ax.set_xlabel("등락률 (%)", fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax.set_title("업종별 등락률 (시가총액 순)", fontsize=12,
+                     fontweight="bold", color=_TEXT_COLOR, pad=10, **fp_kw)
+        ax.axvline(0, color=_TEXT_COLOR, linewidth=0.5, alpha=0.5)
+        ax.grid(True, axis="x", alpha=0.3, color=_GRID_COLOR, zorder=0)
+        ax.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        fig.subplots_adjust(left=0.22, right=0.92, top=0.92, bottom=0.10)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"섹터 개요 차트 생성 실패: {e}")
+        return None
+
+
+def generate_sector_detail_chart(
+    sector: str,
+    stocks: list[dict],
+) -> Optional[str]:
+    """업종 내 종목 등락률 트리맵 스타일 수평 바 차트 → base64 PNG.
+
+    Args:
+        sector: 업종명
+        stocks: [{name, ticker, change_pct, market_cap, per, pbr}, ...] 시총 내림차순
+    """
+    if not stocks or len(stocks) < 2:
+        return None
+
+    _setup_font()
+
+    try:
+        top = stocks[:15]
+        names = [s["name"] for s in top]
+        changes = [s.get("change_pct", 0) for s in top]
+        caps = [s.get("market_cap", 0) for s in top]
+        n = len(names)
+        y = list(range(n))
+
+        fig, (ax1, ax2) = plt.subplots(
+            1, 2, figsize=(12, max(4, n * 0.35)), facecolor=_BG_COLOR,
+            gridspec_kw={"width_ratios": [3, 2], "wspace": 0.30},
+        )
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+
+        # ── 왼쪽: 등락률 바 ──
+        ax1.set_facecolor(_BG_COLOR)
+        colors = ["#E8453C" if c >= 0 else "#1A73E8" for c in changes]
+        bars1 = ax1.barh(y, changes, color=colors, alpha=0.8, height=0.6, zorder=3)
+        for i, (bar, val) in enumerate(zip(bars1, changes)):
+            ha = "left" if val >= 0 else "right"
+            offset = 0.05 if val >= 0 else -0.05
+            ax1.text(val + offset, i, f"{val:+.2f}%", va="center", ha=ha,
+                     fontsize=7, color=_TEXT_COLOR)
+
+        ax1.set_yticks(y)
+        ax1.set_yticklabels(names, fontsize=8, color=_TEXT_COLOR, **fp_kw)
+        ax1.invert_yaxis()
+        ax1.set_xlabel("등락률 (%)", fontsize=8, color=_TEXT_COLOR, **fp_kw)
+        ax1.axvline(0, color=_TEXT_COLOR, linewidth=0.5, alpha=0.5)
+        ax1.grid(True, axis="x", alpha=0.3, color=_GRID_COLOR, zorder=0)
+        for spine in ax1.spines.values():
+            spine.set_visible(False)
+
+        # ── 오른쪽: 시가총액 바 ──
+        ax2.set_facecolor(_BG_COLOR)
+        # 조 단위 변환
+        caps_조 = [c / 1_000_000_000_000 for c in caps]
+        bars2 = ax2.barh(y, caps_조, color="#78909C", alpha=0.7, height=0.6, zorder=3)
+        for i, val in enumerate(caps_조):
+            if val >= 0.1:
+                ax2.text(val + max(caps_조) * 0.02, i, f"{val:.1f}조",
+                         va="center", fontsize=7, color=_TEXT_COLOR)
+            elif caps[i] >= 100_000_000:
+                ax2.text(val + max(caps_조) * 0.02, i,
+                         f"{caps[i] / 100_000_000:.0f}억",
+                         va="center", fontsize=7, color=_TEXT_COLOR)
+
+        ax2.set_yticks(y)
+        ax2.set_yticklabels([""] * n)
+        ax2.invert_yaxis()
+        ax2.set_xlabel("시가총액", fontsize=8, color=_TEXT_COLOR, **fp_kw)
+        ax2.grid(True, axis="x", alpha=0.3, color=_GRID_COLOR, zorder=0)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
+
+        fig.suptitle(f"{sector} 업종 — 종목별 등락률 & 시가총액",
+                     fontsize=12, fontweight="bold", color=_TEXT_COLOR,
+                     y=0.98, **fp_kw)
+        fig.subplots_adjust(left=0.18, right=0.95, top=0.90, bottom=0.10)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"섹터 상세 차트 생성 실패: {e}")
+        return None

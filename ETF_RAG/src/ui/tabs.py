@@ -19,11 +19,13 @@ from src.data.chart_generator import (
     generate_comparison_chart,
     generate_valuation_chart,
     generate_intraday_chart,
+    generate_sector_overview_chart,
+    generate_sector_detail_chart,
 )
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.database import get_connection, get_financial_data, DB_PATH
-from src.llm.tools import _find_structured_data, _find_similar_names, get_available_tickers
+from src.llm.tools import _find_structured_data, _find_similar_names, get_available_tickers, get_sector_index
 
 logger = logging.getLogger(__name__)
 
@@ -682,3 +684,108 @@ def render_outlook_tab():
 def _horizon_label(h: str) -> str:
     return {"1w": "1주", "2w": "2주", "1m": "1개월", "3m": "3개월",
             "6m": "6개월", "1y": "1년"}.get(h, h)
+
+
+# ── 섹터 분석 탭 ──────────────────────────────────────────
+
+def _build_sector_stats(sector_index: dict) -> list[dict]:
+    """업종별 집계 통계 (시총/등락률/PER 등)."""
+    stats = []
+    for sector, stocks in sector_index.items():
+        if not stocks:
+            continue
+        total_cap = sum(s.get("market_cap", 0) for s in stocks)
+        # 시총 가중 등락률
+        weighted_change = 0.0
+        if total_cap > 0:
+            weighted_change = sum(
+                s.get("change_pct", 0) * s.get("market_cap", 0)
+                for s in stocks
+            ) / total_cap
+        # PER 중간값 (0 제외)
+        pers = [s["per"] for s in stocks if s.get("per") and s["per"] > 0]
+        median_per = sorted(pers)[len(pers) // 2] if pers else 0
+        stats.append({
+            "sector": sector,
+            "count": len(stocks),
+            "market_cap": total_cap,
+            "change_pct": round(weighted_change, 2),
+            "median_per": round(median_per, 1),
+            "up_count": sum(1 for s in stocks if s.get("change_pct", 0) > 0),
+            "down_count": sum(1 for s in stocks if s.get("change_pct", 0) < 0),
+        })
+    stats.sort(key=lambda x: x["market_cap"], reverse=True)
+    return stats
+
+
+def render_sector_tab():
+    """섹터(업종) 분석 탭: 업종별 등락률/시총 + 업종 상세"""
+    st.markdown("##### 🏭 섹터 분석")
+    st.caption("업종별 등락률과 시가총액을 한눈에 비교합니다.")
+
+    sector_index = get_sector_index()
+    if not sector_index:
+        st.info("주식 데이터가 로드되지 않았습니다.")
+        return
+
+    stats = _build_sector_stats(sector_index)
+    if not stats:
+        st.info("업종 데이터가 없습니다.")
+        return
+
+    # 업종 개요 차트
+    with st.spinner("업종별 차트 생성 중..."):
+        overview_b64 = generate_sector_overview_chart(stats)
+    if overview_b64:
+        st.image(base64.b64decode(overview_b64), use_container_width=True)
+
+    # 업종 요약 테이블
+    st.markdown("#### 업종 현황")
+    header = "| 업종 | 종목수 | 등락률 | 시가총액 | PER 중간값 | 상승/하락 |"
+    sep = "|------|--------|--------|----------|-----------|----------|"
+    rows = []
+    for s in stats[:20]:
+        cap = s["market_cap"]
+        if cap >= 1_000_000_000_000:
+            cap_str = f"{cap / 1_000_000_000_000:.1f}조"
+        else:
+            cap_str = f"{cap / 100_000_000:.0f}억"
+        chg = s["change_pct"]
+        chg_str = f"🔴 +{chg:.2f}%" if chg > 0 else (f"🔵 {chg:.2f}%" if chg < 0 else f"⚪ {chg:.2f}%")
+        per_str = f"{s['median_per']:.1f}배" if s["median_per"] else "-"
+        rows.append(
+            f"| {s['sector']} | {s['count']} | {chg_str} | {cap_str} | {per_str} | {s['up_count']}↑/{s['down_count']}↓ |"
+        )
+    st.markdown(f"{header}\n{sep}\n" + "\n".join(rows))
+
+    # 업종 상세 선택
+    st.divider()
+    st.markdown("#### 업종 상세")
+    sector_names = [s["sector"] for s in stats]
+    selected = st.selectbox("업종 선택", sector_names, key="sector_detail_select")
+
+    if selected and selected in sector_index:
+        stocks = sector_index[selected]
+        with st.spinner(f"{selected} 차트 생성 중..."):
+            detail_b64 = generate_sector_detail_chart(selected, stocks)
+        if detail_b64:
+            st.image(base64.b64decode(detail_b64), use_container_width=True)
+
+        # 밸류에이션 요약
+        pers = [s["per"] for s in stocks if s.get("per") and s["per"] > 0]
+        pbrs = [s["pbr"] for s in stocks if s.get("pbr") and s["pbr"] > 0]
+        divs = [s["div"] for s in stocks if s.get("div") and s["div"] > 0]
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            avg_per = sum(pers) / len(pers) if pers else 0
+            st.metric("평균 PER", f"{avg_per:.1f}배" if avg_per else "-")
+        with col2:
+            avg_pbr = sum(pbrs) / len(pbrs) if pbrs else 0
+            st.metric("평균 PBR", f"{avg_pbr:.2f}배" if avg_pbr else "-")
+        with col3:
+            low_pbr = sum(1 for p in pbrs if p < 1)
+            st.metric("저PBR (<1)", f"{low_pbr}종목")
+        with col4:
+            high_div = sum(1 for d in divs if d >= 3)
+            st.metric("고배당 (3%+)", f"{high_div}종목")

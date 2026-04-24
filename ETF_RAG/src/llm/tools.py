@@ -93,6 +93,11 @@ def _build_sector_index(stock_data_list):
     return index
 
 
+def get_sector_index() -> dict:
+    """업종별 종목 인덱스 반환 (tabs.py 등 UI에서 사용)."""
+    return _sector_index
+
+
 def set_retriever(retriever, documents=None, stock_retriever=None,
                   etf_data=None, stock_data=None):
     """앱 초기화 시 retriever와 documents를 주입"""
