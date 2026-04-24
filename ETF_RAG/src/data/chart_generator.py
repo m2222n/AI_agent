@@ -551,3 +551,124 @@ def generate_comparison_chart(
     except Exception as e:
         logger.error(f"비교 차트 생성 실패: {e}")
         return None
+
+
+# ══════════════════════════════════════════════════════════════
+# 포트폴리오 시뮬레이션 차트
+# ══════════════════════════════════════════════════════════════
+
+_PORT_COLOR = "#1A73E8"
+_BM_COLOR = "#E8453C"
+_DD_COLOR = "#EF5350"
+_DD_FILL = "#FFCDD2"
+
+
+def generate_portfolio_chart(
+    wealth: list[float],
+    bm_wealth: Optional[list[float]],
+    dates: list[str],
+    names: list[str],
+    bm_name: str = "KODEX 200",
+) -> Optional[str]:
+    """포트폴리오 시뮬레이션 차트 생성 → base64 PNG.
+
+    2단 구성:
+    - 상단: 누적 수익률 곡선 (포트폴리오 vs 벤치마크, 시작=100)
+    - 하단: 드로다운 (%) 영역
+
+    Args:
+        wealth: 포트폴리오 wealth curve [1.0, 1.01, ...] (len = data_days + 1)
+        bm_wealth: 벤치마크 wealth curve (Optional)
+        dates: 날짜 리스트 (len = data_days)
+        names: 포트폴리오 구성 종목명 리스트 (범례용)
+        bm_name: 벤치마크 이름
+
+    Returns:
+        base64 인코딩 PNG 문자열, 실패 시 None
+    """
+    if not wealth or len(wealth) < 10:
+        return None
+
+    _setup_font()
+
+    try:
+        n = len(wealth)
+        x = list(range(n))
+
+        # 100 기준 정규화
+        port_norm = [w * 100 for w in wealth]
+
+        # 드로다운 계산
+        peak = wealth[0]
+        drawdown = []
+        for w in wealth:
+            if w > peak:
+                peak = w
+            drawdown.append((w - peak) / peak * 100)  # %
+
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=(10, 6), facecolor=_BG_COLOR,
+            gridspec_kw={"height_ratios": [3, 1], "hspace": 0.20},
+        )
+
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+
+        # ── 상단: 누적 수익률 ──
+        ax1.set_facecolor(_BG_COLOR)
+        port_label = f"포트폴리오 ({', '.join(names[:3])}{'...' if len(names) > 3 else ''})"
+        ax1.plot(x, port_norm, color=_PORT_COLOR, linewidth=1.8,
+                 label=port_label, alpha=0.9)
+
+        if bm_wealth and len(bm_wealth) >= 10:
+            bm_norm = [w * 100 for w in bm_wealth[:n]]
+            # 벤치마크 길이 맞추기
+            if len(bm_norm) < n:
+                bm_norm.extend([bm_norm[-1]] * (n - len(bm_norm)))
+            ax1.plot(x[:len(bm_norm)], bm_norm, color=_BM_COLOR,
+                     linewidth=1.5, label=bm_name, alpha=0.7, linestyle="--")
+
+        ax1.axhline(y=100, color="#999999", linewidth=0.8, linestyle="--", alpha=0.5)
+        ax1.set_ylabel("누적 수익률 (시작=100)", fontsize=10, color=_TEXT_COLOR, **fp_kw)
+        ax1.set_title("포트폴리오 시뮬레이션", fontsize=13, fontweight="bold",
+                       color=_TEXT_COLOR, pad=10, **fp_kw)
+        ax1.legend(fontsize=8, loc="upper left", framealpha=0.8)
+        ax1.grid(True, alpha=0.3, color=_GRID_COLOR)
+        ax1.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax1.spines.values():
+            spine.set_visible(False)
+
+        # ── 하단: 드로다운 ──
+        ax2.set_facecolor(_BG_COLOR)
+        ax2.fill_between(x, drawdown, 0, color=_DD_FILL, alpha=0.7)
+        ax2.plot(x, drawdown, color=_DD_COLOR, linewidth=1.0, alpha=0.8)
+        ax2.axhline(y=0, color="#999999", linewidth=0.5)
+        ax2.set_ylabel("Drawdown (%)", fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax2.grid(True, alpha=0.3, color=_GRID_COLOR)
+        ax2.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
+
+        # X축 날짜 라벨
+        # dates는 wealth[1:]에 대응, wealth[0]은 기준일
+        if dates and len(dates) >= n - 1:
+            chart_dates = [""] + dates[:n - 1]  # wealth[0]에 빈 라벨
+        else:
+            chart_dates = [str(i) for i in x]
+
+        step = max(1, n // 6)
+        xtick_pos, xtick_labels = _build_xlabels(chart_dates, step)
+        ax2.set_xticks(xtick_pos)
+        ax2.set_xticklabels(xtick_labels, fontsize=8, color=_TEXT_COLOR)
+
+        fig.subplots_adjust(left=0.08, right=0.95, top=0.92, bottom=0.10)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"포트폴리오 차트 생성 실패: {e}")
+        return None

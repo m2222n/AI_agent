@@ -27,7 +27,7 @@ def try_parse_comparison(raw: str) -> Optional[dict]:
 def try_parse_structured_data(raw: str) -> Optional[dict]:
     """structured_data 이벤트에서 모든 타입의 구조화 데이터 추출.
 
-    지원 타입: comparison_table, technical_chart
+    지원 타입: comparison_table, technical_chart, portfolio_chart
     """
     try:
         json_part = raw.split("\n\n---\n\n")[0] if "\n\n---\n\n" in raw else raw
@@ -36,6 +36,8 @@ def try_parse_structured_data(raw: str) -> Optional[dict]:
         if dtype == "comparison_table" and data.get("items"):
             return data
         if dtype == "technical_chart" and data.get("image_b64"):
+            return data
+        if dtype == "portfolio_chart" and data.get("image_b64"):
             return data
     except (json.JSONDecodeError, TypeError, KeyError):
         pass
@@ -49,6 +51,27 @@ def render_structured_data(data: dict):
         render_comparison(data)
     elif dtype == "technical_chart":
         render_technical_chart(data)
+    elif dtype == "portfolio_chart":
+        render_portfolio_chart(data)
+
+
+def render_portfolio_chart(data: dict):
+    """포트폴리오 시뮬레이션 차트 이미지 렌더링."""
+    image_b64 = data.get("image_b64")
+    names = data.get("names", [])
+    if not image_b64:
+        return
+    try:
+        image_bytes = base64.b64decode(image_b64)
+        title = " + ".join(names) if names else "포트폴리오"
+        st.markdown(f"#### {title} 시뮬레이션 차트")
+        st.image(image_bytes, use_container_width=True)
+        st.caption(
+            "📈 상단: 포트폴리오 vs 벤치마크 자산가치 추이 (시작=100) | "
+            "하단: 고점 대비 낙폭(Drawdown)"
+        )
+    except Exception:
+        pass
 
 
 def render_technical_chart(data: dict):

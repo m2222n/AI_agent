@@ -877,6 +877,19 @@ def simulate_portfolio(tickers: list[str], weights: list[float],
     # 벤치마크 (KODEX 200) 비교
     benchmark = _calc_benchmark(common_dates, port_daily)
 
+    # 벤치마크 wealth curve (차트용)
+    bm_wealth_curve = None
+    if benchmark:
+        bm_data = _get_closes(BENCHMARK_TICKER, days=len(common_dates) + 10)
+        bm_map = {d["date"]: d["close"] for d in bm_data}
+        bm_closes = [bm_map[d] for d in common_dates if d in bm_map]
+        if len(bm_closes) >= 20:
+            bm_daily_r = _daily_returns(bm_closes)
+            bm_n = min(len(bm_daily_r), trading_days)
+            bm_wealth_curve = [1.0]
+            for r in bm_daily_r[:bm_n]:
+                bm_wealth_curve.append(bm_wealth_curve[-1] * (1 + r))
+
     return {
         "portfolio": {
             "total_return": round(total_return, 4),
@@ -889,6 +902,10 @@ def simulate_portfolio(tickers: list[str], weights: list[float],
         "individual": individual,
         "period": f"{common_dates[0]}~{common_dates[-1]}",
         "data_days": trading_days,
+        # 차트용 시계열 데이터
+        "dates": common_dates[1:],  # wealth[0]=1.0 은 기준일, dates는 그 이후
+        "wealth": wealth,
+        "bm_wealth": bm_wealth_curve,
     }
 
 

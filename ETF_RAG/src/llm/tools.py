@@ -1536,7 +1536,32 @@ def simulate_portfolio(tickers_and_weights: str, period: str = "1y") -> str:
             lines.append(f"  - {name}: {item['total_return'] * 100:+.2f}%")
 
         lines.append("\n※ 과거 수익률은 미래 수익을 보장하지 않습니다. 참고용 시뮬레이션입니다.")
-        return "\n".join(lines)
+        text_result = "\n".join(lines)
+
+        # 포트폴리오 차트 생성
+        try:
+            from src.data.chart_generator import generate_portfolio_chart
+            wealth = result.get("wealth")
+            bm_wealth = result.get("bm_wealth")
+            dates = result.get("dates")
+            if wealth and dates:
+                chart_b64 = generate_portfolio_chart(
+                    wealth=wealth,
+                    bm_wealth=bm_wealth,
+                    dates=dates,
+                    names=resolved_names,
+                )
+                if chart_b64:
+                    chart_json = json.dumps({
+                        "__type__": "portfolio_chart",
+                        "image_b64": chart_b64,
+                        "names": resolved_names,
+                    })
+                    return f"{chart_json}\n\n---\n\n{text_result}"
+        except Exception as e:
+            logger.warning(f"포트폴리오 차트 생성 실패: {e}")
+
+        return text_result
 
     except Exception as e:
         logger.warning(f"포트폴리오 시뮬레이션 실패: {e}")
