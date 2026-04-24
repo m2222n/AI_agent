@@ -371,19 +371,18 @@ def render_financial_tab():
     df = pd.DataFrame(table_data)
     st.dataframe(df, use_container_width=True, hide_index=True)
 
-    # 추이 차트 (매출/영업이익)
+    # 추이 차트 (매출/영업이익/순이익 + 영업이익률)
     chart_rows = [r for r in reversed(rows) if r.get("revenue")]
     if len(chart_rows) >= 2:
-        st.markdown("#### 실적 추이")
-        chart_df = pd.DataFrame([
-            {
-                "분기": f"{r['fiscal_year']}Q{r['fiscal_quarter']}",
-                "매출액(억)": r["revenue"] / 100_000_000 if r.get("revenue") else 0,
-                "영업이익(억)": r["operating_profit"] / 100_000_000 if r.get("operating_profit") else 0,
-            }
-            for r in chart_rows
-        ]).set_index("분기")
-        st.bar_chart(chart_df)
+        from src.data.chart_generator import generate_financial_chart
+        chart_b64 = generate_financial_chart(chart_rows, name)
+        if chart_b64:
+            import base64
+            st.image(base64.b64decode(chart_b64), use_container_width=True)
+            st.caption(
+                "📊 상단: 매출액/영업이익/순이익 (억 원) | "
+                "하단: 영업이익률 (%) 추이"
+            )
 
 
 # ── 비교 분석 탭 ───────────────────────────────────────────

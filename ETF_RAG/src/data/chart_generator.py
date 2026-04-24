@@ -672,3 +672,119 @@ def generate_portfolio_chart(
     except Exception as e:
         logger.error(f"포트폴리오 차트 생성 실패: {e}")
         return None
+
+
+# ══════════════════════════════════════════════════════════════
+# 재무제표 실적 추이 차트
+# ══════════════════════════════════════════════════════════════
+
+_REV_COLOR = "#1A73E8"      # 매출액 (파랑)
+_OP_COLOR = "#34A853"       # 영업이익 (초록)
+_NI_COLOR = "#FBBC04"       # 순이익 (노랑)
+_MARGIN_COLOR = "#E8453C"   # 영업이익률 (빨강)
+
+
+def generate_financial_chart(
+    rows: list[dict],
+    name: str,
+) -> Optional[str]:
+    """재무제표 실적 추이 차트 생성 → base64 PNG.
+
+    2단 구성:
+    - 상단: 매출액/영업이익/순이익 바 차트 (억 단위)
+    - 하단: 영업이익률 라인 차트 (%)
+
+    Args:
+        rows: 분기별 재무 데이터 (시간순, oldest first)
+            [{"fiscal_year": "2024", "fiscal_quarter": 1,
+              "revenue": ..., "operating_profit": ..., "net_income": ...,
+              "operating_margin": ...}, ...]
+        name: 종목명
+
+    Returns:
+        base64 인코딩 PNG 문자열, 실패 시 None
+    """
+    if not rows or len(rows) < 2:
+        return None
+
+    _setup_font()
+
+    try:
+        labels = [f"{r['fiscal_year']}Q{r['fiscal_quarter']}" for r in rows]
+        n = len(labels)
+        x = list(range(n))
+
+        revenue = [(r.get("revenue") or 0) / 1e8 for r in rows]
+        op_profit = [(r.get("operating_profit") or 0) / 1e8 for r in rows]
+        net_income = [(r.get("net_income") or 0) / 1e8 for r in rows]
+        margin = [r.get("operating_margin") for r in rows]
+
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=(max(10, n * 0.8), 7), facecolor=_BG_COLOR,
+            gridspec_kw={"height_ratios": [3, 1], "hspace": 0.25},
+        )
+
+        fp_kw = {"fontproperties": _FONT_PROP} if _FONT_PROP else {}
+        bar_width = 0.25
+
+        # ── 상단: 매출/영업이익/순이익 바 차트 ──
+        ax1.set_facecolor(_BG_COLOR)
+
+        x_rev = [i - bar_width for i in x]
+        x_op = x
+        x_ni = [i + bar_width for i in x]
+
+        ax1.bar(x_rev, revenue, width=bar_width, color=_REV_COLOR,
+                label="매출액", alpha=0.85, zorder=3)
+        ax1.bar(x_op, op_profit, width=bar_width, color=_OP_COLOR,
+                label="영업이익", alpha=0.85, zorder=3)
+        ax1.bar(x_ni, net_income, width=bar_width, color=_NI_COLOR,
+                label="순이익", alpha=0.85, zorder=3)
+
+        ax1.set_ylabel("억 원", fontsize=10, color=_TEXT_COLOR, **fp_kw)
+        ax1.set_title(f"{name} 분기별 실적 추이", fontsize=13,
+                      fontweight="bold", color=_TEXT_COLOR, pad=10, **fp_kw)
+        ax1.legend(fontsize=8, loc="upper left", framealpha=0.8)
+        ax1.grid(True, axis="y", alpha=0.3, color=_GRID_COLOR, zorder=0)
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(labels, fontsize=7, color=_TEXT_COLOR, rotation=45,
+                            ha="right")
+        ax1.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax1.spines.values():
+            spine.set_visible(False)
+
+        # 0 기준선
+        ax1.axhline(y=0, color="#999999", linewidth=0.5, zorder=2)
+
+        # ── 하단: 영업이익률 라인 차트 ──
+        ax2.set_facecolor(_BG_COLOR)
+
+        valid_margin = [(i, m) for i, m in zip(x, margin) if m is not None]
+        if valid_margin:
+            mx, my = zip(*valid_margin)
+            ax2.plot(mx, my, color=_MARGIN_COLOR, linewidth=2.0, marker="o",
+                     markersize=4, alpha=0.9, zorder=3)
+            ax2.fill_between(mx, my, 0, color=_MARGIN_COLOR, alpha=0.1, zorder=2)
+
+        ax2.axhline(y=0, color="#999999", linewidth=0.5)
+        ax2.set_ylabel("영업이익률 (%)", fontsize=9, color=_TEXT_COLOR, **fp_kw)
+        ax2.grid(True, alpha=0.3, color=_GRID_COLOR, zorder=0)
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels, fontsize=7, color=_TEXT_COLOR, rotation=45,
+                            ha="right")
+        ax2.tick_params(colors=_TEXT_COLOR, labelsize=8)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
+
+        fig.subplots_adjust(left=0.10, right=0.95, top=0.92, bottom=0.12)
+
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=100, bbox_inches="tight",
+                    facecolor=_BG_COLOR)
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        logger.error(f"재무제표 차트 생성 실패: {e}")
+        return None
