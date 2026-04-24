@@ -1462,9 +1462,21 @@
 - 파이프라인: Stage 0(이름매칭) → Stage 1(FAISS) → Stage 2(BM25) → Stage 3(RRF) → **Stage 4(Rerank)** → Stage 5(MMR)
 - 테스트 12개 추가 (473개 전체 통과)
 
-### 테스트: 473개 전체 통과 (+39 today)
+### E2E 통합 테스트 42개 (E-2 #6 완료)
+- `tests/test_e2e_integration.py` — 실제 컴포넌트 조합 검증 (모킹 최소화)
+- FakeEmbeddings (numpy random, API 키 불필요) + 실제 HybridRetriever
+- 6개 테스트 클래스:
+  - `TestDataToSearchPipeline` (11): loader→documents→index→search 파이프라인
+  - `TestToolIntegration` (12): set_retriever() 주입 → tool.invoke() 직접 호출
+  - `TestAgentGraphIntegration` (8): 13개 도구 등록, 그래프 컴파일, 프롬프트 빌드
+  - `TestErrorHandlingIntegration` (3): 빈 retriever, 도구 미설정, rerank 비활성화
+  - `TestDataConsistency` (4): 메타데이터-데이터 정합성, 문서 수 일치
+  - `TestUIIntegration` (4): 섹션 분리, 동적 예시, 차트 파싱, 후속 질문
+- 테스트 42개 추가 (515개 전체 통과)
+
+### 테스트: 515개 전체 통과 (+54 today)
 
 ---
 
 _Last Updated: 2026-04-24_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + E-1(병렬도구/대화맥락/동적예시/응답포맷) + E-2(Cohere Rerank) + 도구 13개 + 테스트 473개 + eval 162개 + Hit Rate 100%_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 완료 + 프롬프트 6차 + 수집 Watchdog + 모바일 반응형 + E-1(병렬도구/대화맥락/동적예시/응답포맷) + E-2(Cohere Rerank + E2E 통합 테스트) + 도구 13개 + 테스트 515개 + eval 162개 + Hit Rate 100%_

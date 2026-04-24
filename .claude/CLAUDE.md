@@ -382,7 +382,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 473개
+├── tests/                  # pytest 515개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -444,4 +444,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (E-1 완료 + E-2 Cohere Rerank. 도구 13개, 테스트 473개, eval 162개, Hit Rate 100%)_
+_Last Updated: 2026-04-24 (E-1 + E-2 Cohere Rerank + E2E 통합 테스트. 도구 13개, 테스트 515개, eval 162개, Hit Rate 100%)_
