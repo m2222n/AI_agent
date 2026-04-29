@@ -2,6 +2,8 @@
 
 # 📈 투자 질의응답 챗봇
 
+### **[👉 라이브 데모 바로가기](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)** — 별도 설치 없이 브라우저에서 바로 사용 가능
+
 **LangGraph Agent + Hybrid RAG 기반 ETF/주식 투자 정보 시스템**
 
 KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문에 맞는 도구를 자동 선택하여 정확한 답변을 제공합니다.
