@@ -153,6 +153,66 @@ hr {
     border-radius: var(--radius) !important;
 }
 
+/* ── 웰컴 화면 ────────────────────────────────────── */
+.welcome-hero {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.welcome-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.welcome-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0.8rem 0 0.4rem;
+}
+
+.welcome-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    margin-bottom: 0.3rem;
+}
+
+.welcome-card:hover {
+    border-color: var(--primary-border);
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.08);
+    transform: translateY(-2px);
+}
+
+.welcome-card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.4rem;
+}
+
+.welcome-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.welcome-card-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.3rem;
+}
+
+.welcome-card-detail {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+    line-height: 1.4;
+}
+
 /* ── 모바일 반응형: 태블릿 ───────────────────────── */
 @media (max-width: 768px) {
     .main .block-container {
@@ -192,6 +252,17 @@ hr {
     [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
         flex: 1 1 45% !important;
         min-width: 45% !important;
+    }
+
+    /* 웰컴 카드 축소 */
+    .welcome-card {
+        padding: 0.7rem;
+    }
+    .welcome-card-icon {
+        font-size: 1.4rem;
+    }
+    .welcome-card-detail {
+        display: none;
     }
 }
 
