@@ -6,7 +6,6 @@
 - Pinecone 실패 시 FAISS로 자동 fallback
 """
 
-import hashlib
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -19,6 +18,7 @@ from config import (
     EMBEDDING_MODEL, DATA_DIR,
     VECTOR_DB_BACKEND, PINECONE_API_KEY, PINECONE_INDEX_NAME,
 )
+from src.rag.utils import compute_docs_hash as _compute_docs_hash
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +29,6 @@ FAISS_INDEX_DIR = DATA_DIR / "faiss_index"
 def get_embeddings() -> OpenAIEmbeddings:
     """임베딩 모델 인스턴스 반환"""
     return OpenAIEmbeddings(model=EMBEDDING_MODEL)
-
-
-def _compute_docs_hash(documents: List[Document]) -> str:
-    """문서 목록의 해시 계산 (캐시 무효화용)"""
-    hasher = hashlib.md5()
-    for doc in documents:
-        hasher.update(doc.page_content.encode("utf-8"))
-    return hasher.hexdigest()[:16]
 
 
 def _get_index_path(prefix: str) -> Path:

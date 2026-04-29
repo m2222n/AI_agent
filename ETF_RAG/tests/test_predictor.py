@@ -816,3 +816,89 @@ class TestBuildPriceOutlookWithProphet:
         assert result["prophet"]["available"] is False
         # composite 계산은 기존 3축으로 (Prophet 제외)
         assert "composite_score" in result
+
+
+# ── Prophet 엣지 케이스 테스트 ──
+
+class TestProphetEdgeCases:
+    """Prophet 예측 추가 엣지 케이스"""
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_all_same_price(self, mock_ohlcv):
+        """가격이 모두 동일할 때 (변동성 0)"""
+        from src.data.predictor import _calc_prophet_prediction
+        ohlcv = [{"date": f"2025-01-{i+1:02d}", "close": 50000} for i in range(200)]
+        mock_ohlcv.return_value = ohlcv
+        result = _calc_prophet_prediction("005930", 20)
+        # Prophet이 에러 없이 처리되어야 함
+        assert isinstance(result, dict)
+        assert "available" in result
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_empty_ohlcv(self, mock_ohlcv):
+        """빈 OHLCV 데이터"""
+        from src.data.predictor import _calc_prophet_prediction
+        mock_ohlcv.return_value = []
+        result = _calc_prophet_prediction("005930", 20)
+        assert result["available"] is False
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_ohlcv_returns_none(self, mock_ohlcv):
+        """OHLCV가 None 반환"""
+        from src.data.predictor import _calc_prophet_prediction
+        mock_ohlcv.return_value = None
+        result = _calc_prophet_prediction("005930", 20)
+        assert result["available"] is False
+
+    def test_empty_prophet_structure(self):
+        """_empty_prophet 반환 구조 검증"""
+        from src.data.predictor import _empty_prophet
+        result = _empty_prophet()
+        assert set(result.keys()) == {"available", "predicted_return", "confidence_interval", "trend"}
+        assert result["confidence_interval"] == (0.0, 0.0)
+        assert result["trend"] == "분석 불가"
+
+
+# ── 통계 예측 엣지 케이스 테스트 ──
+
+class TestStatisticalEdgeCases:
+
+    def test_calc_scenarios_extreme_positive(self):
+        """극단적 양수 composite_score"""
+        from src.data.predictor import _calc_scenarios
+        stat = {
+            "predicted_return": 30.0,
+            "confidence_interval": (20.0, 40.0),
+            "historical_analog": {"sample_count": 50, "win_rate": 0.9},
+        }
+        result = _calc_scenarios(1.0, stat)
+        assert result["bullish"]["probability"] > 0.5
+        assert result["bearish"]["probability"] < 0.3
+        # 확률 합이 1.0
+        total = sum(s["probability"] for s in result.values())
+        assert abs(total - 1.0) < 0.01
+
+    def test_calc_scenarios_extreme_negative(self):
+        """극단적 음수 composite_score"""
+        from src.data.predictor import _calc_scenarios
+        stat = {
+            "predicted_return": -20.0,
+            "confidence_interval": (-30.0, -10.0),
+            "historical_analog": {"sample_count": 50, "win_rate": 0.1},
+        }
+        result = _calc_scenarios(-1.0, stat)
+        assert result["bearish"]["probability"] > 0.5
+        assert result["bullish"]["probability"] < 0.3
+        total = sum(s["probability"] for s in result.values())
+        assert abs(total - 1.0) < 0.01
+
+    def test_calc_scenarios_zero_score(self):
+        """composite_score=0 → 중립에 가까움"""
+        from src.data.predictor import _calc_scenarios
+        stat = {
+            "predicted_return": 0.0,
+            "confidence_interval": (-5.0, 5.0),
+            "historical_analog": {"sample_count": 5, "win_rate": 0.5},
+        }
+        result = _calc_scenarios(0.0, stat)
+        assert result["neutral"]["probability"] > 0.2

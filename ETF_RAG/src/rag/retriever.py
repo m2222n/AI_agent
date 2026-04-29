@@ -10,7 +10,6 @@
 5. 최종 top-k 반환
 """
 
-import hashlib
 import logging
 import pickle
 import re
@@ -24,6 +23,7 @@ from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
 from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY, DATA_DIR
+from src.rag.utils import compute_docs_hash as _compute_docs_hash
 
 logger = logging.getLogger(__name__)
 
@@ -53,14 +53,6 @@ def tokenize_korean(text: str) -> List[str]:
 
 # BM25 캐시 디렉토리
 BM25_CACHE_DIR = DATA_DIR / "bm25_cache"
-
-
-def _compute_docs_hash(documents: List[Document]) -> str:
-    """문서 목록의 해시 계산 (BM25 캐시 무효화용)"""
-    hasher = hashlib.md5()
-    for doc in documents:
-        hasher.update(doc.page_content.encode("utf-8"))
-    return hasher.hexdigest()[:16]
 
 
 def _load_bm25_cache(docs_hash: str) -> Optional[Tuple[BM25Okapi, List[List[str]]]]:

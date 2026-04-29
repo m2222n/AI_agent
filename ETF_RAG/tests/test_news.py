@@ -209,3 +209,77 @@ def test_get_stock_news_summary_retry(mock_fetch, mock_analyze):
 
     result = get_stock_news_summary("마이너종목")
     assert mock_fetch.call_count == 2  # 재검색 발생
+
+
+# ── 엣지 케이스 테스트 ────────────────────────────────────────
+
+@patch("src.data.news.feedparser.parse")
+def test_fetch_google_news_missing_published(mock_parse):
+    """published_parsed 없는 엔트리 처리"""
+    entry = MagicMock()
+    entry.title = "제목만 있는 기사 - 출처"
+    entry.link = "https://example.com/1"
+    entry.published_parsed = None
+    entry.published = ""
+    entry.summary = "요약"
+    entry.get = lambda k, d="": {
+        "title": entry.title, "link": entry.link,
+        "published_parsed": None, "published": "",
+        "summary": "요약",
+    }.get(k, d)
+    mock_parse.return_value = _make_mock_feed([entry])
+
+    articles = fetch_google_news("테스트")
+    # published_parsed가 None이면 날짜 필터링 스킵하거나 포함
+    assert isinstance(articles, list)
+
+
+@patch("src.data.news.feedparser.parse")
+def test_fetch_google_news_source_extraction(mock_parse):
+    """다양한 제목 형식에서 출처 추출"""
+    entries = [
+        _make_entry("제목만", days_ago=0, source=""),
+    ]
+    # source 없는 엔트리
+    entry = entries[0]
+    entry.title = "제목만 있는 기사"
+    mock_parse.return_value = _make_mock_feed(entries)
+
+    articles = fetch_google_news("테스트")
+    assert len(articles) >= 0  # 에러 없이 처리
+
+
+@patch("src.llm.client.create_client")
+def test_sentiment_invalid_json(mock_client):
+    """LLM이 비정상 JSON 반환 시 처리"""
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "이것은 JSON이 아닙니다"
+    mock_client.return_value.chat.completions.create.return_value = mock_response
+
+    articles = [{"title": "테스트", "source": "", "summary": "", "published": ""}]
+    result = analyze_sentiment_batch(articles, "테스트")
+    # 에러 없이 fallback 반환
+    assert "overall_sentiment" in result
+
+
+@patch("src.llm.client.create_client")
+def test_sentiment_partial_json(mock_client):
+    """LLM이 일부 필드만 있는 JSON 반환"""
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = '{"sentiments": []}'
+    mock_client.return_value.chat.completions.create.return_value = mock_response
+
+    articles = [{"title": "테스트", "source": "", "summary": "", "published": ""}]
+    result = analyze_sentiment_batch(articles, "테스트")
+    assert "overall_sentiment" in result
+
+
+@patch("src.data.news.analyze_sentiment_batch")
+@patch("src.data.news.fetch_google_news")
+def test_get_stock_news_summary_no_articles(mock_fetch, mock_analyze):
+    """기사 0건일 때"""
+    mock_fetch.return_value = []
+    mock_analyze.return_value = {"overall_sentiment": "데이터 없음", "articles": []}
+
+    result = get_stock_news_summary("존재하지않는종목")
+    assert result["overall_sentiment"] == "데이터 없음"

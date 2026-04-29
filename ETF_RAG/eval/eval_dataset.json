@@ -1184,5 +1184,75 @@
     "question_type": "technical",
     "expected_ticker": "012450",
     "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 최근 뉴스 알려줘",
+    "ground_truth": "삼성전자 관련 최근 뉴스 기사를 수집하고 전체 감성(긍정/부정/중립/혼재)을 분석하여 주요 이슈와 시장 반응을 요약합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 관련 이슈가 뭐야?",
+    "ground_truth": "SK하이닉스 관련 최근 뉴스를 수집하여 주요 이슈, 호재/악재, 전반적 시장 감성을 분석합니다.",
+    "question_type": "simple",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 뉴스 감성 분석해줘",
+    "ground_truth": "현대차 관련 뉴스를 수집하고 GPT 기반 감성 분석(긍정/부정/중립/혼재)을 수행하여 개별 기사별 감성과 전체 요약을 제공합니다.",
+    "question_type": "simple",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER 최근 소식이랑 주가 어때?",
+    "ground_truth": "NAVER 관련 최근 뉴스 동향과 현재가/등락률 정보를 함께 제공합니다. 뉴스 감성과 가격 변동을 종합적으로 분석합니다.",
+    "question_type": "simple",
+    "expected_ticker": "035420",
+    "asset_type": "stock"
+  },
+  {
+    "question": "카카오 호재 악재 뭐가 있어?",
+    "ground_truth": "카카오 관련 최근 뉴스를 수집하여 긍정적(호재)과 부정적(악재) 기사를 분류하고 키워드와 함께 시장 감성을 분석합니다.",
+    "question_type": "simple",
+    "expected_ticker": "035720",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 Prophet 모델로 3개월 예측해줘",
+    "ground_truth": "삼성전자의 4축 종합 전망(기술적+펀더멘털+Ridge회귀+Prophet 시계열)으로 3개월 가격 전망을 제공합니다. Prophet 모델의 추세/계절성 분석과 시나리오별 확률을 포함합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "LG에너지솔루션 1년 뒤 주가 전망",
+    "ground_truth": "LG에너지솔루션의 1년 가격 전망을 기술적 분석 + 재무제표 + Ridge 회귀 + Prophet 시계열 모델로 종합 분석하여 시나리오별 확률과 신뢰도를 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "373220",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KODEX 반도체 뉴스 있어?",
+    "ground_truth": "KODEX 반도체 ETF 관련 뉴스를 수집하여 반도체 섹터 동향과 감성 분석을 제공합니다.",
+    "question_type": "simple",
+    "expected_ticker": "091160",
+    "asset_type": "etf"
+  },
+  {
+    "question": "셀트리온 뉴스랑 기술적 분석 같이 봐줘",
+    "ground_truth": "셀트리온의 최근 뉴스 감성 분석과 기술적 지표(MA/RSI/MACD 등)를 종합하여 시장 분위기와 기술적 신호를 함께 분석합니다.",
+    "question_type": "technical",
+    "expected_ticker": "068270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "포스코홀딩스 시계열 예측 분석",
+    "ground_truth": "포스코홀딩스의 4축 종합 전망(기술적+펀더멘털+Ridge회귀+Prophet)으로 가격 방향, 시나리오 확률, Bootstrap 신뢰구간을 제공합니다.",
+    "question_type": "technical",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
   }
 ]
