@@ -600,7 +600,7 @@ class TestToolIntegration:
     def test_all_tools_includes_technical(self):
         """ALL_TOOLS에 get_technical_indicators 포함 (9개)"""
         from src.llm.tools import ALL_TOOLS
-        assert len(ALL_TOOLS) == 13
+        assert len(ALL_TOOLS) == 14
         names = [t.name for t in ALL_TOOLS]
         assert "get_technical_indicators" in names
 

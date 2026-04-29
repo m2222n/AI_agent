@@ -10,7 +10,7 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 [![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-515_Passed-2ea44f?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/Tests-551_Passed-2ea44f?style=for-the-badge)](#)
 [![RAGAS](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
 
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agent-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](#)
@@ -38,13 +38,14 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 | **기술적 분석** | 11개 지표 자동 분석 + matplotlib 차트 | 불가 |
 | **재무제표** | OpenDart 분기 실적 (매출/영업이익/마진/YoY) | 불가 |
 | **포트폴리오** | 백테스트 시뮬레이션 (수익률/MDD/샤프) + 벤치마크 비교 | 불가 |
-| **가격 전망** | 3축 종합 분석 (기술적+펀더멘털+Ridge회귀, Bootstrap CI) | 불가 |
+| **가격 전망** | 4축 종합 분석 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI) | 불가 |
+| **뉴스 분석** | Google News 실시간 수집 + GPT 감성 분석 (긍정/부정/중립) | 불가 |
 
 ---
 
 ## 핵심 기능
 
-### 🤖 LangGraph 에이전트 (13개 도구)
+### 🤖 LangGraph 에이전트 (14개 도구)
 
 ```mermaid
 graph LR
@@ -66,7 +67,8 @@ graph LR
     T --> S11[simulate_portfolio]
     T --> S12[get_financial_statements]
     T --> S13[predict_price_outlook]
-    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 & S11 & S12 & S13 --> V{CoV 검증}
+    T --> S14[get_stock_news]
+    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 & S11 & S12 & S13 & S14 --> V{CoV 검증}
     V --> R[답변 생성]
 ```
 
@@ -84,7 +86,8 @@ graph LR
 | `get_stock_correlation` | 종목 간 상관관계 + 베타 계수 분석 |
 | `simulate_portfolio` | 포트폴리오 백테스트 (수익률/MDD/샤프/변동성) + KODEX 200 벤치마크 비교 |
 | `get_financial_statements` | 분기별 재무제표 (매출/영업이익/마진/YoY, OpenDart) |
-| `predict_price_outlook` | 3축 가격 전망 (기술적+펀더멘털+Ridge회귀, Bootstrap CI, 시나리오별 확률) |
+| `predict_price_outlook` | 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI, 시나리오별 확률) |
+| `get_stock_news` | 종목 뉴스 수집 + GPT 감성 분석 (Google News RSS, 긍정/부정/중립/혼재) |
 
 ### 🔍 하이브리드 검색 파이프라인
 
@@ -131,6 +134,7 @@ graph LR
 - **Structured Output**: Pydantic 스키마 강제 (LLM 분류 JSON 보장)
 - **force_answer**: 도구 2회 초과 호출 시 수집 증거 기반 강제 답변 생성
 - **FAISS 디스크 캐싱**: MD5 해시 기반 캐시 무효화 (냉부팅 임베딩 절약)
+- **BM25 pickle 캐싱**: 토크나이징 결과 pickle 직렬화 + MD5 해시 캐시 무효화
 
 ---
 
@@ -138,18 +142,19 @@ graph LR
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (13개 도구) + 모델 라우팅 + CoV 검증 |
+| **에이전트** | LangGraph + Function Calling (14개 도구) + 모델 라우팅 + CoV 검증 |
 | **LLM** | GPT-4o (복잡 질문) + GPT-4o-mini (단순 질문) + Structured Output |
 | **임베딩** | OpenAI text-embedding-3-small + FAISS persist (MD5 캐시) |
-| **Vector DB** | FAISS (인메모리, 디스크 캐싱) |
+| **Vector DB** | FAISS (인메모리, 디스크 캐싱) + Pinecone (서버리스, 자동 fallback) |
 | **검색** | Kiwi BM25 + FAISS Dense + RRF + Cohere Rerank v3.5 + MMR + 이름/접두어/별칭 매칭 |
 | **데이터** | pykrx (ETF 1,088 + 주식 전종목) + yfinance (장중) + dart-fss (재무제표) |
 | **저장** | SQLite WAL (12년 보존, 1.5GB, 800만 행) + JSON fallback |
-| **분석** | 기술적 지표 11개 + 상관관계/베타 + 포트폴리오 백테스트 + Ridge 회귀 전망 |
+| **분석** | 기술적 지표 11개 + 상관관계/베타 + 포트폴리오 백테스트 + Ridge 회귀 + Prophet 시계열 전망 |
 | **차트** | matplotlib (기술적 분석 3단 + 비교 시계열, base64 PNG) |
-| **예측** | scikit-learn Ridge 회귀 + Bootstrap CI + 3축 종합 (기술적+펀더멘털+통계) |
+| **예측** | scikit-learn Ridge 회귀 + Facebook Prophet + Bootstrap CI + 4축 종합 (기술적+펀더멘털+통계+Prophet) |
+| **뉴스** | Google News RSS + GPT-4o-mini 감성 분석 (긍정/부정/중립/혼재) |
 | **평가** | RAGAS (Hit Rate 100%, F 0.688, AR 0.709, CR 0.854, 162개 데이터셋) |
-| **테스트** | pytest 515개 (단위 + E2E 통합) |
+| **테스트** | pytest 551개 (단위 + E2E 통합) |
 | **자동 수집** | GitHub Actions (deploy/ + DB Release) + Watchdog (자동 재트리거) + macOS launchd |
 | **모니터링** | LangSmith (free tier) |
 | **UI** | Streamlit (탭 UI, 자동완성 검색, 후속질문 버튼, 반응형 CSS — 태블릿/모바일 대응) |
@@ -200,14 +205,15 @@ ETF_RAG/
 │   │   ├── realtime.py        # 장중 시세 (yfinance)
 │   │   ├── technical.py       # 기술적 지표 11개 (MA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR)
 │   │   ├── chart_generator.py # matplotlib 차트 (기술적 분석 3단 + 비교 시계열, base64 PNG)
-│   │   ├── predictor.py       # 3축 가격 전망 (기술적+펀더멘털+Ridge회귀, Bootstrap CI)
+│   │   ├── predictor.py       # 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI)
+│   │   ├── news.py            # Google News RSS + GPT 감성 분석
 │   │   └── db_downloader.py   # GitHub Release DB 다운로드 (Streamlit Cloud용)
 │   ├── rag/
-│   │   ├── retriever.py       # HybridRetriever (FAISS+BM25+RRF+MMR+이름매칭)
-│   │   └── vectorstore.py     # FAISS 벡터스토어 (persist + MD5 캐시)
+│   │   ├── retriever.py       # HybridRetriever (FAISS+BM25+RRF+MMR+이름매칭, BM25 pickle 캐시)
+│   │   └── vectorstore.py     # FAISS/Pinecone 벡터스토어 (persist + MD5 캐시 + 자동 fallback)
 │   ├── llm/
 │   │   ├── agent.py           # LangGraph 에이전트 (라우팅+도구+재검색+CoV+force_answer)
-│   │   ├── tools.py           # Function Calling 도구 13개
+│   │   ├── tools.py           # Function Calling 도구 14개
 │   │   ├── prompts.py         # 유형별 시스템 프롬프트
 │   │   └── classifier.py      # 질문 분류 (Structured Output + 키워드 fallback)
 │   └── ui/
@@ -217,7 +223,7 @@ ETF_RAG/
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
 ├── eval/                      # RAGAS 평가 (162개 질문, 8개 유형)
-├── tests/                     # pytest 515개 (단위 + E2E 통합)
+├── tests/                     # pytest 551개 (단위 + E2E 통합)
 ├── scripts/
 │   ├── daily_collect.sh                # ETF+주식+DART 일배치 수집
 │   ├── collect_for_deploy.py           # GitHub Actions용 경량 수집
@@ -294,7 +300,9 @@ pytest tests/ -v
 - [x] **안정성 + 모바일**: 수집 Watchdog (자동 재트리거) + 반응형 CSS (태블릿/모바일 대응)
 - [x] **Phase E-1**: 답변 품질 + UX — 멀티 도구 병렬 호출, 대화 맥락 유지, 섹션 접기/펼치기, 동적 예시 질문
 - [x] **Phase E-2**: 검색 + 평가 고도화 — Cohere Rerank v3.5, E2E 통합 테스트 42개, RAGAS 답변 품질 재개선 (F 0.688, AR 0.709, CR 0.854)
-- [ ] **추후**: Pinecone + KIS OpenAPI 실시간 + 시계열 예측 모델 (Prophet/LSTM)
+- [x] **Phase E-3**: 차트 시각화 + 섹터 탭 — 포트폴리오/재무/밸류에이션/장중/섹터 차트, 관심종목, 속도 최적화
+- [x] **Phase E-4**: BM25 pickle 캐싱 + 뉴스 감성 분석 + Prophet 시계열 예측 + Pinecone 벡터 DB
+- [ ] **추후**: KIS OpenAPI 실시간 + LSTM/Transformer 예측 모델
 
 ---
 

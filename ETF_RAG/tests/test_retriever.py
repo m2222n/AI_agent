@@ -8,6 +8,10 @@ from src.rag.retriever import (
     tokenize_korean,
     HybridRetriever,
     retrieve_relevant_docs,
+    _compute_docs_hash,
+    _load_bm25_cache,
+    _save_bm25_cache,
+    BM25_CACHE_DIR,
 )
 
 
@@ -276,3 +280,75 @@ def test_pdf_extract_metadata_partial():
     from src.data.pdf_loader import _extract_file_metadata
     meta = _extract_file_metadata("random_file")
     assert "ticker" not in meta
+
+
+# ── BM25 캐시 테스트 ─────────────────────────────────────────
+
+def test_compute_docs_hash_deterministic():
+    """동일 문서 → 동일 해시"""
+    docs = [Document(page_content="hello"), Document(page_content="world")]
+    h1 = _compute_docs_hash(docs)
+    h2 = _compute_docs_hash(docs)
+    assert h1 == h2
+    assert len(h1) == 16
+
+
+def test_compute_docs_hash_different():
+    """다른 문서 → 다른 해시"""
+    docs_a = [Document(page_content="hello")]
+    docs_b = [Document(page_content="world")]
+    assert _compute_docs_hash(docs_a) != _compute_docs_hash(docs_b)
+
+
+def test_bm25_cache_save_and_load(tmp_path):
+    """BM25 캐시 저장/로드 라운드트립"""
+    from rank_bm25 import BM25Okapi
+
+    corpus = [["삼성", "전자", "반도체"], ["SK", "하이닉스", "메모리"], ["LG", "화학", "배터리"]]
+    bm25 = BM25Okapi(corpus)
+    docs_hash = "abcdef1234567890"
+
+    with patch("src.rag.retriever.BM25_CACHE_DIR", tmp_path):
+        _save_bm25_cache(bm25, corpus, docs_hash)
+        result = _load_bm25_cache(docs_hash)
+
+    assert result is not None
+    loaded_bm25, loaded_corpus = result
+    assert loaded_corpus == corpus
+    # BM25 작동 확인 — "삼성" 포함 문서가 최고 점수
+    scores = loaded_bm25.get_scores(["삼성"])
+    assert scores[0] >= scores[1]
+    assert scores[0] >= scores[2]
+
+
+def test_bm25_cache_hash_mismatch(tmp_path):
+    """해시 불일치 시 None 반환"""
+    from rank_bm25 import BM25Okapi
+
+    corpus = [["test"]]
+    bm25 = BM25Okapi(corpus)
+
+    with patch("src.rag.retriever.BM25_CACHE_DIR", tmp_path):
+        _save_bm25_cache(bm25, corpus, "hash_old")
+        result = _load_bm25_cache("hash_new")
+
+    assert result is None
+
+
+def test_bm25_cache_missing_files(tmp_path):
+    """캐시 파일 없으면 None 반환"""
+    with patch("src.rag.retriever.BM25_CACHE_DIR", tmp_path):
+        result = _load_bm25_cache("any_hash")
+    assert result is None
+
+
+def test_bm25_cache_corrupted_file(tmp_path):
+    """손상된 캐시 파일 → None 반환 (graceful)"""
+    cache_path = tmp_path / "bm25_index.pkl"
+    hash_path = tmp_path / "docs_hash.txt"
+    cache_path.write_bytes(b"corrupted data")
+    hash_path.write_text("test_hash")
+
+    with patch("src.rag.retriever.BM25_CACHE_DIR", tmp_path):
+        result = _load_bm25_cache("test_hash")
+    assert result is None

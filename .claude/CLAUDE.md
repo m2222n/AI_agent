@@ -121,8 +121,9 @@
 - [x] `create_documents(include_pdfs=True)`로 ETF 데이터 + PDF 통합
 - [ ] ETF 투자설명서 PDF 수집 및 적용 (pdfs/ 디렉토리에 파일 추가 시 자동 인식)
 
-**2-3. Vector DB 교체 (추후)**
-- [ ] FAISS → **Pinecone** 마이그레이션 (free tier, 서버리스)
+**2-3. Vector DB 듀얼 백엔드** ✅ 완료
+- [x] Pinecone 서버리스 백엔드 추가 (free tier, aws us-east-1, 자동 인덱스 생성)
+- [x] FAISS/Pinecone 자동 선택 + Pinecone 실패 시 FAISS 자동 fallback
 - [ ] Pinecone sparse-dense 하이브리드 검색으로 전환
 
 **2-4. Re-ranking** ✅ 완료
@@ -157,7 +158,7 @@
 **3-1. LangGraph 기반 에이전트** ✅ 구현 완료
 - [x] LangGraph 도입 — 키워드 classifier.py → LLM 라우팅 그래프 (`agent.py`)
 - [x] LLM 기반 질문 분류 (`classify_with_llm()`, 키워드 fallback 유지)
-- [x] Function Calling 도구 정의 (`tools.py`) — 13개:
+- [x] Function Calling 도구 정의 (`tools.py`) — 14개:
   - `search_etf`: 하이브리드 RAG 검색
   - `compare_etfs`: ETF 비교 분석 (개별 검색 후 병합)
   - `get_etf_list`: 카테고리별 ETF 목록 검색
@@ -170,7 +171,8 @@
   - `get_stock_correlation`: 종목 간 상관관계 + 베타 계수 분석
   - `simulate_portfolio`: 포트폴리오 백테스트 (수익률/MDD/샤프/변동성) + KODEX 200 벤치마크 비교 (알파/추적오차)
   - `get_financial_statements`: 분기별 재무제표 (매출/영업이익/순이익/마진/성장률, OpenDart)
-  - `predict_price_outlook`: 3축 가격 전망 (기술적+펀더멘털+Ridge회귀, EMA 피처, Bootstrap CI, 6m/1y 지원)
+  - `predict_price_outlook`: 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, EMA 피처, Bootstrap CI, 6m/1y 지원)
+  - `get_stock_news`: 종목 뉴스 수집 + GPT 감성 분석 (Google News RSS, 긍정/부정/중립/혼재)
 - [x] 검색 결과 부족 시 재검색 순환 구조 (Conditional Edge, 최대 2회)
 - [x] 스트리밍 에이전트 (`stream_agent()` — 이벤트 기반 UI 업데이트)
 - [x] 토큰 단위 스트리밍 (`stream_mode=["messages","updates"]` — AIMessageChunk 누적)
@@ -246,7 +248,7 @@
 
 **4-4. 아키텍처 고도화 (추후)**
 - [ ] Multi-Agent 구조 (리서치 → 분석 → 답변 에이전트 분리)
-- [ ] Pinecone (문서 수 증가 시 FAISS 대체)
+- [x] Pinecone 듀얼 백엔드 (FAISS+Pinecone, 자동 fallback)
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small A/B 테스트)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
@@ -359,18 +361,19 @@ ETF_RAG/
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
-│   │   ├── predictor.py    # 3축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+EMA피처+Bootstrap CI+6m/1y)
+│   │   ├── predictor.py    # 4축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+Prophet+EMA피처+Bootstrap CI+6m/1y)
+│   │   ├── news.py         # Google News RSS + GPT-4o-mini 감성 분석 (fetch_google_news, analyze_sentiment_batch)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
 │   │   ├── deploy/         # 배포용 데이터 (Git 추적, Streamlit Cloud용)
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
-│   │   ├── vectorstore.py  # create_vectorstore() — FAISS persist (MD5 해시 캐시) + text-embedding-3-small
-│   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+Cohere Rerank+MMR), retrieve_relevant_docs()
+│   │   ├── vectorstore.py  # create_vectorstore() — FAISS/Pinecone 듀얼 백엔드 (MD5 해시 캐시, 자동 fallback)
+│   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+Cohere Rerank+MMR, BM25 pickle 캐시), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer + 병렬 도구 호출)
-│   │   ├── tools.py        # Function Calling 도구 13개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
+│   │   ├── tools.py        # Function Calling 도구 14개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -387,7 +390,7 @@ ETF_RAG/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 522개
+├── tests/                  # pytest 551개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -449,4 +452,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-24 (E-3 차트 시각화 + 섹터 탭. 도구 13개, 테스트 522개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-04-29 (E-4 BM25 캐시 + 뉴스 감성 분석 + Prophet 예측 + Pinecone. 도구 14개, 테스트 551개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

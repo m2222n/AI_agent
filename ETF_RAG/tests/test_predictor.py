@@ -699,3 +699,120 @@ class TestModelReliability:
         # R² >= 0.1 → 리스크 없음
         risks_ok = _identify_risks(summary, {"model_r2": 0.15, "historical_analog": {"sample_count": 20}}, fund)
         assert not any("R²" in r for r in risks_ok)
+
+
+# ── Prophet 예측 테스트 ──
+
+class TestProphetPrediction:
+    """_calc_prophet_prediction 테스트"""
+
+    def test_empty_prophet(self):
+        from src.data.predictor import _empty_prophet
+        result = _empty_prophet()
+        assert result["available"] is False
+        assert result["predicted_return"] == 0.0
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_insufficient_data(self, mock_ohlcv):
+        """데이터 부족 시 empty 반환"""
+        from src.data.predictor import _calc_prophet_prediction
+        mock_ohlcv.return_value = [{"date": "2026-01-01", "close": 100}] * 50
+        result = _calc_prophet_prediction("005930", 20)
+        assert result["available"] is False
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_with_mock_data(self, mock_ohlcv):
+        """충분한 데이터로 Prophet 실행"""
+        from src.data.predictor import _calc_prophet_prediction
+        import random
+        random.seed(42)
+
+        # 200일치 mock 데이터 (약간 상승 추세)
+        base_price = 70000
+        ohlcv = []
+        for i in range(200):
+            price = base_price + i * 50 + random.randint(-500, 500)
+            ohlcv.append({
+                "date": f"2025-{(i // 30) + 1:02d}-{(i % 28) + 1:02d}",
+                "open": price,
+                "high": price + 500,
+                "low": price - 500,
+                "close": price,
+                "volume": 1000000,
+            })
+        mock_ohlcv.return_value = ohlcv
+
+        result = _calc_prophet_prediction("005930", 20)
+        assert result["available"] is True
+        assert isinstance(result["predicted_return"], float)
+        assert len(result["confidence_interval"]) == 2
+        assert result["trend"] in ("상승", "하락", "횡보")
+
+    @patch("src.data.technical._get_ohlcv")
+    def test_prophet_exception_handling(self, mock_ohlcv):
+        """Prophet 실패 시 graceful fallback"""
+        from src.data.predictor import _calc_prophet_prediction
+        mock_ohlcv.side_effect = Exception("DB error")
+        result = _calc_prophet_prediction("005930", 20)
+        assert result["available"] is False
+
+
+class TestBuildPriceOutlookWithProphet:
+    """build_price_outlook에 Prophet 통합 확인"""
+
+    @patch("src.data.predictor._calc_prophet_prediction")
+    @patch("src.data.predictor._calc_statistical_prediction")
+    @patch("src.data.predictor._calc_fundamental_score")
+    def test_outlook_includes_prophet(self, mock_fund, mock_stat, mock_prophet):
+        """Prophet 결과가 outlook에 포함되는지"""
+        from src.data.predictor import build_price_outlook
+
+        mock_fund.return_value = {"score": 0.0, "signal": "데이터 없음", "key_factors": []}
+        mock_stat.return_value = {
+            "predicted_return": 2.0,
+            "confidence_interval": (-1.0, 5.0),
+            "historical_analog": {"sample_count": 50, "median_return": 1.5, "win_rate": 0.6},
+            "model_r2": 0.15,
+        }
+        mock_prophet.return_value = {
+            "predicted_return": 3.5,
+            "confidence_interval": (1.0, 6.0),
+            "trend": "상승",
+            "available": True,
+        }
+
+        summary = {"close": 70000, "ma": {}, "cross": {}, "data_days": 200}
+        result = build_price_outlook("005930", "삼성전자", "1m", summary=summary)
+
+        assert "prophet" in result
+        assert result["prophet"]["available"] is True
+        assert result["prophet"]["predicted_return"] == 3.5
+        assert result["prophet"]["trend"] == "상승"
+
+    @patch("src.data.predictor._calc_prophet_prediction")
+    @patch("src.data.predictor._calc_statistical_prediction")
+    @patch("src.data.predictor._calc_fundamental_score")
+    def test_outlook_without_prophet(self, mock_fund, mock_stat, mock_prophet):
+        """Prophet 불가 시에도 정상 작동"""
+        from src.data.predictor import build_price_outlook
+
+        mock_fund.return_value = {"score": 0.2, "signal": "중립", "key_factors": []}
+        mock_stat.return_value = {
+            "predicted_return": 1.0,
+            "confidence_interval": (-2.0, 4.0),
+            "historical_analog": {"sample_count": 30, "median_return": 0.5, "win_rate": 0.55},
+            "model_r2": 0.12,
+        }
+        mock_prophet.return_value = {
+            "predicted_return": 0.0,
+            "confidence_interval": (0.0, 0.0),
+            "trend": "분석 불가",
+            "available": False,
+        }
+
+        summary = {"close": 50000, "ma": {}, "cross": {}, "data_days": 100}
+        result = build_price_outlook("000660", "SK하이닉스", "1m", summary=summary)
+
+        assert result["prophet"]["available"] is False
+        # composite 계산은 기존 3축으로 (Prophet 제외)
+        assert "composite_score" in result

@@ -106,3 +106,8 @@ REALTIME_PRICE = {
     "market_close": "15:30",    # 장 마감 (KST)
     "enabled": True,            # 기능 활성화 플래그
 }
+
+# Vector DB backend: "faiss" (default) or "pinecone"
+VECTOR_DB_BACKEND = os.getenv("VECTOR_DB_BACKEND", "faiss")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "etf-rag")

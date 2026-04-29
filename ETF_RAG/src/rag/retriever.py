@@ -10,8 +10,11 @@
 5. 최종 top-k 반환
 """
 
+import hashlib
 import logging
+import pickle
 import re
+from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 
 import numpy as np
@@ -20,7 +23,7 @@ from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
-from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY
+from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +49,56 @@ def tokenize_korean(text: str) -> List[str]:
     return tokens
 
 
+
+
+# BM25 캐시 디렉토리
+BM25_CACHE_DIR = DATA_DIR / "bm25_cache"
+
+
+def _compute_docs_hash(documents: List[Document]) -> str:
+    """문서 목록의 해시 계산 (BM25 캐시 무효화용)"""
+    hasher = hashlib.md5()
+    for doc in documents:
+        hasher.update(doc.page_content.encode("utf-8"))
+    return hasher.hexdigest()[:16]
+
+
+def _load_bm25_cache(docs_hash: str) -> Optional[Tuple[BM25Okapi, List[List[str]]]]:
+    """캐시된 BM25 인덱스 로드. 해시 불일치 또는 파일 없으면 None."""
+    cache_path = BM25_CACHE_DIR / "bm25_index.pkl"
+    hash_path = BM25_CACHE_DIR / "docs_hash.txt"
+    try:
+        if not cache_path.exists() or not hash_path.exists():
+            return None
+        saved_hash = hash_path.read_text().strip()
+        if saved_hash != docs_hash:
+            logger.info(f"BM25 캐시 해시 불일치: {saved_hash} != {docs_hash}")
+            return None
+        with open(cache_path, "rb") as f:
+            data = pickle.load(f)
+        bm25 = data["bm25"]
+        tokenized_corpus = data["tokenized_corpus"]
+        logger.info(f"BM25 캐시 로드 성공 ({len(tokenized_corpus)}개 문서)")
+        return bm25, tokenized_corpus
+    except Exception as e:
+        logger.warning(f"BM25 캐시 로드 실패: {e}")
+        return None
+
+
+def _save_bm25_cache(
+    bm25: BM25Okapi, tokenized_corpus: List[List[str]], docs_hash: str
+) -> None:
+    """BM25 인덱스를 디스크에 캐싱."""
+    try:
+        BM25_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_path = BM25_CACHE_DIR / "bm25_index.pkl"
+        hash_path = BM25_CACHE_DIR / "docs_hash.txt"
+        with open(cache_path, "wb") as f:
+            pickle.dump({"bm25": bm25, "tokenized_corpus": tokenized_corpus}, f)
+        hash_path.write_text(docs_hash)
+        logger.info(f"BM25 캐시 저장 완료 ({len(tokenized_corpus)}개 문서, hash={docs_hash})")
+    except Exception as e:
+        logger.warning(f"BM25 캐시 저장 실패: {e}")
 
 
 class HybridRetriever:
@@ -82,9 +135,15 @@ class HybridRetriever:
             if ticker:
                 self._ticker_index[ticker] = i
 
-        # BM25 인덱스 구축
-        tokenized_corpus = [tokenize_korean(doc.page_content) for doc in documents]
-        self.bm25 = BM25Okapi(tokenized_corpus)
+        # BM25 인덱스 구축 (pickle 캐시 활용)
+        docs_hash = _compute_docs_hash(documents)
+        cached = _load_bm25_cache(docs_hash)
+        if cached is not None:
+            self.bm25, _tokenized = cached
+        else:
+            tokenized_corpus = [tokenize_korean(doc.page_content) for doc in documents]
+            self.bm25 = BM25Okapi(tokenized_corpus)
+            _save_bm25_cache(self.bm25, tokenized_corpus, docs_hash)
 
         logger.info(
             f"HybridRetriever 초기화: {len(documents)}개 문서, "

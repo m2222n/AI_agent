@@ -1,4 +1,4 @@
-"""FAISS 벡터스토어 persist 테스트"""
+"""벡터스토어 (FAISS + Pinecone) 테스트"""
 import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -9,6 +9,7 @@ from langchain_core.documents import Document
 from src.rag.vectorstore import (
     _compute_docs_hash,
     create_vectorstore,
+    _create_faiss_vectorstore,
     FAISS_INDEX_DIR,
     _get_index_path,
     _read_hash_file,
@@ -131,3 +132,64 @@ def test_create_vectorstore_hash_mismatch(mock_emb, mock_faiss, tmp_path):
 
         mock_faiss.from_documents.assert_called_once()
         mock_faiss.load_local.assert_not_called()
+
+
+# ── 백엔드 선택 테스트 ──────────────────────────────────────
+
+@patch("src.rag.vectorstore._create_faiss_vectorstore")
+def test_create_vectorstore_default_faiss(mock_faiss_fn):
+    """기본 백엔드는 faiss"""
+    docs = [Document(page_content="테스트")]
+    mock_faiss_fn.return_value = MagicMock()
+
+    with patch("src.rag.vectorstore.VECTOR_DB_BACKEND", "faiss"):
+        create_vectorstore(docs)
+    mock_faiss_fn.assert_called_once()
+
+
+@patch("src.rag.vectorstore._create_pinecone_vectorstore")
+def test_create_vectorstore_pinecone_backend(mock_pc_fn):
+    """pinecone 백엔드 선택 시"""
+    docs = [Document(page_content="테스트")]
+    mock_pc_fn.return_value = MagicMock()
+
+    with patch("src.rag.vectorstore.VECTOR_DB_BACKEND", "pinecone"), \
+         patch("src.rag.vectorstore.PINECONE_API_KEY", "test-key"):
+        create_vectorstore(docs)
+    mock_pc_fn.assert_called_once()
+
+
+@patch("src.rag.vectorstore._create_pinecone_vectorstore")
+@patch("src.rag.vectorstore._create_faiss_vectorstore")
+def test_create_vectorstore_pinecone_fallback(mock_faiss_fn, mock_pc_fn):
+    """Pinecone 실패 시 FAISS fallback"""
+    docs = [Document(page_content="테스트")]
+    mock_pc_fn.side_effect = Exception("Pinecone error")
+    mock_faiss_fn.return_value = MagicMock()
+
+    with patch("src.rag.vectorstore.VECTOR_DB_BACKEND", "pinecone"), \
+         patch("src.rag.vectorstore.PINECONE_API_KEY", "test-key"):
+        create_vectorstore(docs)
+    mock_pc_fn.assert_called_once()
+    mock_faiss_fn.assert_called_once()
+
+
+@patch("src.rag.vectorstore._create_faiss_vectorstore")
+def test_create_vectorstore_pinecone_no_key(mock_faiss_fn):
+    """PINECONE_API_KEY 없으면 FAISS 사용"""
+    docs = [Document(page_content="테스트")]
+    mock_faiss_fn.return_value = MagicMock()
+
+    with patch("src.rag.vectorstore.VECTOR_DB_BACKEND", "pinecone"), \
+         patch("src.rag.vectorstore.PINECONE_API_KEY", ""):
+        create_vectorstore(docs)
+    mock_faiss_fn.assert_called_once()
+
+
+def test_create_vectorstore_explicit_backend():
+    """backend 파라미터로 명시 선택"""
+    docs = [Document(page_content="테스트")]
+    with patch("src.rag.vectorstore._create_faiss_vectorstore") as mock_faiss_fn:
+        mock_faiss_fn.return_value = MagicMock()
+        create_vectorstore(docs, backend="faiss")
+        mock_faiss_fn.assert_called_once()

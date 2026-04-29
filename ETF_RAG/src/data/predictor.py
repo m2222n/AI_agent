@@ -548,6 +548,91 @@ def _historical_analog(conditions, targets, current_cond) -> dict:
     }
 
 
+def _calc_prophet_prediction(ticker: str, horizon_days: int) -> dict:
+    """Prophet 시계열 예측.
+
+    Returns:
+        {"predicted_return": float, "confidence_interval": (lo, hi),
+         "trend": str, "available": bool}
+    """
+    try:
+        import warnings
+        warnings.filterwarnings("ignore", message=".*cmdstan.*")
+
+        from prophet import Prophet
+        import pandas as pd
+        from src.data.technical import _get_ohlcv
+
+        data_days = max(500, horizon_days * 5 + 60)
+        ohlcv = _get_ohlcv(ticker, days=data_days)
+        if len(ohlcv) < 120:
+            return _empty_prophet()
+
+        # Prophet 입력 형식: ds (날짜), y (종가)
+        df = pd.DataFrame([
+            {"ds": pd.Timestamp(d["date"]), "y": d["close"]}
+            for d in ohlcv if d["close"] > 0
+        ])
+        if len(df) < 120:
+            return _empty_prophet()
+
+        current_price = df["y"].iloc[-1]
+
+        # Prophet 학습 (빠른 실행: 짧은 체인, 주식용 설정)
+        m = Prophet(
+            daily_seasonality=False,
+            weekly_seasonality=True,
+            yearly_seasonality=True,
+            changepoint_prior_scale=0.15,  # 주식 변동성 반영
+            seasonality_mode="multiplicative",
+        )
+        m.fit(df)
+
+        # 예측
+        future = m.make_future_dataframe(periods=horizon_days, freq="B")  # 영업일
+        forecast = m.predict(future)
+
+        # 예측 기간의 마지막 값
+        pred_row = forecast.iloc[-1]
+        pred_price = pred_row["yhat"]
+        pred_lo = pred_row["yhat_lower"]
+        pred_hi = pred_row["yhat_upper"]
+
+        predicted_return = (pred_price - current_price) / current_price * 100
+        ci_lo = (pred_lo - current_price) / current_price * 100
+        ci_hi = (pred_hi - current_price) / current_price * 100
+
+        # 추세 방향
+        trend_start = forecast["trend"].iloc[-horizon_days] if len(forecast) > horizon_days else forecast["trend"].iloc[0]
+        trend_end = forecast["trend"].iloc[-1]
+        if trend_end > trend_start * 1.01:
+            trend = "상승"
+        elif trend_end < trend_start * 0.99:
+            trend = "하락"
+        else:
+            trend = "횡보"
+
+        return {
+            "predicted_return": round(predicted_return, 2),
+            "confidence_interval": (round(ci_lo, 2), round(ci_hi, 2)),
+            "trend": trend,
+            "available": True,
+        }
+
+    except Exception as e:
+        logger.warning(f"Prophet 예측 실패 ({ticker}): {e}")
+        return _empty_prophet()
+
+
+def _empty_prophet() -> dict:
+    return {
+        "predicted_return": 0.0,
+        "confidence_interval": (0.0, 0.0),
+        "trend": "분석 불가",
+        "available": False,
+    }
+
+
 def _empty_statistical() -> dict:
     return {
         "predicted_return": 0.0,
@@ -587,20 +672,31 @@ def build_price_outlook(ticker: str, name: str, horizon: str = "1m",
     # (B) 펀더멘털 분석
     fund = _calc_fundamental_score(ticker, structured_data)
 
-    # (C) 통계 모델
+    # (C) 통계 모델 (Ridge 회귀)
     stat = _calc_statistical_prediction(ticker, horizon_days)
 
-    # 가중치 결정: 재무 데이터 유무에 따라 조정
+    # (D) Prophet 시계열 예측
+    prophet = _calc_prophet_prediction(ticker, horizon_days)
+
+    # 가중치 결정: 재무/Prophet 데이터 유무에 따라 조정
     has_fund = fund["signal"] != "데이터 없음"
-    if has_fund:
-        w_tech, w_fund, w_stat = 0.40, 0.25, 0.35
+    has_prophet = prophet["available"]
+
+    if has_fund and has_prophet:
+        w_tech, w_fund, w_stat, w_prophet = 0.30, 0.20, 0.25, 0.25
+    elif has_fund:
+        w_tech, w_fund, w_stat, w_prophet = 0.40, 0.25, 0.35, 0.0
+    elif has_prophet:
+        w_tech, w_fund, w_stat, w_prophet = 0.40, 0.0, 0.30, 0.30
     else:
-        w_tech, w_fund, w_stat = 0.55, 0.0, 0.45
+        w_tech, w_fund, w_stat, w_prophet = 0.55, 0.0, 0.45, 0.0
 
     # 통계 모델 스코어 변환 (수익률 → -1~+1)
     stat_score = max(-1.0, min(1.0, stat["predicted_return"] / 10.0))
+    prophet_score = max(-1.0, min(1.0, prophet["predicted_return"] / 10.0)) if has_prophet else 0.0
 
-    composite = w_tech * tech["score"] + w_fund * fund["score"] + w_stat * stat_score
+    composite = (w_tech * tech["score"] + w_fund * fund["score"]
+                 + w_stat * stat_score + w_prophet * prophet_score)
     composite = round(max(-1.0, min(1.0, composite)), 3)
 
     # 시나리오 확률
@@ -630,6 +726,12 @@ def build_price_outlook(ticker: str, name: str, horizon: str = "1m",
             "historical_sample_count": stat["historical_analog"].get("sample_count", 0),
             "model_r2": stat["model_r2"],
             "model_reliability": "높음" if stat["model_r2"] > 0.3 else "보통" if stat["model_r2"] > 0.1 else "낮음",
+        },
+        "prophet": {
+            "available": prophet["available"],
+            "predicted_return": prophet["predicted_return"],
+            "confidence_interval": prophet["confidence_interval"],
+            "trend": prophet["trend"],
         },
         "composite_score": composite,
         "scenarios": scenarios,

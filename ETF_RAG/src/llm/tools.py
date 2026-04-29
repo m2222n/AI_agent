@@ -1766,6 +1766,14 @@ def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
                  f"(표본 {stat['historical_sample_count']}건)")
     lines.append(f"  - 모델 설명력: R²={stat['model_r2']:.4f} ({stat['model_reliability']})")
 
+    # Prophet 시계열 예측
+    prophet = outlook.get("prophet", {})
+    if prophet.get("available"):
+        lines.append(f"\n**Prophet 시계열 예측:**")
+        lines.append(f"  - 예측 수익률: {prophet['predicted_return']:+.2f}% "
+                     f"(신뢰구간: {prophet['confidence_interval'][0]:+.2f}% ~ {prophet['confidence_interval'][1]:+.2f}%)")
+        lines.append(f"  - 추세 방향: {prophet['trend']}")
+
     # 리스크 요인
     risks = outlook.get("risk_factors", [])
     if risks:
@@ -1795,9 +1803,64 @@ def predict_price_outlook(name_or_ticker: str, horizon: str = "1m") -> str:
     return text_result
 
 
+@tool
+def get_stock_news(name_or_ticker: str, max_articles: int = 8) -> str:
+    """종목 관련 최근 뉴스 수집 + 감성 분석. 뉴스, 이슈, 시장 반응, 여론 등을 확인할 때 사용.
+
+    Args:
+        name_or_ticker: 종목명 또는 티커 (예: "삼성전자", "005930")
+        max_articles: 최대 기사 수 (기본 8)
+    """
+    from src.data.news import get_stock_news_summary
+
+    # 종목명 확인
+    data = _find_structured_data(name_or_ticker)
+    if data:
+        name = data.get("name", name_or_ticker)
+    else:
+        name = name_or_ticker
+
+    result = get_stock_news_summary(name, max_articles=max_articles)
+
+    # 포맷팅
+    lines = [f"## 📰 {name} 최근 뉴스 분석\n"]
+
+    # 전체 감성
+    sentiment_emoji = {
+        "긍정": "🟢", "부정": "🔴", "중립": "⚪", "혼재": "🟡",
+    }
+    emoji = sentiment_emoji.get(result["overall_sentiment"], "⚪")
+    lines.append(f"**전체 감성:** {emoji} {result['overall_sentiment']}")
+    lines.append(
+        f"  긍정 {result['positive_count']}건 / "
+        f"부정 {result['negative_count']}건 / "
+        f"중립 {result['neutral_count']}건"
+    )
+
+    if result["key_topics"]:
+        lines.append(f"\n**주요 키워드:** {', '.join(result['key_topics'])}")
+
+    if result["summary"]:
+        lines.append(f"\n**뉴스 흐름 요약:** {result['summary']}")
+
+    # 개별 기사
+    articles = result.get("articles", [])
+    if articles:
+        lines.append(f"\n### 최근 기사 ({len(articles)}건)\n")
+        for i, a in enumerate(articles, 1):
+            sent = a.get("sentiment", "")
+            sent_mark = {"긍정": "🟢", "부정": "🔴", "중립": "⚪"}.get(sent, "")
+            source_str = f" ({a['source']})" if a.get("source") else ""
+            lines.append(f"{i}. {sent_mark} **{a['title']}**{source_str}")
+            if a.get("published"):
+                lines.append(f"   📅 {a['published']}")
+
+    return "\n".join(lines)
+
+
 # 에이전트에 바인딩할 도구 목록
 ALL_TOOLS = [search_etf, compare_etfs, get_etf_list, search_stock,
              compare_stocks, get_stock_list,
              get_realtime_price, analyze_sector, get_technical_indicators,
              get_stock_correlation, simulate_portfolio, get_financial_statements,
-             predict_price_outlook]
+             predict_price_outlook, get_stock_news]

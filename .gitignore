@@ -36,6 +36,9 @@ ETF_RAG/src/data/*.db-shm
 # FAISS index cache (regenerated from data)
 ETF_RAG/src/data/faiss_index/
 
+# BM25 index cache (regenerated from data)
+ETF_RAG/src/data/bm25_cache/
+
 # Old assignments (exclude from git)
 2week_assignment_taemin/
 3week_assignment_taemin/

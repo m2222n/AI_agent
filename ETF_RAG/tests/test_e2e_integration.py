@@ -348,7 +348,7 @@ class TestAgentGraphIntegration:
     def test_all_tools_registered(self):
         """13개 도구 전부 등록."""
         from src.llm.agent import ALL_TOOLS
-        assert len(ALL_TOOLS) == 13
+        assert len(ALL_TOOLS) == 14
 
     def test_tool_names_unique(self):
         """도구 이름 중복 없음."""
