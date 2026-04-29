@@ -138,6 +138,7 @@ jobs:
           git commit -m "chore: update deploy data ($DATE KST)
 
           Automated daily KRX data collection via GitHub Actions"
+          git pull --rebase origin main
           git push
 
   # ── 실패 시 GitHub Issue 자동 생성 ──────────────────────
