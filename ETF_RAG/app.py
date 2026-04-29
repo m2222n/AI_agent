@@ -7,6 +7,7 @@ LLM 기반 ETF 질의응답 시스템
 - UI: Streamlit
 """
 
+import json
 import logging
 from pathlib import Path
 
@@ -34,6 +35,21 @@ from src.ui.tabs import render_technical_tab, render_financial_tab, render_compa
 logger = logging.getLogger(__name__)
 
 
+def _get_deploy_data_version() -> str:
+    """deploy 데이터의 collection_date를 반환 (캐시 무효화 키)."""
+    deploy_dir = Path(__file__).parent / "src" / "data" / "deploy"
+    for name in ("etf_data.json", "stock_data.json"):
+        p = deploy_dir / name
+        if p.exists():
+            try:
+                with open(p) as f:
+                    meta = json.load(f).get("metadata", {})
+                return meta.get("collection_date", "unknown")
+            except Exception:
+                pass
+    return "unknown"
+
+
 @st.cache_resource(show_spinner="데이터베이스 준비 중... (최초 실행 시 1~2분)")
 def download_db():
     """Streamlit Cloud 시작 시 GitHub Release에서 DB 다운로드 (1회)."""
@@ -44,8 +60,8 @@ def download_db():
 
 
 @st.cache_resource(show_spinner="ETF/주식 데이터 로딩 중... (4,200+ 종목)")
-def load_all_data():
-    """ETF + 주식 데이터 로드 + 문서 생성."""
+def load_all_data(_data_version: str = ""):
+    """ETF + 주식 데이터 로드 + 문서 생성. _data_version으로 캐시 무효화."""
     etf_data = _load_etf_data()
     logger.info(f"ETF 데이터 로드: {len(etf_data)}종목")
 
@@ -84,8 +100,9 @@ def init_all():
     # Step 1: DB 다운로드
     download_db()
 
-    # Step 2: 데이터 로드 + 문서 생성
-    etf_data, stock_data, documents, stock_documents = load_all_data()
+    # Step 2: 데이터 로드 + 문서 생성 (deploy 날짜가 바뀌면 캐시 자동 무효화)
+    data_version = _get_deploy_data_version()
+    etf_data, stock_data, documents, stock_documents = load_all_data(_data_version=data_version)
 
     # Step 3: 검색 인덱스 구축
     etf_retriever, stock_retriever = build_retrievers(documents, stock_documents)
