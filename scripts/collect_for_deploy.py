@@ -216,12 +216,44 @@ def collect_etf_for_deploy(date: str) -> dict:
             "holdings": [],
         })
 
+    # 보유종목 수집 (거래대금 상위 ETF)
+    holdings_count = 50
+    etfs_sorted = sorted(etfs, key=lambda e: e.get("ohlcv", {}).get("trade_value", 0), reverse=True)
+    holdings_targets = [e for e in etfs_sorted if e.get("ohlcv", {}).get("close", 0) > 0][:holdings_count]
+
+    holdings_collected = 0
+    for etf in holdings_targets:
+        ticker = etf["ticker"]
+        try:
+            df = stock.get_etf_portfolio_deposit_file(ticker, date)
+            if df.empty:
+                continue
+            df = df.sort_values("금액", ascending=False)
+            holdings = []
+            for stock_ticker, row in df.head(10).iterrows():
+                stock_name = _safe_get_ticker_name(str(stock_ticker))
+                holdings.append({
+                    "stock_ticker": str(stock_ticker),
+                    "stock_name": stock_name,
+                    "shares": float(row["계약수"]),
+                    "amount": int(row["금액"]),
+                    "weight": round(float(row["비중"]), 2),
+                })
+            if holdings:
+                etf["holdings"] = holdings
+                holdings_collected += 1
+        except Exception as e:
+            logger.warning(f"{ticker} 보유종목 수집 실패: {e}")
+        time.sleep(REQUEST_DELAY)
+
+    logger.info(f"보유종목: {holdings_collected}/{len(holdings_targets)} ETF 수집")
+
     result = {
         "metadata": {
             "collection_date": date,
             "collected_at": datetime.now().isoformat(),
             "total_etfs": len(etfs),
-            "holdings_collected": 0,
+            "holdings_collected": holdings_collected,
         },
         "etfs": etfs,
     }

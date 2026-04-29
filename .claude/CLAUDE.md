@@ -370,6 +370,7 @@ ETF_RAG/
 │   │   └── pdfs/           # ETF 투자설명서 PDF (파일 추가 시 자동 인식)
 │   ├── rag/
 │   │   ├── vectorstore.py  # create_vectorstore() — FAISS/Pinecone 듀얼 백엔드 (MD5 해시 캐시, 자동 fallback)
+│   │   ├── utils.py        # 공유 유틸리티 (compute_docs_hash — FAISS/BM25 캐시 무효화용)
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+Cohere Rerank+MMR, BM25 pickle 캐시), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer + 병렬 도구 호출)
@@ -387,10 +388,10 @@ ETF_RAG/
 │   └── utils/
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (162개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (172개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 551개
+├── tests/                  # pytest 563개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -452,4 +453,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-29 (E-4 BM25 캐시 + 뉴스 감성 분석 + Prophet 예측 + Pinecone. 도구 14개, 테스트 551개, eval 162개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-04-29 (E-4 BM25 캐시 + 뉴스 감성 분석 + Prophet 예측 + Pinecone. 도구 14개, 테스트 563개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

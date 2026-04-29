@@ -110,10 +110,10 @@ def analyze_sentiment_batch(
 
     # LLM 호출로 감성 분석
     try:
-        from src.llm.client import create_client
+        from src.llm.client import create_client, get_api_key
         import json
 
-        client = create_client()
+        client = create_client(get_api_key())
 
         # 기사 목록 텍스트화
         articles_text = ""
