@@ -122,24 +122,7 @@ def _render_market_data(etf_data: list, stock_data: list):
         _render_etf_list(etf_data)
 
 
-def _format_change(pct: float) -> str:
-    """등락률을 색상 이모지와 함께 포맷"""
-    if pct > 0:
-        return f"🔴 +{pct:.2f}%"
-    elif pct < 0:
-        return f"🔵 {pct:.2f}%"
-    return f"⚪ {pct:.2f}%"
-
-
-def _format_trade_value(value: int) -> str:
-    """거래대금을 읽기 쉬운 형태로"""
-    if value >= 1_000_000_000_000:
-        return f"{value / 1_000_000_000_000:.1f}조"
-    elif value >= 100_000_000:
-        return f"{value / 100_000_000:.0f}억"
-    elif value >= 10_000:
-        return f"{value / 10_000:.0f}만"
-    return f"{value:,}"
+from src.utils.formatters import format_change as _format_change, format_large_number as _format_trade_value
 
 
 def _render_etf_list(etf_data: list):

@@ -483,8 +483,8 @@ def render_comparison_tab():
         v1, v2 = data1.get(key), data2.get(key)
         if v1 is not None or v2 is not None:
             if key == "market_cap":
-                from src.ui.charts import _format_market_cap
-                rows.append((label, _format_market_cap(v1 or 0), _format_market_cap(v2 or 0)))
+                from src.utils.formatters import format_market_cap
+                rows.append((label, format_market_cap(v1 or 0), format_market_cap(v2 or 0)))
             else:
                 rows.append((label,
                              fmt.format(v1) if v1 is not None else "-",

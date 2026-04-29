@@ -205,12 +205,13 @@ def _make_mock_ohlcv(base_close_fn, n=150):
 class TestTechnicalSummary:
     def test_summary_with_mock_ohlcv(self, monkeypatch):
         """_get_ohlcv를 모킹해서 get_technical_summary 테스트"""
-        from src.data import technical
+        from src.data.technical import _data
 
         mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
-        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+        monkeypatch.setattr(_data, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
-        result = technical.get_technical_summary("005930")
+        from src.data.technical import get_technical_summary
+        result = get_technical_summary("005930")
         assert result is not None
         assert result["ticker"] == "005930"
         assert result["trend"] == "상승"
@@ -222,33 +223,36 @@ class TestTechnicalSummary:
 
     def test_summary_insufficient_data(self, monkeypatch):
         """데이터 부족 시 None 반환"""
-        from src.data import technical
+        from src.data.technical import _data
 
         mock_data = _make_mock_ohlcv(lambda i: 50000, n=10)
-        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+        monkeypatch.setattr(_data, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
-        result = technical.get_technical_summary("005930")
+        from src.data.technical import get_technical_summary
+        result = get_technical_summary("005930")
         assert result is None
 
     def test_summary_downtrend(self, monkeypatch):
         """하락 추세 판정"""
-        from src.data import technical
+        from src.data.technical import _data
 
         mock_data = _make_mock_ohlcv(lambda i: 80000 - i * 100)
-        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+        monkeypatch.setattr(_data, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
-        result = technical.get_technical_summary("005930")
+        from src.data.technical import get_technical_summary
+        result = get_technical_summary("005930")
         assert result is not None
         assert result["trend"] == "하락"
 
     def test_summary_includes_advanced_indicators(self, monkeypatch):
         """고급 지표 포함 확인"""
-        from src.data import technical
+        from src.data.technical import _data
 
         mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
-        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+        monkeypatch.setattr(_data, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
-        result = technical.get_technical_summary("005930")
+        from src.data.technical import get_technical_summary
+        result = get_technical_summary("005930")
         assert result is not None
         # 고급 지표 키 존재 확인
         assert "stochastic" in result
@@ -260,12 +264,13 @@ class TestTechnicalSummary:
 
     def test_summary_advanced_not_none(self, monkeypatch):
         """150일 데이터 → 모든 고급 지표 계산 가능"""
-        from src.data import technical
+        from src.data.technical import _data
 
         mock_data = _make_mock_ohlcv(lambda i: 50000 + i * 100)
-        monkeypatch.setattr(technical, "_get_ohlcv", lambda ticker, days=250: mock_data)
+        monkeypatch.setattr(_data, "_get_ohlcv", lambda ticker, days=250: mock_data)
 
-        result = technical.get_technical_summary("005930")
+        from src.data.technical import get_technical_summary
+        result = get_technical_summary("005930")
         assert result is not None
         assert result["stochastic"] is not None
         assert result["ichimoku"] is not None
@@ -301,12 +306,12 @@ class TestDailyReturns:
 class TestCorrelation:
     def test_perfect_positive(self, monkeypatch):
         """동일 종가 → 상관계수 ≈ 1.0"""
-        from src.data import technical
+        from src.data.technical import _data
         mock_data = [
             {"date": f"2026{i // 28 + 1:02d}{i % 28 + 1:02d}", "close": 50000 + i * 100}
             for i in range(60)
         ]
-        monkeypatch.setattr(technical, "_get_closes",
+        monkeypatch.setattr(_data, "_get_closes",
                             lambda ticker, days=120: mock_data)
         result = calc_correlation("A", "B", days=60)
         assert result is not None
@@ -314,7 +319,7 @@ class TestCorrelation:
 
     def test_negative_correlation(self, monkeypatch):
         """반대 방향 등락 → 음의 상관계수"""
-        from src.data import technical
+        from src.data.technical import _data
         import math
         # A가 오르면 B는 내리는 시소 패턴
         base = 50000
@@ -327,16 +332,16 @@ class TestCorrelation:
             down_data.append({"date": date, "close": base - swing})  # 반대
         def mock_get_closes(ticker, days=120):
             return up_data if ticker == "A" else down_data
-        monkeypatch.setattr(technical, "_get_closes", mock_get_closes)
+        monkeypatch.setattr(_data, "_get_closes", mock_get_closes)
         result = calc_correlation("A", "B", days=60)
         assert result is not None
         assert result["correlation"] < -0.5
 
     def test_insufficient_data(self, monkeypatch):
         """데이터 부족 → None"""
-        from src.data import technical
+        from src.data.technical import _data
         mock_data = [{"date": "20260101", "close": 50000}] * 5
-        monkeypatch.setattr(technical, "_get_closes",
+        monkeypatch.setattr(_data, "_get_closes",
                             lambda ticker, days=120: mock_data)
         assert calc_correlation("A", "B") is None
 
@@ -346,12 +351,12 @@ class TestCorrelation:
 class TestBeta:
     def test_beta_same_as_market(self, monkeypatch):
         """시장과 동일 종목 → 베타 ≈ 1.0"""
-        from src.data import technical
+        from src.data.technical import _data
         mock_data = [
             {"date": f"2026{i // 28 + 1:02d}{i % 28 + 1:02d}", "close": 50000 + i * 100}
             for i in range(60)
         ]
-        monkeypatch.setattr(technical, "_get_closes",
+        monkeypatch.setattr(_data, "_get_closes",
                             lambda ticker, days=250: mock_data)
         result = calc_beta("005930", days=60)
         assert result is not None
@@ -359,7 +364,7 @@ class TestBeta:
 
     def test_beta_high_volatility(self, monkeypatch):
         """시장보다 변동성 큰 종목 → 베타 > 1"""
-        from src.data import technical
+        from src.data.technical import _data
         market_data = [
             {"date": f"2026{i // 28 + 1:02d}{i % 28 + 1:02d}", "close": 50000 + i * 100}
             for i in range(60)
@@ -373,16 +378,16 @@ class TestBeta:
             call_count[0] += 1
             # 첫 호출 = stock, 두 번째 = benchmark
             return stock_data if call_count[0] % 2 == 1 else market_data
-        monkeypatch.setattr(technical, "_get_closes", mock_get_closes)
+        monkeypatch.setattr(_data, "_get_closes", mock_get_closes)
         result = calc_beta("005930", benchmark="069500", days=60)
         assert result is not None
         assert result["beta"] > 1.0
 
     def test_beta_insufficient(self, monkeypatch):
         """데이터 부족 → None"""
-        from src.data import technical
+        from src.data.technical import _data
         mock_data = [{"date": "20260101", "close": 50000}] * 5
-        monkeypatch.setattr(technical, "_get_closes",
+        monkeypatch.setattr(_data, "_get_closes",
                             lambda ticker, days=250: mock_data)
         assert calc_beta("005930") is None
 
@@ -438,13 +443,13 @@ class TestValuationPercentile:
 class TestPortfolioSimulation:
     def _make_mock(self, monkeypatch, closes_map):
         """ticker → closes 딕셔너리로 _get_closes 모킹"""
-        from src.data import technical
+        from src.data.technical import _data
         def mock_get_closes(ticker, days=260):
             closes = closes_map.get(ticker, [])
             data = [{"date": f"2026{i // 28 + 1:02d}{i % 28 + 1:02d}", "close": c}
                     for i, c in enumerate(closes)]
             return data
-        monkeypatch.setattr(technical, "_get_closes", mock_get_closes)
+        monkeypatch.setattr(_data, "_get_closes", mock_get_closes)
 
     def test_basic_equal_weight(self, monkeypatch):
         """두 종목 균등 비중 시뮬레이션"""

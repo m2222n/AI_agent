@@ -353,11 +353,29 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py       # load_etf_data(), create_documents(include_pdfs), _filter_etfs()
-│   │   ├── database.py     # SQLite CRUD (init_db, upsert_daily_data, get_latest_data, prune_old_data 영구보존, dart_corp_codes, stock_financials, financials_no_data)
+│   │   ├── database/       # SQLite CRUD 패키지 (5 서브모듈)
+│   │   │   ├── __init__.py     # 18개 공개 API re-export
+│   │   │   ├── _schema.py      # DB_PATH, 스키마, get_connection(), init_db(), _migrate()
+│   │   │   ├── _write.py       # upsert_daily_data(), upsert_stock_data()
+│   │   │   ├── _read.py        # get_latest_date/data/stock_data(), get_historical_prices(), search_instruments()
+│   │   │   ├── _dart.py        # DART corp_code 매핑 + 분기 재무 CRUD (6함수)
+│   │   │   └── _maintenance.py # prune_old_data(), import_json_file(), get_db_stats()
 │   │   ├── pdf_loader.py   # load_pdf_documents() — PDF 파싱 + 청킹 파이프라인
 │   │   ├── realtime.py     # yfinance 장중 시세 조회 (15분 지연, 5분 캐시, KRX→yfinance 티커 변환)
-│   │   ├── technical.py    # 기술적 지표 계산 (MA/EMA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR/상관계수/베타)
-│   │   ├── chart_generator.py  # matplotlib 차트 (기술적 분석/포트폴리오/재무제표/밸류에이션/장중시세/섹터, base64 PNG)
+│   │   ├── technical/      # 기술적 지표 패키지 (5 서브모듈)
+│   │   │   ├── __init__.py     # 전체 공개 API re-export
+│   │   │   ├── _data.py        # DB 연결 싱글턴, TTL 캐시, _get_closes(), _get_ohlcv()
+│   │   │   ├── _indicators.py  # MA/EMA/RSI/MACD/볼린저/크로스 계산
+│   │   │   ├── _advanced.py    # 스토캐스틱/일목균형표/CCI/ADX/OBV/ATR
+│   │   │   ├── _portfolio.py   # 상관계수/베타/포트폴리오 시뮬레이션/벤치마크
+│   │   │   └── _summary.py     # get_technical_summary() 통합 지표
+│   │   ├── chart_generator/    # matplotlib 차트 패키지 (5 서브모듈)
+│   │   │   ├── __init__.py     # 8개 generate_* 함수 re-export
+│   │   │   ├── _style.py       # 한글 폰트, 컬러 팔레트, 공통 스타일
+│   │   │   ├── _series.py      # 시계열 데이터 조회 + X축 라벨 헬퍼
+│   │   │   ├── technical.py    # 기술적 분석/비교/장중 차트
+│   │   │   ├── financial.py    # 재무제표/밸류에이션/포트폴리오 차트
+│   │   │   └── sector.py       # 섹터 개요/상세 차트
 │   │   ├── collector.py    # pykrx 기반 ETF 일배치 수집 (일괄 API + 개별 PDF + SQLite 듀얼라이트)
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
@@ -374,7 +392,14 @@ ETF_RAG/
 │   │   └── retriever.py    # HybridRetriever (FAISS+Kiwi BM25+RRF+Cohere Rerank+MMR, BM25 pickle 캐시), retrieve_relevant_docs()
 │   ├── llm/
 │   │   ├── agent.py        # LangGraph 에이전트 (라우팅 + 도구 + 재검색 + CoV 검증 + Structured Output + force_answer + 병렬 도구 호출)
-│   │   ├── tools.py        # Function Calling 도구 14개 + 구조화/역인덱스 + 종합판단(7지표집계) + 실적신호(4Q트렌드)
+│   │   ├── tools/          # Function Calling 도구 패키지 (7 서브모듈)
+│   │   │   ├── __init__.py     # 공개 API re-export + __getattr__/__setattr__ 위임
+│   │   │   ├── _state.py       # 모듈 레벨 상태 (retriever, 데이터 인덱스, 역인덱스)
+│   │   │   ├── _helpers.py     # 종목 검색, 필드 추출, enrichment 헬퍼
+│   │   │   ├── _search.py      # search_etf/stock, compare_etfs/stocks, get_etf/stock_list
+│   │   │   ├── _analysis.py    # get_realtime_price, analyze_sector, get_technical_indicators
+│   │   │   ├── _quantitative.py # get_stock_correlation, simulate_portfolio, get_financial_statements
+│   │   │   └── _forecast.py    # predict_price_outlook, get_stock_news
 │   │   ├── client.py       # get_api_key(), create_client(), call_llm_streaming()
 │   │   ├── prompts.py      # build_system_prompt()
 │   │   └── classifier.py   # classify_question_type() (LLM 분류 fallback)
@@ -385,13 +410,14 @@ ETF_RAG/
 │   │   ├── tabs.py         # 탭별 전용 UI (기술적 분석/재무제표/비교 분석/가격 전망/섹터 분석, text_input 부분매칭 자동완성)
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응: 768px 태블릿 + 480px 소형 폰)
 │   │   └── components.py   # render_example_questions(동적+기본), generate_dynamic_examples(급등/급락/거래대금), render_feedback_buttons(부정사유 수집)
-│   └── utils/
-│       └── logging.py      # log_interaction(), log_feedback()
 ├── eval/
 │   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (172개 질문, 8개 유형)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
-├── tests/                  # pytest 563개
+│   └── utils/
+│       ├── formatters.py   # 공통 포맷터 (format_market_cap, format_trade_value, format_number)
+│       └── logging.py      # log_interaction(), log_feedback()
+├── tests/                  # pytest 584개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -453,4 +479,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-29 (E-4 BM25 캐시 + 뉴스 감성 분석 + Prophet 예측 + Pinecone. 도구 14개, 테스트 563개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-04-29 (코드 리팩토링: 4개 모듈→패키지 분리 (tools/technical/chart_generator/database, ~4,170줄→22 서브모듈). 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

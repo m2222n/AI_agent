@@ -236,28 +236,8 @@ def render_comparison(data: dict):
             st.bar_chart(df_val)
 
 
-def _format_value(value: int) -> str:
-    """거래대금 등 큰 숫자를 읽기 쉬운 형태로"""
-    if value >= 1_000_000_000_000:
-        return f"{value / 1_000_000_000_000:.1f}조"
-    elif value >= 100_000_000:
-        return f"{value / 100_000_000:.0f}억"
-    elif value >= 10_000:
-        return f"{value / 10_000:.0f}만"
-    return f"{value:,}"
-
-
-def _format_market_cap(value: int) -> str:
-    """시가총액 포맷"""
-    if value >= 1_000_000_000_000:
-        return f"{value / 1_000_000_000_000:.1f}조원"
-    elif value >= 100_000_000:
-        return f"{value / 100_000_000:.0f}억원"
-    return f"{value:,}원"
-
-
-def _fmt_pct(value) -> str:
-    """퍼센트 포맷 (None 처리)"""
-    if value is None:
-        return "-"
-    return f"{value:+.2f}%"
+from src.utils.formatters import (
+    format_large_number as _format_value,
+    format_market_cap as _format_market_cap,
+    format_percentage as _fmt_pct,
+)

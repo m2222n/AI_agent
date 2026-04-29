@@ -1502,5 +1502,68 @@
 
 ---
 
-_Last Updated: 2026-04-24_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 완료 + 도구 13개 + 테스트 522개 + eval 162개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_
+## 코드 구조 리팩토링: 모놀리식 → 패키지 분리 (2026-04-29)
+
+### 배경
+- 4개 대형 모듈이 700~1,300줄로 비대화 → 가독성/유지보수 한계
+- Quick Win + 4 Phase로 단계적 분리, 584 테스트 통과 유지
+
+### Quick Win: formatters.py 추출
+- `src/utils/formatters.py` (신규): `format_market_cap()`, `format_trade_value()`, `format_number()` 공통 포맷터
+  - 기존 `loader.py`, `sidebar.py`, `tabs.py`에서 중복된 금액 포맷 함수 통합
+- `tests/test_formatters.py` 신규 (21개 테스트)
+
+### Phase 1: tools.py → tools/ 패키지 (1,240줄 → 7 서브모듈)
+- **핵심 패턴**: `__getattr__`/`__setattr__` 위임 — 모듈 레벨 mutable 상태(`_retriever`, `_etf_data_index` 등)를 `_state.py`에 캡슐화, 외부에서 `tools._retriever = ...` 시 `_state.py`로 위임
+- `_state.py`: 모듈 레벨 상태 (retriever, 데이터 인덱스, 역인덱스)
+- `_helpers.py`: 종목 검색, 필드 추출, enrichment 헬퍼
+- `_search.py`: search_etf/stock, compare_etfs/stocks, get_etf/stock_list (6개 도구)
+- `_analysis.py`: get_realtime_price, analyze_sector, get_technical_indicators (3개 도구)
+- `_quantitative.py`: get_stock_correlation, simulate_portfolio, get_financial_statements (3개 도구)
+- `_forecast.py`: predict_price_outlook, get_stock_news (2개 도구)
+- `unittest.mock.patch`와 `__getattr__` 호환 이슈 → `_state.py` 직접 접근으로 해결
+
+### Phase 2: chart_generator.py → chart_generator/ 패키지 (1,134줄 → 5 서브모듈)
+- `_style.py`: 한글 폰트 설정(`_setup_korean_font`), 컬러 팔레트, 공통 스타일
+- `_series.py`: 시계열 데이터 조회(`_get_price_series`), X축 라벨 빌더(`_build_xlabels`)
+- `technical.py`: `generate_technical_chart`, `generate_comparison_chart`, `generate_intraday_chart`
+- `financial.py`: `generate_financial_chart`, `generate_valuation_chart`, `generate_portfolio_chart`
+- `sector.py`: `generate_sector_overview_chart`, `generate_sector_detail_chart`
+
+### Phase 3: technical.py → technical/ 패키지 (1,044줄 → 5 서브모듈)
+- **핵심 패턴**: `_data` 모듈 임포트 — `_summary.py`와 `_portfolio.py`가 `from src.data.technical import _data` 후 `_data._get_ohlcv()` 접근. 테스트에서 `monkeypatch.setattr(_data, "_get_ohlcv", ...)` 으로 정확히 패치 가능
+- `_data.py`: DB 연결 싱글턴, TTL 캐시, `_get_closes()`, `_get_ohlcv()`, `_yfinance_ohlcv()`
+- `_indicators.py`: `calc_ma`, `calc_ema`, `calc_rsi`, `calc_macd`, `calc_bollinger`, `detect_cross`
+- `_advanced.py`: `calc_stochastic`, `calc_ichimoku`, `calc_cci`, `calc_adx`, `calc_obv`, `calc_atr`
+- `_portfolio.py`: 상관계수/베타/포트폴리오 시뮬레이션/벤치마크
+- `_summary.py`: `get_technical_summary()` 통합 지표
+- `__getattr__`/`__setattr__` 위임 시도 → `unittest.mock.patch` `delattr` 에러 → 정적 re-export + `_data` 모듈 패턴으로 최종 해결
+
+### Phase 4: database.py → database/ 패키지 (751줄 → 5 서브모듈)
+- `_schema.py`: `DB_PATH` (경로 계산: `Path(__file__).resolve().parent.parent`), 스키마, `get_connection()`, `init_db()`, `_migrate()`
+- `_write.py`: `upsert_daily_data()`, `upsert_stock_data()`
+- `_read.py`: `get_latest_date/data/stock_data()`, `get_historical_prices()`, `search_instruments()`
+- `_dart.py`: DART corp_code 매핑 + 분기 재무 CRUD (6함수)
+- `_maintenance.py`: `prune_old_data()`, `import_json_file()`, `get_db_stats()`
+- mutable state 없음 → 단순 정적 re-export (위임 불필요)
+
+### 결과 요약
+| 모듈 | Before | After | 서브모듈 |
+|------|--------|-------|---------|
+| tools.py | 1,240줄 | tools/ 패키지 | 7개 (_state, _helpers, _search, _analysis, _quantitative, _forecast, __init__) |
+| chart_generator.py | 1,134줄 | chart_generator/ 패키지 | 5개 (_style, _series, technical, financial, sector) |
+| technical.py | 1,044줄 | technical/ 패키지 | 5개 (_data, _indicators, _advanced, _portfolio, _summary) |
+| database.py | 751줄 | database/ 패키지 | 5개 (_schema, _write, _read, _dart, _maintenance) |
+| **합계** | **~4,170줄** | **22 서브모듈** | 100% 역호환 (import 경로 변경 없음) |
+
+### 학습한 패턴
+1. **mutable state 위임**: `__getattr__`/`__setattr__`을 `__init__.py`에 구현해서 `_state.py`로 위임 (tools 패키지)
+2. **모듈 참조 패턴**: `from pkg import _data` 후 `_data.func()` 접근 → monkeypatch가 정확히 도달 (technical 패키지)
+3. **`unittest.mock.patch` vs `__getattr__`**: `@patch`가 cleanup 시 `delattr` 호출 → `__getattr__` 제공 속성은 `__dict__`에 없어 에러. 해결: 정적 import 유지 or `_data` 모듈 직접 패치
+
+### 테스트: 584개 전체 통과 (기존 563 + 신규 21)
+
+---
+
+_Last Updated: 2026-04-29_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 + 코드 리팩토링 완료 + 도구 14개 + 테스트 584개 + eval 172개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_

@@ -357,14 +357,7 @@ def create_stock_documents(stock_data: List[dict]) -> List[Document]:
     return documents
 
 
-def _format_market_cap(value: int) -> str:
-    """시가총액을 읽기 쉬운 형태로 변환 (조/억 단위)"""
-    if value >= 1_000_000_000_000:  # 1조 이상
-        return f"{value / 1_000_000_000_000:.1f}조원"
-    elif value >= 100_000_000:  # 1억 이상
-        return f"{value / 100_000_000:.0f}억원"
-    else:
-        return f"{value:,}원"
+from src.utils.formatters import format_market_cap as _format_market_cap
 
 
 def _create_doc_from_stock(s: dict) -> Document:
