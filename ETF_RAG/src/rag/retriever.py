@@ -260,6 +260,10 @@ class HybridRetriever:
         if final_k is None:
             final_k = HYBRID_SEARCH["final_k"]
 
+        if not query or not query.strip():
+            logger.warning("빈 검색 쿼리 — 빈 결과 반환")
+            return []
+
         # 0. ETF 이름/티커 직접 매칭 (정확도 최우선)
         name_matched = self._match_etf_by_name(query)
         matched_tickers = {d.metadata.get("ticker") for d, _ in name_matched}

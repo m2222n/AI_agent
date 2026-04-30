@@ -303,7 +303,13 @@ def call_tools(state: AgentState) -> dict:
                 for tc in tool_calls
             }
             for future in as_completed(futures):
-                tc_id, result_str = future.result()
+                tc = futures[future]
+                try:
+                    tc_id, result_str = future.result()
+                except Exception as e:
+                    logger.error(f"도구 '{tc['name']}' 실행 실패: {e}")
+                    tc_id = tc["id"]
+                    result_str = f"도구 실행 오류: {e}"
                 results[tc_id] = result_str
     else:
         # 단일 도구는 순차 실행 (오버헤드 방지)

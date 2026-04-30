@@ -122,6 +122,24 @@ jobs:
             echo "DB 업로드 완료"
           fi
 
+      # ── deploy/ JSON 검증 ──────────────────────────────────
+      - name: Validate deploy JSON
+        run: |
+          python -c "
+          import json, sys
+          for f in ['ETF_RAG/src/data/deploy/etf_data.json', 'ETF_RAG/src/data/deploy/stock_data.json']:
+              with open(f) as fp:
+                  data = json.load(fp)
+              if not isinstance(data, dict):
+                  print(f'ERROR: {f} is not a dict'); sys.exit(1)
+              if 'collection_date' not in data:
+                  print(f'ERROR: {f} missing collection_date'); sys.exit(1)
+              items = data.get('etfs') or data.get('stocks') or {}
+              if len(items) < 10:
+                  print(f'ERROR: {f} has only {len(items)} items'); sys.exit(1)
+              print(f'OK: {f} — {len(items)} items, date={data[\"collection_date\"]}')
+          "
+
       # ── deploy/ JSON 커밋 ───────────────────────────────────
       - name: Check for changes
         id: changes

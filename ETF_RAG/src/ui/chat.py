@@ -288,7 +288,7 @@ def process_question(question: str, client=None, retriever=None):
                         answer_placeholder.markdown(full_response)
 
             logger.info(f"[chat] stream 종료: {event_count}개 이벤트, {token_count}개 토큰, 답변 {len(full_response)}자")
-            if not full_response:
+            if not full_response or not full_response.strip():
                 logger.warning(f"[chat] 빈 응답! events={event_count}, tokens={token_count}, tool_results={len(tool_results_summary)}")
                 # 빈 응답 시 사용자에게 안내 메시지 표시
                 full_response = "죄송합니다. 답변 생성에 실패했습니다. 다시 시도해주세요."

@@ -1,0 +1,49 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# Collected data (local only, deploy/ is tracked)
+src/data/collected/
+
+# Logs
+logs/
+
+# FAISS / BM25 cache
+*.faiss
+*.pkl
+faiss_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
