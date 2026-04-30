@@ -246,10 +246,11 @@
 - [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요, 추후)
 - [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
 
-**4-4. 아키텍처 고도화 (추후)**
-- [ ] Multi-Agent 구조 (리서치 → 분석 → 답변 에이전트 분리)
+**4-4. 아키텍처 고도화 (→ Phase F/G로 통합)**
 - [x] Pinecone 듀얼 백엔드 (FAISS+Pinecone, 자동 fallback)
-- [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small A/B 테스트)
+- [ ] **Phase F: SaaS 전환** — FastAPI + React/Next.js + KIS 실시간 시세 + KoELECTRA 감성 분석
+- [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
+- [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
 **자기 검증:** "친구한테 URL 보내서 쓰라고 할 수 있나?" → 부끄러우면 실패
@@ -417,10 +418,12 @@ ETF_RAG/
 │   └── utils/
 │       ├── formatters.py   # 공통 포맷터 (format_market_cap, format_trade_value, format_number)
 │       └── logging.py      # log_interaction(), log_feedback()
+├── .gitignore              # Python/SQLite/IDE/OS 파일 제외 (.env, *.db, collected/, logs/ 등)
 ├── tests/                  # pytest 584개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
+│       ├── ci.yml                     # CI 파이프라인 (PR/push 시 pytest + coverage 자동 실행)
 │       └── watchdog-collect.yml       # 수집 검증 Watchdog (20:30 KST, 미실행 시 재트리거 + Issue 알림)
 ├── scripts/
 │   ├── daily_collect.sh               # 일배치 수집 (ETF+주식+월요일DART+검증/복구, 로컬 Mac용)
@@ -437,7 +440,6 @@ ETF_RAG/
 │   ├── collect_full.py                # GitHub Actions용 통합 수집 (deploy JSON + SQLite DB)
 │   └── upload_db_to_release.sh        # 로컬 DB → GitHub Release asset 업로드
 └── docs/
-    └── TODO_deferred.md               # 보류된 작업 목록 (Pinecone, Cohere, KIS, RAGAS)
 ```
 
 ---
@@ -479,4 +481,4 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-29 (코드 리팩토링: 4개 모듈→패키지 분리 (tools/technical/chart_generator/database, ~4,170줄→22 서브모듈). 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-04-30 (코드 리뷰 6건 수정 + CI 워크플로우 + .gitignore 추가. 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

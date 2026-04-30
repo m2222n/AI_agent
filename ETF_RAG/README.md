@@ -318,8 +318,10 @@ ETF_RAG/
 │   ├── upload_db_to_release.sh     # 로컬 DB → GitHub Release 업로드
 │   └── com.etfrag.daily-collect.plist # macOS launchd 스케줄
 │
+├── .gitignore                      # Python/SQLite/IDE/OS 파일 제외
 ├── .github/workflows/
 │   ├── daily-collect.yml           # 자동 수집 (18:30 KST, 실패 시 Issue)
+│   ├── ci.yml                      # CI (PR/push 시 pytest + coverage)
 │   └── watchdog-collect.yml        # 수집 검증 (20:30 KST, 미실행 시 재트리거)
 │
 └── docs/
@@ -403,10 +405,10 @@ ETF_RAG/
 - [x] Phase E-1~3: 4축 가격 전망 (Prophet 추가), 뉴스 감성 분석, 섹터 탭, 속도 최적화
 - [x] Phase E-4: Cohere Rerank, Pinecone 듀얼 백엔드, BM25 캐싱
 - [x] 코드 리팩토링: 4개 대형 모듈 → 패키지 분리 (~4,170줄 → 22 서브모듈, 100% 역호환)
+- [x] 코드 리뷰 6건 수정 + CI 파이프라인 (PR/push 자동 테스트) + .gitignore
 - [x] Hit Rate 100% (172개 eval) + RAGAS 답변 품질 대폭 개선 (F=0.688, AR=0.709, CR=0.854)
-- [ ] 예측 모델 고도화 (LSTM/Transformer)
-- [ ] 한국어 임베딩 비교 (BGE-M3 vs text-embedding-3-small)
-- [ ] KIS OpenAPI 실시간 시세 연동
+- [ ] **Phase F: SaaS 전환** — FastAPI 백엔드 + React/Next.js 프론트엔드 + KIS 실시간 시세 + 로컬 감성 분석 (KoELECTRA)
+- [ ] **Phase G: 모바일 앱** — React Native (웹 코드 70% 재사용), 푸시 알림, 오프라인 캐시
 
 ---
 

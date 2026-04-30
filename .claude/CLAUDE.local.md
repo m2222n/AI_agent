@@ -1565,5 +1565,36 @@
 
 ---
 
-_Last Updated: 2026-04-29_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 + 코드 리팩토링 완료 + 도구 14개 + 테스트 584개 + eval 172개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_
+## 코드 리뷰 버그 수정 + CI 파이프라인 (2026-04-30)
+
+### 코드 리뷰 6건 수정
+1. **`.gitignore` 생성**: .env, *.db, collected/, logs/, __pycache__/, IDE 파일 제외 (기존에 누락)
+2. **빈 응답 whitespace 처리** (`chat.py:291`): `if not full_response:` → `if not full_response or not full_response.strip():`
+3. **병렬 도구 에러 격리** (`agent.py:305-312`): `as_completed()` 루프에서 개별 future try/except 추가 — 1개 실패해도 나머지 결과 보존
+4. **빈 쿼리 검증** (`retriever.py:263-265`): `search()` 시작부에 `if not query or not query.strip(): return []`
+5. **requirements.txt 버전 상한**: 25개 패키지에 major version 상한 추가 (e.g., `langchain>=0.1.0,<0.4`)
+6. **deploy JSON 검증** (`daily-collect.yml`): commit 전 dict 타입/collection_date 키/최소 item 수 검증
+
+### CI 파이프라인
+- **`.github/workflows/ci.yml`** (신규): PR→main / push→main 시 자동 테스트
+  - Python 3.11, pip cache, fonts-nanum, pytest-cov
+  - Coverage JSON + Step Summary (총 커버리지 % 표시)
+  - `ETF_RAG/` 또는 `scripts/` 변경 시에만 트리거
+- **README.md**: CI 배지 추가
+
+### .gitignore 보안 확인
+- `git log --all --full-history -- ".env"` → .env.example만 (실제 .env 노출 없음)
+- Git 히스토리에 민감 정보 없음 확인 완료
+
+### Cold Start 분석
+- BM25 pickle 캐시 ✅, FAISS 디스크 캐시 ✅, @st.cache_resource ✅
+- 남은 병목: DB 다운로드 ~30초 (네트워크 의존, 코드로 줄일 수 없음)
+
+### 커밋
+- `7e7fa08`: fix: 코드 리뷰 기반 안정성 개선 6건
+- `fe3afb0`: ci: PR/push 시 자동 테스트 워크플로우 추가
+
+---
+
+_Last Updated: 2026-04-30_
+_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 + 코드 리팩토링 + 코드 리뷰 6건 + CI 완료 + 도구 14개 + 테스트 584개 + eval 172개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_
