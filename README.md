@@ -10,8 +10,10 @@ KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문�
 
 [![Streamlit](https://img.shields.io/badge/Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-551_Passed-2ea44f?style=for-the-badge)](#)
-[![RAGAS](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
+[![CI](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-584_Passed-2ea44f?style=for-the-badge)](#)
+[![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
+[![Tools](https://img.shields.io/badge/Tools-14_Functions-orange?style=for-the-badge)](#)
 
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agent-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](#)
 [![OpenAI](https://img.shields.io/badge/GPT--4o-Routing-412991?style=flat-square&logo=openai&logoColor=white)](#)
@@ -153,8 +155,8 @@ graph LR
 | **차트** | matplotlib (기술적 분석 3단 + 비교 시계열, base64 PNG) |
 | **예측** | scikit-learn Ridge 회귀 + Facebook Prophet + Bootstrap CI + 4축 종합 (기술적+펀더멘털+통계+Prophet) |
 | **뉴스** | Google News RSS + GPT-4o-mini 감성 분석 (긍정/부정/중립/혼재) |
-| **평가** | RAGAS (Hit Rate 100%, F 0.688, AR 0.709, CR 0.854, 162개 데이터셋) |
-| **테스트** | pytest 551개 (단위 + E2E 통합) |
+| **평가** | RAGAS (Hit Rate 100%, F 0.688, AR 0.709, CR 0.854, 172개 데이터셋) |
+| **테스트** | pytest 584개 (단위 + E2E 통합) |
 | **자동 수집** | GitHub Actions (deploy/ + DB Release) + Watchdog (자동 재트리거) + macOS launchd |
 | **모니터링** | LangSmith (free tier) |
 | **UI** | Streamlit (탭 UI, 자동완성 검색, 후속질문 버튼, 반응형 CSS — 태블릿/모바일 대응) |
@@ -168,11 +170,11 @@ graph LR
 
 ### 검색 품질 (Hit Rate)
 ```
-평가 데이터셋: 162개 질문 (8개 유형)
+평가 데이터셋: 172개 질문 (8개 유형)
 ├── simple, compare, recommend, risk, general,
 │   technical, correlation, portfolio
 ├── ETF / 주식 / 혼합 전 유형
-└── 전체 Hit Rate:     100.0% (162/162)
+└── 전체 Hit Rate:     100.0% (172/172)
 ```
 
 **Hit Rate 개선 과정**: 45% → 75% (이름 매칭) → 88% (에이전트) → 91.9% (도구 확장) → 95.2% (프롬프트) → **100%** (접두어/별칭 매칭)
@@ -180,7 +182,7 @@ graph LR
 ### RAGAS 답변 품질
 | 지표 | 값 | 개선 |
 |------|-----|------|
-| Hit Rate | 100% (162/162) | — |
+| Hit Rate | 100% (172/172) | — |
 | Faithfulness | **0.688** | +0.277 |
 | Answer Relevancy | **0.709** | +0.601 |
 | Context Recall | **0.854** | +0.521 |
@@ -222,8 +224,8 @@ ETF_RAG/
 │       ├── tabs.py            # 탭별 전용 UI (5개 탭, selectbox 자동완성)
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
-├── eval/                      # RAGAS 평가 (162개 질문, 8개 유형)
-├── tests/                     # pytest 551개 (단위 + E2E 통합)
+├── eval/                      # RAGAS 평가 (172개 질문, 8개 유형)
+├── tests/                     # pytest 584개 (단위 + E2E 통합)
 ├── scripts/
 │   ├── daily_collect.sh                # ETF+주식+DART 일배치 수집
 │   ├── collect_for_deploy.py           # GitHub Actions용 경량 수집
@@ -233,8 +235,10 @@ ETF_RAG/
 │   ├── verify_and_recover.py           # 수집 검증 + 누락 자동 보충
 │   ├── com.etfrag.daily-collect.plist  # launchd 스케줄 (18:30)
 │   └── com.etfrag.dart-backfill.plist  # launchd 스케줄 (19:00, DART)
+├── .gitignore                      # Python/SQLite/IDE/OS 파일 제외
 └── .github/workflows/
     ├── daily-collect.yml               # GitHub Actions (18:30 KST, deploy/ + DB Release + 실패 Issue)
+    ├── ci.yml                          # CI (PR/push 시 pytest + coverage)
     └── watchdog-collect.yml            # 수집 Watchdog (20:30 KST, 자동 재트리거 + Issue 알림)
 ```
 
@@ -302,7 +306,11 @@ pytest tests/ -v
 - [x] **Phase E-2**: 검색 + 평가 고도화 — Cohere Rerank v3.5, E2E 통합 테스트 42개, RAGAS 답변 품질 재개선 (F 0.688, AR 0.709, CR 0.854)
 - [x] **Phase E-3**: 차트 시각화 + 섹터 탭 — 포트폴리오/재무/밸류에이션/장중/섹터 차트, 관심종목, 속도 최적화
 - [x] **Phase E-4**: BM25 pickle 캐싱 + 뉴스 감성 분석 + Prophet 시계열 예측 + Pinecone 벡터 DB
-- [ ] **추후**: KIS OpenAPI 실시간 + LSTM/Transformer 예측 모델
+- [x] 코드 리팩토링: 4개 대형 모듈 → 패키지 분리 (~4,170줄 → 22 서브모듈, 100% 역호환)
+- [x] 코드 리뷰 6건 수정 + CI 파이프라인 (PR/push 자동 테스트) + .gitignore
+- [x] Hit Rate 100% (172개 eval) + RAGAS 답변 품질 대폭 개선 (F=0.688, AR=0.709, CR=0.854)
+- [ ] **Phase F: SaaS 전환** — FastAPI 백엔드 + React/Next.js 프론트엔드 + KIS 실시간 시세 + 로컬 감성 분석 (KoELECTRA)
+- [ ] **Phase G: 모바일 앱** — React Native (웹 코드 70% 재사용), 푸시 알림, 오프라인 캐시
 
 ---
 
