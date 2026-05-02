@@ -31,6 +31,7 @@ from src.ui.chat import init_session_state, render_chat_history, process_questio
 from src.ui.components import render_example_questions, render_feedback_buttons, render_reset_button
 from src.ui.styles import inject_custom_css
 from src.ui.tabs import render_technical_tab, render_financial_tab, render_comparison_tab, render_outlook_tab, render_sector_tab
+from src.data.visitor import record_visit
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,13 @@ def main():
         st.error("데이터베이스 초기화에 실패했습니다. 페이지를 새로고침해주세요.")
         st.caption(f"오류 상세: {type(e).__name__}: {e}")
         st.stop()
+
+    # 방문자 기록 (세션당 1회)
+    if "visitor_recorded" not in st.session_state:
+        daily, total = record_visit()
+        st.session_state["visitor_recorded"] = True
+        st.session_state["visitor_daily"] = daily
+        st.session_state["visitor_total"] = total
 
     # 사이드바
     render_sidebar(etf_data, stock_data)

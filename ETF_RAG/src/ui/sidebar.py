@@ -47,6 +47,7 @@ def render_sidebar(etf_data: list, stock_data: list = None):
         _render_market_data(etf_data, stock_data or [])
         st.divider()
         _render_investment_warning()
+        _render_visitor_counter()
         if is_langsmith_enabled():
             st.divider()
             st.caption("🔗 LangSmith 트레이싱 활성화됨")
@@ -237,3 +238,11 @@ def _render_investment_warning():
         "투자 결정은 본인의 판단과 "
         "책임 하에 이루어져야 합니다."
     )
+
+
+def _render_visitor_counter():
+    """방문자 카운터 표시 (투자 유의사항 아래)."""
+    daily = st.session_state.get("visitor_daily", 0)
+    total = st.session_state.get("visitor_total", 0)
+    if daily or total:
+        st.caption(f"👤 오늘 방문 **{daily:,}** · 누적 **{total:,}**")
