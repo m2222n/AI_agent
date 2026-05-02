@@ -132,12 +132,13 @@ jobs:
                   data = json.load(fp)
               if not isinstance(data, dict):
                   print(f'ERROR: {f} is not a dict'); sys.exit(1)
-              if 'collection_date' not in data:
+              cdate = data.get('collection_date') or (data.get('metadata') or {}).get('collection_date')
+              if not cdate:
                   print(f'ERROR: {f} missing collection_date'); sys.exit(1)
               items = data.get('etfs') or data.get('stocks') or {}
               if len(items) < 10:
                   print(f'ERROR: {f} has only {len(items)} items'); sys.exit(1)
-              print(f'OK: {f} — {len(items)} items, date={data[\"collection_date\"]}')
+              print(f'OK: {f} — {len(items)} items, date={cdate}')
           "
 
       # ── deploy/ JSON 커밋 ───────────────────────────────────

@@ -230,7 +230,7 @@ def render_welcome(
     st.markdown(
         '<div class="welcome-hero">'
         '<p class="welcome-subtitle">'
-        'ETF &middot; 주식 <strong>4,300+</strong> 종목의 실시간 데이터를 AI가 분석합니다.<br>'
+        f'ETF &middot; 주식 <strong>{len(etf_data or []) + len(stock_data or []):,}</strong> 종목의 실시간 데이터를 AI가 분석합니다.<br>'
         '아래에서 원하는 기능을 선택하거나, 채팅창에 자유롭게 질문하세요.'
         '</p></div>',
         unsafe_allow_html=True,
