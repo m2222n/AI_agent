@@ -97,6 +97,10 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
 
 def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
     """종목 입력 위젯 — text_input + selectbox 자동완성."""
+    # 다른 탭에서 종목명을 넘겨받은 경우 prefill
+    prefill = st.session_state.pop("_prefill_ticker", None)
+    if prefill:
+        st.session_state[f"{key}_input"] = prefill
     query = st.text_input(label, placeholder=placeholder, key=f"{key}_input")
     if not query or not query.strip():
         return ""
@@ -305,6 +309,25 @@ def render_technical_tab():
             st.caption("⏱ yfinance 15분봉 데이터 (약 15분 지연)")
         else:
             st.info("장중 시세를 불러올 수 없습니다. 장 운영 시간(09:00~15:30)에 다시 시도해주세요.")
+
+    # 후속 분석 버튼 (다른 탭 연결)
+    st.markdown(f"**{name} 추가 분석**")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("📑 재무제표 보기", key="tech_to_fin", use_container_width=True):
+            st.session_state["_goto_tab"] = 2
+            st.session_state["_prefill_ticker"] = name
+            st.rerun()
+    with c2:
+        if st.button("🔮 가격 전망 보기", key="tech_to_pred", use_container_width=True):
+            st.session_state["_goto_tab"] = 3
+            st.session_state["_prefill_ticker"] = name
+            st.rerun()
+    with c3:
+        if st.button("💬 AI에게 질문하기", key="tech_to_chat", use_container_width=True):
+            st.session_state["_goto_tab"] = 0
+            st.session_state["_retry_question"] = f"{name} 종합 분석해줘"
+            st.rerun()
 
 
 # ── 재무제표 탭 ────────────────────────────────────────────
