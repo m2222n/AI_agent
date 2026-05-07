@@ -112,8 +112,9 @@ graph LR
 | **종합 채팅** | 자유 질문 + 스트리밍 답변 + 후속 질문 버튼 |
 | **기술적 분석** | 종목 선택 → 11개 지표 + matplotlib 3단 차트 (기간 지정 가능: 6개월~10년) |
 | **재무제표** | 종목 선택 → 분기별 매출/영업이익/마진/성장률 (2015년~) |
-| **가격 전망** | 종목 선택 → 3축 종합 전망 (시나리오/확률/리스크) |
+| **가격 전망** | 종목 선택 → 4축 종합 전망 (기술적+펀더멘털+Ridge+Prophet, 시나리오/확률/리스크) |
 | **비교 분석** | 2종목 비교 → 구조화 테이블 + 시계열 차트 |
+| **섹터 분석** | 업종별 등락률/시총 차트 + 업종 상세 종목 + 밸류에이션 요약 |
 
 - **자동완성 검색**: ~4,200종목 이름/티커 검색 (`st.selectbox`)
 - **후속 질문**: 1클릭 버튼 (`on_click` 콜백)
@@ -183,9 +184,9 @@ graph LR
 | 지표 | 값 | 개선 |
 |------|-----|------|
 | Hit Rate | 100% (172/172) | — |
-| Faithfulness | **0.688** | +0.277 |
-| Answer Relevancy | **0.709** | +0.601 |
-| Context Recall | **0.854** | +0.521 |
+| Faithfulness | **0.688** | +0.188 |
+| Answer Relevancy | **0.709** | +0.286 |
+| Context Recall | **0.854** | +0.518 |
 
 **개선 방법**: 컨텍스트 조립 강화 (도구 결과 5000자, 비교 테이블 텍스트화) + 프롬프트 수치 인용 강제 + AR 한국어 역질문 프롬프트 커스텀 (strictness 5) + ground_truth 44개 보정
 
@@ -200,13 +201,13 @@ ETF_RAG/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py          # 데이터 로딩 (SQLite→JSON→fallback)
-│   │   ├── database.py        # SQLite CRUD (WAL, 8 테이블, 영구 보존)
+│   │   ├── database/          # SQLite CRUD 패키지 (5 서브모듈, WAL, 8 테이블)
 │   │   ├── collector.py       # ETF 일배치 수집 (pykrx)
 │   │   ├── stock_collector.py # 주식 일배치 수집
 │   │   ├── dart_collector.py  # OpenDart 재무제표 수집 (dart-fss)
 │   │   ├── realtime.py        # 장중 시세 (yfinance)
-│   │   ├── technical.py       # 기술적 지표 11개 (MA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR)
-│   │   ├── chart_generator.py # matplotlib 차트 (기술적 분석 3단 + 비교 시계열, base64 PNG)
+│   │   ├── technical/         # 기술적 지표 패키지 (5 서브모듈, 11개 지표)
+│   │   ├── chart_generator/   # matplotlib 차트 패키지 (5 서브모듈, 8종 차트)
 │   │   ├── predictor.py       # 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI)
 │   │   ├── news.py            # Google News RSS + GPT 감성 분석
 │   │   └── db_downloader.py   # GitHub Release DB 다운로드 (Streamlit Cloud용)
@@ -215,13 +216,13 @@ ETF_RAG/
 │   │   └── vectorstore.py     # FAISS/Pinecone 벡터스토어 (persist + MD5 캐시 + 자동 fallback)
 │   ├── llm/
 │   │   ├── agent.py           # LangGraph 에이전트 (라우팅+도구+재검색+CoV+force_answer)
-│   │   ├── tools.py           # Function Calling 도구 14개
+│   │   ├── tools/             # Function Calling 도구 패키지 (7 서브모듈, 14개 도구)
 │   │   ├── prompts.py         # 유형별 시스템 프롬프트
 │   │   └── classifier.py      # 질문 분류 (Structured Output + 키워드 fallback)
 │   └── ui/
 │       ├── chat.py            # 스트리밍 채팅 + 후속질문 on_click 콜백
 │       ├── charts.py          # 구조화 데이터 렌더링 (비교 테이블 + 기술적 차트)
-│       ├── tabs.py            # 탭별 전용 UI (5개 탭, selectbox 자동완성)
+│       ├── tabs.py            # 탭별 전용 UI (6개 탭, selectbox 자동완성)
 │       ├── sidebar.py         # 사이드바 (데이터 현황)
 │       └── styles.py          # 커스텀 CSS
 ├── eval/                      # RAGAS 평가 (172개 질문, 8개 유형)
@@ -299,7 +300,7 @@ pytest tests/ -v
 - [x] **Phase 3**: LangGraph 에이전트 + 도구 + 모델 라우팅 + 프롬프트 개선
 - [x] **Phase 4**: UI/UX 개편 + 탭 분리 + 자동완성 + 실시간 시세 + 섹터 분석
 - [x] **Phase C**: 정량 분석 — 기술적 지표 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 (OpenDart)
-- [x] **Phase D**: 기술적 지표 확장 (11개) + matplotlib 차트 + 가격 전망 모델 (3축 Ridge회귀)
+- [x] **Phase D**: 기술적 지표 확장 (11개) + matplotlib 차트 + 가격 전망 모델 (4축: Ridge회귀+Prophet)
 - [x] **품질 강화**: CoV 검증 + Structured Output + FAISS persist + force_answer + Bootstrap CI
 - [x] **안정성 + 모바일**: 수집 Watchdog (자동 재트리거) + 반응형 CSS (태블릿/모바일 대응)
 - [x] **Phase E-1**: 답변 품질 + UX — 멀티 도구 병렬 호출, 대화 맥락 유지, 섹션 접기/펼치기, 동적 예시 질문
@@ -308,8 +309,9 @@ pytest tests/ -v
 - [x] **Phase E-4**: BM25 pickle 캐싱 + 뉴스 감성 분석 + Prophet 시계열 예측 + Pinecone 벡터 DB
 - [x] 코드 리팩토링: 4개 대형 모듈 → 패키지 분리 (~4,170줄 → 22 서브모듈, 100% 역호환)
 - [x] 코드 리뷰 6건 수정 + CI 파이프라인 (PR/push 자동 테스트) + .gitignore
+- [x] 방문자 카운터 (Supabase REST API, 일별+누적) + 수집 버그 수정
 - [x] Hit Rate 100% (172개 eval) + RAGAS 답변 품질 대폭 개선 (F=0.688, AR=0.709, CR=0.854)
-- [ ] **Phase F: SaaS 전환** — FastAPI 백엔드 + React/Next.js 프론트엔드 + KIS 실시간 시세 + 로컬 감성 분석 (KoELECTRA)
+- [ ] **Phase F: SaaS 전환** — FastAPI 백엔드 + React/Next.js 프론트엔드 + KIS 실시간 시세 + 한국어 임베딩 비교 (BGE-M3)
 - [ ] **Phase G: 모바일 앱** — React Native (웹 코드 70% 재사용), 푸시 알림, 오프라인 캐시
 
 ---
