@@ -481,4 +481,22 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-04-30 (코드 리뷰 6건 수정 + CI 워크플로우 + .gitignore 추가. 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+## 운영 회복력 (Operational Resilience)
+
+무료 호스팅 서비스들은 유휴 시 자동 정지되므로 다음 메커니즘으로 가동을 유지한다.
+
+| 서비스 | 정지 정책 | 방어 메커니즘 |
+|--------|----------|--------------|
+| Streamlit Cloud | 7일 무활동 → 비활성화 | `keep-alive.yml` 매일 09:00 KST ping |
+| Supabase (free) | 7일 무활동 → 일시정지 (90일까지 보존, 그 후 삭제) | `keep-alive.yml` REST GET ping (SUPABASE_URL/KEY secret 등록 시) |
+| GitHub Actions | 60일 push 없음 → schedule cron 비활성화 | `daily-collect.yml`이 매일 push하므로 자동 유지 |
+| Pinecone (선택) | 무료 인덱스 무활동 → 삭제 | FAISS fallback 코드 경로로 자동 복구 |
+
+**pykrx 회복 패턴 (2026-06-01 학습):**
+- pykrx 내부 DataFrame에 KRX ticker 중복이 발생하면 `get_etf_ticker_name(t)`이 string 대신 pandas Series 반환 → SQLite 바인딩 실패
+- 모든 종목명 조회는 `_safe_get_etf_name` / `_safe_get_ticker_name`을 거치고, 내부의 `_coerce_name()`이 Series면 `iloc[0]`로 첫 값만 추출
+- 새 pykrx 호출 추가 시 raw 함수 직접 호출 금지 — 반드시 safe 래퍼 경유
+
+---
+
+_Last Updated: 2026-06-01 (운영 회복력 섹션 추가: pykrx Series 방어 + keep-alive 워크플로우. 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_

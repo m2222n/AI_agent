@@ -1596,5 +1596,66 @@
 
 ---
 
-_Last Updated: 2026-04-30_
-_Phase 0~4 + C-1~C-6 + D-1~D-3 + E-1 + E-2 + E-3 + 코드 리팩토링 + 코드 리뷰 6건 + CI 완료 + 도구 14개 + 테스트 584개 + eval 172개 + Hit Rate 100% + F=0.688 + AR=0.709 + CR=0.854_
+## 운영 장애 + 회복력 보강 (2026-06-01)
+
+### 장애 1: daily-collect 워크플로우 5/27부터 전량 실패
+
+**증상:**
+- 5/26까지 정상 → 5/27 schedule run부터 모든 run failure (5/27~5/31 총 10회)
+- 마지막 deploy 데이터: 2026-05-26 (5일 미수집)
+- Streamlit 앱은 5/26 SQLite DB(Release asset)를 본 채로 멈춤
+
+**근본 원인:**
+- pykrx 내부 DataFrame에 KRX ticker 중복이 발생하면 `stock.get_etf_ticker_name(t)`이 string 대신 pandas Series 반환
+- `_write.py:32` instruments INSERT의 parameter 2(name)에 Series가 바인딩 → `sqlite3.ProgrammingError: Error binding parameter 2: type 'Series' is not supported`
+- 기존 `_safe_get_ticker_name`은 보유종목 stock_name(`get_market_ticker_name`)만 감쌌고, ETF name(`get_etf_ticker_name`)은 raw 호출 중이었음
+- 5/27경 신규 ETF 상장으로 중복 케이스 발생 추정
+
+**수정 (commit 01efc80):**
+- `_coerce_name(name)`: Series면 `iloc[0]`, None이면 `""`, 그 외는 `str()`
+- `_safe_get_etf_name(ticker)`: ETF 이름 조회 안전 래퍼 신설
+- `scripts/collect_for_deploy.py:156` + `ETF_RAG/src/data/collector.py:364`의 raw 호출을 safe 래퍼로 교체
+- GitHub Actions workflow_dispatch로 즉시 재실행 (run id=26732215906)
+
+**교훈:** pykrx는 시간이 지나며 KRX 데이터 변화로 새로운 타입 케이스를 노출함. 외부 라이브러리 반환값은 항상 타입 강제 변환을 거쳐 SQLite/JSON 직렬화 경계를 넘어야 함. 새 pykrx 호출 추가 시 raw 함수 직접 호출 금지 — 반드시 safe 래퍼 경유.
+
+### 장애 2: Streamlit + Supabase 동시 유휴 정지
+
+**증상:**
+- Streamlit Cloud 앱이 7일 무활동으로 "달 모양" 비활성화 (사용자가 클릭 한 번으로 부활)
+- Supabase 프로젝트("AI 투자 도우미") DNS 해석 자체 실패 → 일시정지 상태 확인 (87일 후 8/27까지 데이터 보존, 사용자가 dashboard에서 "Restore project" 클릭 필요)
+- 방문자 카운터 미표시 (`record_visit`이 (0, 0) 반환 → sidebar의 `if daily or total` 조건에서 숨김)
+
+**회복력 보강 (commit 7df0d1e):**
+- `.github/workflows/keep-alive.yml` 신설 — 매일 09:00 KST ping 1회씩
+  - Streamlit: `curl -L https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/`
+  - Supabase: `GET /rest/v1/visitor_stats?select=count&limit=1` (URL/KEY secret 필요)
+- `continue-on-error: true`로 한쪽 실패해도 다른 쪽은 계속
+- Supabase secret이 없으면 Supabase ping은 자동 skip → 향후 다른 곳으로 마이그레이션해도 워크플로우는 무해
+
+**무료 호스팅 유휴 정책 정리:**
+
+| 서비스 | 정지 정책 | 방어 |
+|--------|----------|------|
+| Streamlit Cloud | 7일 무활동 → 비활성화 (사용자 클릭으로 부활) | keep-alive ping |
+| Supabase (free) | 7일 무활동 → 일시정지, 90일 후 삭제 | keep-alive ping (REST GET) |
+| GitHub Actions | 60일 push 없음 → schedule cron 비활성화 | daily-collect이 매일 push → 자동 유지 |
+| Pinecone (선택) | 무료 인덱스 무활동 → 삭제 | FAISS fallback 코드 경로 |
+
+**남은 사용자 액션:**
+1. Supabase dashboard에서 "Restore project" 클릭 (DNS 부활까지 1~2분)
+2. GitHub repository Settings → Secrets → Actions에 `SUPABASE_URL`, `SUPABASE_KEY` 추가 (Streamlit secrets와 동일 값)
+
+### 로컬 동기화
+
+- 로컬 main이 origin/main보다 17 commits 뒤 → fast-forward pull로 5/26 deploy 데이터 동기화
+- `git stash` → `pull --rebase origin main` → `stash pop`으로 패치 작업 중에도 안전하게 동기화
+
+### 커밋
+- `01efc80`: fix: pykrx ETF name Series 반환 방어로 daily-collect 복구
+- `7df0d1e`: ci: keep-alive 워크플로우 추가 (무료 호스팅 유휴 방지)
+
+---
+
+_Last Updated: 2026-06-01_
+_운영 장애 2건 회복: pykrx Series 방어 + keep-alive ping 워크플로우_
