@@ -1690,5 +1690,15 @@ GROUP BY p.date HAVING etf_n = 0 OR stock_n = 0;
 
 ---
 
-_Last Updated: 2026-06-01 (백필 완료 반영)_
-_운영 장애 2건 회복 + 데이터 완전성 복구: Series 방어 + keep-alive + timeout + 12년 데이터 검증_
+### 블로그 시리즈 작성 완료 (2026-06-01)
+
+Phase 0~E 개발 기록을 Tistory 8편 시리즈로 정리 완료.
+- 카테고리: `Project/투자 AI 챗봇`
+- 가이드: `blog_briefing_for_web_claude.md` (로컬 보관, .gitignore 처리됨)
+- 작성 방법: 웹 클로드(claude.ai)에 가이드 통째로 붙여넣고 작성
+- 향후 추가: Phase F (SaaS 전환) / Phase G (모바일 앱) 진행 시 9편 이후 시리즈 확장 예정
+
+---
+
+_Last Updated: 2026-06-01 (백필 완료 + 블로그 시리즈 8편 작성 완료 반영)_
+_운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성: Series 방어 + keep-alive + timeout + 12년 데이터 검증 + 블로그 8편_
