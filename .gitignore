@@ -45,3 +45,9 @@ ETF_RAG/src/data/bm25_cache/
 
 # Mentor reference files
 2주차_코멘토_인공지능_*.ipynb
+
+# Coverage cache
+ETF_RAG/.coverage
+
+# Personal blog drafts (로컬만 보관)
+blog_briefing_for_web_claude.md
