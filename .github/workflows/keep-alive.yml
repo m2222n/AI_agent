@@ -24,9 +24,16 @@ jobs:
         run: |
           URL="https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/"
           echo "Pinging Streamlit: $URL"
-          # Streamlit Cloud는 200 또는 303(슬립 깨우는 중)을 반환
-          # -L: redirect 따라가기, --max-time: 30초 timeout
-          curl -sSL --max-time 30 -o /dev/null -w "HTTP %{http_code} (%{time_total}s)\n" "$URL" || echo "Streamlit ping 실패 (무시)"
+          # Streamlit Cloud는 슬립 상태일 때 깨우는 동안 redirect 체인이 길어
+          # curl -L의 기본 redirect 한도(50)에 걸릴 수 있다. redirect 따라가지 않고
+          # 첫 응답만 받아도 활동 카운트는 리셋된다.
+          STATUS=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+          echo "HTTP $STATUS"
+          if [ "$STATUS" = "000" ]; then
+            echo "Streamlit ping 실패 — 서버 응답 없음"
+          else
+            echo "Streamlit ping 성공 — 서버 응답 받음 (활동 카운트 리셋)"
+          fi
 
       - name: Ping Supabase REST API
         continue-on-error: true
