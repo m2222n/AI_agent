@@ -1654,8 +1654,41 @@
 ### 커밋
 - `01efc80`: fix: pykrx ETF name Series 반환 방어로 daily-collect 복구
 - `7df0d1e`: ci: keep-alive 워크플로우 추가 (무료 호스팅 유휴 방지)
+- `4c9205a`: fix(keep-alive): Streamlit ping redirect 한도 회피
+- `53d1002`: ci: daily-collect timeout 60분 → 180분 (월요일 재무제표 cancel 방지)
+- `ec84580`: docs: 운영 회복력 + 데이터 완전성 원칙 반영
+
+### 데이터 완전성 백필 (사용자 원칙: 초기~최신 영업일 누락 0)
+
+운영 장애로 발생한 누락분 + DB 스캔으로 발견된 과거 누락분 일괄 백필.
+
+| 영업일 | 누락 종류 | 백필 결과 |
+|--------|-----------|----------|
+| 5/27, 5/28, 5/29 | ETF 0건 (Series 버그) | 각 1,130종목 |
+| 5/14, 5/19, 5/21 | 주식 0건 (월요일 timeout cancel 여파) | 각 ~2,878종목 |
+| 2022/6/10 | 주식 0건 (오래된 누락) | 2,623종목 |
+| 2014/1/30~31 | ETF 0건 | KRX 설 연휴 휴장 확인 → 누락 아님 |
+| 2026Q1 재무제표 | 1,230건 (정상 분기 2,650건의 절반) | DART 미공시 종목 → 추가 수집 0 |
+
+**검증 결과**: 12년치 영업일 데이터에서 휴장일을 제외한 누락 0건 확인.
+
+**도구**:
+- `ETF_RAG/scripts/backfill_historical.py --start --end --type {etf,stock,all}`
+- `ETF_RAG/scripts/backfill_financials_runner.py --start-year --end-year --limit`
+
+**검증 SQL**:
+```sql
+SELECT p.date,
+       SUM(CASE WHEN i.type='etf' THEN 1 ELSE 0 END) etf_n,
+       SUM(CASE WHEN i.type='stock' THEN 1 ELSE 0 END) stock_n
+FROM daily_prices p JOIN instruments i ON p.ticker=i.ticker
+WHERE p.date >= '20140101'
+GROUP BY p.date HAVING etf_n = 0 OR stock_n = 0;
+```
+
+**최종 단계**: 백필된 1.7GB DB를 GitHub Release `db-latest`에 업로드 (zstd -19로 ~450MB 압축) → Streamlit Cloud 다음 cold start 시 자동 로드.
 
 ---
 
-_Last Updated: 2026-06-01_
-_운영 장애 2건 회복: pykrx Series 방어 + keep-alive ping 워크플로우_
+_Last Updated: 2026-06-01 (백필 완료 반영)_
+_운영 장애 2건 회복 + 데이터 완전성 복구: Series 방어 + keep-alive + timeout + 12년 데이터 검증_
