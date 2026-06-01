@@ -15,7 +15,9 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 월요일 재무제표 백필이 5000건 × ~2초/건 → 약 2.5시간 필요.
+    # 다른 요일(시세만)은 30분 이내 종료되므로 여유 두고 180분.
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
