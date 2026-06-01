@@ -100,6 +100,24 @@ def login_krx() -> bool:
 
 # ── 안전한 종목명 조회 ──────────────────────────────────────
 
+def _coerce_name(name) -> str:
+    """pykrx 반환값을 string으로 강제 변환.
+
+    pykrx 내부 DataFrame에 ticker가 중복되면 `df.loc[ticker, '종목명']`이
+    Series를 반환 → SQLite 바인딩에서 'type Series is not supported' 발생.
+    Series면 첫 값만 추출.
+    """
+    if name is None:
+        return ""
+    # pandas Series 또는 list-like → 첫 요소
+    if hasattr(name, "iloc"):
+        try:
+            name = name.iloc[0]
+        except Exception:
+            return ""
+    return str(name) if name else ""
+
+
 def _safe_get_ticker_name(ticker: str) -> str:
     """pykrx get_market_ticker_name() 안전 래퍼 (logging 에러 방지)."""
     try:
@@ -110,7 +128,16 @@ def _safe_get_ticker_name(ticker: str) -> str:
             name = stock.get_market_ticker_name(ticker)
         finally:
             sys.stderr = old_stderr
-        return name or ""
+        return _coerce_name(name)
+    except BaseException:
+        return ""
+
+
+def _safe_get_etf_name(ticker: str) -> str:
+    """pykrx get_etf_ticker_name() 안전 래퍼 (Series 방어)."""
+    try:
+        name = stock.get_etf_ticker_name(ticker)
+        return _coerce_name(name)
     except BaseException:
         return ""
 
@@ -153,7 +180,7 @@ def collect_etf_for_deploy(date: str) -> dict:
 
     # 종목 목록
     tickers = stock.get_etf_ticker_list(date)
-    name_map = {t: stock.get_etf_ticker_name(t) for t in tickers}
+    name_map = {t: _safe_get_etf_name(t) for t in tickers}
     logger.info(f"ETF {len(tickers)}종목")
 
     # 시세/NAV 일괄
