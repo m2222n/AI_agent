@@ -111,6 +111,42 @@ def test_krx_to_yfinance_uses_cache():
     assert result == "005930.KS"
 
 
+def test_krx_to_yfinance_fallback_not_cached():
+    """회귀: KS/KQ 둘 다 실패(네트워크 오류) 시 .KS fallback하되 캐시하지 않음.
+
+    이전 버그: fallback suffix를 캐시에 영구 저장 → 일시적 네트워크 실패로
+    KOSDAQ 종목이 .KS로 고정되어 복구 후에도 잘못된 티커 반환.
+    """
+    clear_cache()
+
+    def mock_ticker_factory(yf_ticker):
+        raise Exception("network timeout")
+
+    with patch("yfinance.Ticker", side_effect=mock_ticker_factory):
+        result = krx_to_yfinance("373220", "stock")
+    assert result == "373220.KS"  # fallback 값은 반환하되
+    assert "373220" not in _market_suffix_cache  # 캐시에는 저장 안 함
+
+
+def test_krx_to_yfinance_fallback_retries_after_recovery():
+    """fallback 후 캐시 안 하므로, 네트워크 복구 시 올바른 suffix 재탐색"""
+    clear_cache()
+
+    # 1차: 둘 다 실패 → .KS fallback, 캐시 미저장
+    with patch("yfinance.Ticker", side_effect=Exception("down")):
+        krx_to_yfinance("373220", "stock")
+
+    # 2차: 복구 → .KQ 정상 탐색
+    def recovered(yf_ticker):
+        mock = MagicMock()
+        mock.fast_info.last_price = None if yf_ticker.endswith(".KS") else 30000
+        return mock
+
+    with patch("yfinance.Ticker", side_effect=recovered):
+        result = krx_to_yfinance("373220", "stock")
+    assert result == "373220.KQ"
+
+
 # ── 실시간 가격 조회 ──────────────────────────────────────
 
 def test_get_realtime_price_market_closed():

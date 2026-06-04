@@ -60,8 +60,8 @@ def krx_to_yfinance(ticker: str, asset_type: str = "etf") -> str:
     except ImportError:
         logger.warning("yfinance 패키지가 설치되지 않았습니다.")
 
-    # 기본: KS
-    _market_suffix_cache[ticker] = "KS"
+    # 기본: KS (단, 캐시에 저장하지 않음 — 일시적 네트워크 실패로 인한
+    # 잘못된 suffix 영구 고정 방지. 다음 호출에서 재시도 가능.)
     return f"{ticker}.KS"
 
 
