@@ -426,3 +426,66 @@ def test_sector_preserved_on_update(stock_db):
         "SELECT sector FROM instruments WHERE ticker = '005930'"
     ).fetchone()
     assert row["sector"] == "전기·전자"  # 기존 값 유지
+
+
+# --- pykrx Series 반환 방어 회귀 테스트 ---
+# 2026-06-01 daily-collect 장애: pykrx 내부 DataFrame에 ticker가 중복되면
+# get_market_ticker_name()이 string 대신 Series를 반환 → SQLite 바인딩 실패.
+# collector.py만 _coerce_name으로 방어하고 stock_collector.py는 누락되어 있었음.
+
+def test_coerce_name_with_series():
+    """pykrx가 Series를 반환하면 첫 값만 추출 (티커 중복 시 발생)"""
+    from src.data.stock_collector import _coerce_name
+
+    series = pd.Series(["삼성전자", "삼성전자우"], index=["005930", "005935"])
+    result = _coerce_name(series)
+    assert result == "삼성전자"
+    assert isinstance(result, str)
+
+
+def test_coerce_name_plain_string():
+    """정상 string은 그대로 반환"""
+    from src.data.stock_collector import _coerce_name
+
+    assert _coerce_name("SK하이닉스") == "SK하이닉스"
+
+
+def test_coerce_name_none():
+    """None은 빈 문자열로"""
+    from src.data.stock_collector import _coerce_name
+
+    assert _coerce_name(None) == ""
+
+
+def test_coerce_name_empty_series():
+    """빈 Series는 빈 문자열로 (iloc[0] 실패 방어)"""
+    from src.data.stock_collector import _coerce_name
+
+    assert _coerce_name(pd.Series([], dtype=object)) == ""
+
+
+def test_safe_get_ticker_name_series_response():
+    """get_market_ticker_name이 Series 반환 시 string으로 강제 변환"""
+    from src.data.stock_collector import _safe_get_ticker_name
+
+    series = pd.Series(["삼성전자"], index=["005930"])
+    with patch(
+        "src.data.stock_collector.stock.get_market_ticker_name",
+        return_value=series,
+    ):
+        result = _safe_get_ticker_name("005930")
+    assert result == "삼성전자"
+    assert isinstance(result, str)
+
+
+def test_safe_get_ticker_name_api_error():
+    """pykrx API 에러 시 빈 문자열 fallback (크래시 방지)"""
+    from src.data.stock_collector import _safe_get_ticker_name
+
+    with patch(
+        "src.data.stock_collector.stock.get_market_ticker_name",
+        side_effect=Exception("KRX down"),
+    ):
+        result = _safe_get_ticker_name("999999")
+    assert result == ""
+    assert isinstance(result, str)
