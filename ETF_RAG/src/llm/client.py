@@ -35,11 +35,12 @@ def _trim_history(chat_history: list, max_tokens: int = MAX_HISTORY_TOKENS) -> l
     trimmed = chat_history[-MAX_HISTORY_MESSAGES:]
 
     # 토큰 수 계산 — 뒤에서부터(최신) 누적
+    # 최신 메시지 1개는 토큰 초과여도 항상 유지 (맥락 완전 소실 방지)
     total = 0
     cutoff = 0
     for i in range(len(trimmed) - 1, -1, -1):
         msg_tokens = _count_tokens(trimmed[i].get("content", ""))
-        if total + msg_tokens > max_tokens:
+        if total + msg_tokens > max_tokens and i < len(trimmed) - 1:
             cutoff = i + 1
             break
         total += msg_tokens
