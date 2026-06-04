@@ -12,6 +12,7 @@ on:
     paths:
       - 'ETF_RAG/**'
       - 'scripts/**'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
