@@ -39,6 +39,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r ETF_RAG/requirements.txt
+          # 수집 모듈 전용 의존성 (배포 앱엔 불필요해 requirements.txt 제외).
+          # collector/stock_collector 테스트가 import하므로 CI에선 설치.
+          pip install pykrx requests
           pip install pytest-cov
 
       - name: Run tests with coverage
