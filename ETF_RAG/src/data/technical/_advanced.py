@@ -56,13 +56,7 @@ def calc_ichimoku(highs: list[int], lows: list[int], closes: list[int]
     if len(closes) < 52 or len(highs) < 52 or len(lows) < 52:
         return None
 
-    def mid_value(data, period):
-        """최근 period일간 (최고+최저)/2."""
-        window = data[-period:]
-        return (max(window) + min(window)) / 2
-
     # 전환선 (9일)
-    tenkan = mid_value(highs, 9) / 2 + mid_value(lows, 9) / 2
     tenkan = (max(highs[-9:]) + min(lows[-9:])) / 2
 
     # 기준선 (26일)
