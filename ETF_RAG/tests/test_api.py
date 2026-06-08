@@ -1,0 +1,113 @@
+"""FastAPI 백엔드 엔드포인트 테스트 (Phase F-1).
+
+실제 DB 다운로드/임베딩은 API_SKIP_INIT=1로 우회하고, run_agent/stream_agent는 patch.
+lifespan은 `with TestClient(app)` 컨텍스트 매니저로만 트리거된다.
+"""
+
+import os
+
+# api.main import 전에 설정해야 lifespan이 실제 init을 건너뛴다
+os.environ["API_SKIP_INIT"] = "1"
+
+from unittest.mock import patch  # noqa: E402
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from api.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_sse_global():
+    """sse-starlette의 AppStatus.should_exit_event는 모듈 전역이라 첫 이벤트 루프에
+    바인딩된다. TestClient는 테스트마다 새 루프를 만들어 'attached to a different loop'
+    에러가 난다 → 매 테스트 전 리셋해서 현재 루프에 새로 생성되게 한다."""
+    from sse_starlette.sse import AppStatus
+    AppStatus.should_exit_event = None
+    yield
+
+
+@pytest.fixture
+def client():
+    # 컨텍스트 매니저 형태여야 lifespan(startup/shutdown)이 실행된다
+    with TestClient(app) as c:
+        yield c
+
+
+def test_health_ready(client):
+    """API_SKIP_INIT=1이면 ready=True, error=None."""
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ready"] is True
+    assert body["error"] is None
+
+
+def test_chat_returns_agent_result(client):
+    """/chat이 run_agent 결과를 ChatResponse로 반환."""
+    fake = {"answer": "KODEX 200 수익률은 +2.91%입니다.",
+            "question_type": "simple", "model": "gpt-4o-mini"}
+    with patch("api.main.run_agent", return_value=fake) as m:
+        r = client.post("/chat", json={"question": "KODEX 200 수익률?"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["answer"] == fake["answer"]
+    assert body["question_type"] == "simple"
+    assert body["model"] == "gpt-4o-mini"
+    # run_in_threadpool(run_agent, question, history) — history는 None
+    m.assert_called_once()
+    args = m.call_args.args
+    assert args[0] == "KODEX 200 수익률?"
+    assert args[1] is None
+
+
+def test_chat_passes_history(client):
+    """chat_history가 [{"role","content"}, ...] dict 리스트로 전달되는지."""
+    fake = {"answer": "a", "question_type": "simple", "model": "gpt-4o-mini"}
+    history = [{"role": "user", "content": "안녕"},
+               {"role": "assistant", "content": "안녕하세요"}]
+    with patch("api.main.run_agent", return_value=fake) as m:
+        r = client.post("/chat", json={"question": "그 다음은?", "chat_history": history})
+    assert r.status_code == 200
+    passed_history = m.call_args.args[1]
+    assert passed_history == history
+
+
+def test_chat_validates_empty_question(client):
+    """빈 question은 422 (Pydantic min_length=1)."""
+    r = client.post("/chat", json={"question": ""})
+    assert r.status_code == 422
+
+
+def test_stream_passes_through_all_events(client):
+    """/stream이 stream_agent 이벤트를 SSE로 전부 통과시키는지."""
+    def fake_stream(question, history=None):
+        yield {"event": "question_type", "data": "simple"}
+        yield {"event": "tool_call", "data": {"name": "search_etf", "args": {"query": "x"}}}
+        yield {"event": "token", "data": "삼성"}
+        yield {"event": "token", "data": "삼성전자"}
+        yield {"event": "done", "data": {"answer": "삼성전자", "model": "gpt-4o-mini",
+                                         "question_type": "simple", "cov_applied": False}}
+
+    with patch("api.main.stream_agent", side_effect=fake_stream):
+        r = client.post("/stream", json={"question": "삼성전자?"})
+    assert r.status_code == 200
+    text = r.text
+    # SSE 프레임에 각 이벤트 이름과 data가 들어있는지 (이름 화이트리스트 없이 전부 통과)
+    assert "question_type" in text
+    assert "tool_call" in text
+    assert "search_etf" in text  # dict data가 JSON 직렬화됨
+    assert "token" in text
+    assert "done" in text
+    assert "삼성전자" in text
+
+
+def test_stream_dict_data_is_json(client):
+    """dict data는 JSON 직렬화 (ensure_ascii=False로 한글 보존)."""
+    def fake_stream(question, history=None):
+        yield {"event": "done", "data": {"answer": "한글유지", "model": "gpt-4o"}}
+
+    with patch("api.main.stream_agent", side_effect=fake_stream):
+        r = client.post("/stream", json={"question": "x"})
+    assert r.status_code == 200
+    assert "한글유지" in r.text  # \uXXXX 이스케이프 안 됨
