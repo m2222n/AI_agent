@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { chatOnce, getHealth } from "@/lib/api";
+import { getHealth, streamChat } from "@/lib/api";
 import type { Health, UiMessage } from "@/lib/types";
+import { toolLabel } from "@/lib/labels";
 import MessageList from "@/components/MessageList";
 import ChatInput from "@/components/ChatInput";
 
@@ -47,34 +48,77 @@ export default function Home() {
 
   const inputDisabled = !health?.ready || isLoading;
 
-  const handleSend = async (question: string) => {
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+  // 마지막(진행 중) assistant 메시지를 불변 업데이트
+  const patchLastAssistant = (patch: Partial<UiMessage>) => {
+    setMessages((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      if (last && last.role === "assistant") {
+        next[next.length - 1] = { ...last, ...patch };
+      }
+      return next;
+    });
+  };
+
+  const handleSend = (question: string) => {
+    // user 메시지 + 빈 assistant placeholder push
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: question },
+      { role: "assistant", content: "", status: "분석 중…" },
+    ]);
     setIsLoading(true);
-    try {
-      // 4a: 멀티턴 생략 — 빈 히스토리 전송 (백엔드는 null로 처리)
-      const res = await chatOnce(question, []);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: res.answer,
-          questionType: res.question_type,
-          model: res.model,
-        },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "답변을 가져오지 못했어요. 백엔드가 실행 중인지 확인하고 다시 시도해주세요.",
+
+    // 4b: 멀티턴 생략 — 빈 히스토리 전송. (4d에서 실제 chat_history)
+    streamChat(question, [], {
+      onQuestionType: (t) => patchLastAssistant({ questionType: t }),
+      onToolCall: (c) =>
+        patchLastAssistant({ status: `${toolLabel(c.name)} 중…` }),
+      onStructuredData: (d) =>
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last && last.role === "assistant") {
+            next[next.length - 1] = {
+              ...last,
+              structured: [...(last.structured ?? []), d],
+            };
+          }
+          return next;
+        }),
+      onToken: (cumulative) =>
+        // 누적 텍스트 → replace (델타 아님)
+        patchLastAssistant({ content: cumulative, status: undefined }),
+      onDone: (d) => {
+        patchLastAssistant({
+          // done.answer가 마지막 토큰보다 길면 우선 (CoV 보정 등)
+          model: d.model,
+          questionType: d.question_type,
+          status: undefined,
+        });
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (
+            last &&
+            last.role === "assistant" &&
+            d.answer.length > last.content.length
+          ) {
+            next[next.length - 1] = { ...last, content: d.answer };
+          }
+          return next;
+        });
+        setIsLoading(false);
+      },
+      onError: (msg) => {
+        patchLastAssistant({
+          content: msg,
           isError: true,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+          status: undefined,
+        });
+        setIsLoading(false);
+      },
+    });
   };
 
   const statusText = !health
@@ -108,7 +152,7 @@ export default function Home() {
             <br />예: &ldquo;KODEX 200 수익률 알려줘&rdquo;
           </div>
         ) : (
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList messages={messages} />
         )}
       </div>
 

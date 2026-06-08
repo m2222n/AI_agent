@@ -1,8 +1,16 @@
-// 백엔드 API 클라이언트. 4a는 getHealth + chatOnce만. streamChat은 4b에서 추가.
-import type { ChatHistoryItem, ChatResponse, Health } from "./types";
+// 백엔드 API 클라이언트.
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import type {
+  ChatHistoryItem,
+  ChatResponse,
+  DonePayload,
+  Health,
+  QuestionType,
+  StreamCallbacks,
+  StructuredData,
+} from "./types";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 export async function getHealth(): Promise<Health> {
   const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
@@ -24,4 +32,75 @@ export async function chatOnce(
   });
   if (!res.ok) throw new Error(`chat ${res.status}`);
   return (await res.json()) as ChatResponse;
+}
+
+/**
+ * POST /stream SSE 소비. 네이티브 EventSource는 GET only라 fetch-event-source 사용.
+ * 라이브러리가 SSE 프레이밍(event/data 라인, `: ping` 주석 라인 스킵)을 처리한다.
+ * token 이벤트의 data는 "누적 전체 답변" → onToken에서 replace.
+ * 반환: abort() — 호출자가 스트림을 취소할 수 있음.
+ */
+export function streamChat(
+  question: string,
+  history: ChatHistoryItem[],
+  cb: StreamCallbacks,
+): () => void {
+  const ctrl = new AbortController();
+
+  fetchEventSource(`${API_BASE}/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question,
+      chat_history: history.length ? history : null,
+    }),
+    signal: ctrl.signal,
+    openWhenHidden: true, // 탭 백그라운드여도 스트림 유지
+
+    onopen: async (res) => {
+      if (!res.ok) throw new Error(`stream ${res.status}`);
+    },
+
+    onmessage: (ev) => {
+      // ev.event / ev.data — 라이브러리가 `:` 주석(ping) 라인은 걸러줌
+      const { event, data } = ev;
+      switch (event) {
+        case "question_type":
+          cb.onQuestionType?.(data as QuestionType);
+          break;
+        case "tool_call":
+          cb.onToolCall?.(JSON.parse(data));
+          break;
+        case "tool_result":
+          cb.onToolResult?.(data);
+          break;
+        case "structured_data":
+          cb.onStructuredData?.(JSON.parse(data) as StructuredData);
+          break;
+        case "token":
+          cb.onToken?.(data); // 누적 → replace
+          break;
+        case "cov_revision":
+          cb.onCovRevision?.(data);
+          break;
+        case "error":
+          cb.onError?.(data);
+          break;
+        case "done":
+          cb.onDone?.(JSON.parse(data) as DonePayload);
+          break;
+        default:
+          break; // 알 수 없는 이벤트는 무시
+      }
+    },
+
+    onerror: (err) => {
+      cb.onError?.("연결 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
+      throw err; // re-throw → 라이브러리 자동 재시도(재POST) 중단
+    },
+  }).catch(() => {
+    /* onError로 이미 표면화됨 */
+  });
+
+  return () => ctrl.abort();
 }

@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { UiMessage } from "@/lib/types";
 import { questionTypeLabel } from "@/lib/labels";
 
@@ -22,8 +24,25 @@ export default function ChatMessage({ message }: { message: UiMessage }) {
             {message.model ? ` · ${message.model}` : ""}
           </div>
         )}
-        {/* 4a: 본문은 plain text (markdown은 4b). 줄바꿈 보존. */}
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
+
+        {/* 스트리밍 중 상태줄 (도구 호출 등). 본문이 아직 없을 때만. */}
+        {!isUser && message.status && !message.content && (
+          <div className="text-xs text-gray-500">{message.status}</div>
+        )}
+
+        {isUser ? (
+          <div className="whitespace-pre-wrap break-words">
+            {message.content}
+          </div>
+        ) : (
+          message.content && (
+            <div className="markdown-body break-words">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
