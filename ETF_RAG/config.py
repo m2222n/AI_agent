@@ -19,8 +19,22 @@ DATA_DIR = PROJECT_ROOT / "src" / "data"
 ETF_DATA_PATH = DATA_DIR / "etf_data.json"  # 하드코딩 샘플 (fallback)
 COLLECTED_DIR = DATA_DIR / "collected"       # 수집 데이터 디렉토리
 DEPLOY_DIR = DATA_DIR / "deploy"             # 배포용 데이터 (Git 추적)
-DB_PATH = DATA_DIR / "etf_rag.db"           # SQLite 데이터베이스
+DB_PATH = DATA_DIR / "etf_rag.db"           # SQLite 데이터베이스 (주가 데이터, read-only)
 LOG_DIR = PROJECT_ROOT / "logs"
+
+# --- 인증 / 사용자 DB (Phase F-1 잔여) -------------------------------
+# 사용자 DB(인증/관심종목/대화이력)는 주가용 stock DB(DB_PATH)와 별개 파일/엔진.
+# 로컬/테스트는 sqlite, 프로덕션(Railway)은 DATABASE_URL=postgresql://...
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{PROJECT_ROOT / 'etf_rag_users.db'}")
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-insecure-change-me")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))  # 7일
+
+import logging as _logging
+if JWT_SECRET == "dev-insecure-change-me":
+    _logging.getLogger(__name__).warning(
+        "JWT_SECRET 미설정 — dev 기본값 사용 중. 프로덕션에서는 반드시 환경변수로 설정하세요."
+    )
 
 
 def get_latest_collected_path() -> Optional[Path]:
