@@ -1,0 +1,84 @@
+{
+  "config": {
+    "dataset_size": 62,
+    "models": {
+      "small": "text-embedding-3-small",
+      "large": "text-embedding-3-large"
+    },
+    "modes": [
+      "full (실서비스)",
+      "dense_only (직접매칭off + sparse=0)"
+    ],
+    "note": "Hit@5 천장 효과 → dense_only MRR/Hit@1로 판정"
+  },
+  "models": {
+    "small": {
+      "full": {
+        "n": 42,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "full_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "dense_only": {
+        "n": 42,
+        "mrr": 0.4722,
+        "hit@1": 0.4524,
+        "hit@3": 0.4762,
+        "hit@5": 0.5238
+      },
+      "dense_only_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "elapsed_sec": 18.9
+    },
+    "large": {
+      "full": {
+        "n": 42,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "full_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "dense_only": {
+        "n": 42,
+        "mrr": 0.8024,
+        "hit@1": 0.7857,
+        "hit@3": 0.8095,
+        "hit@5": 0.8333
+      },
+      "dense_only_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "elapsed_sec": 105.7
+    }
+  },
+  "delta_dense_only": {
+    "mrr": 0.3302,
+    "hit@1": 0.3333,
+    "hit@3": 0.3333,
+    "hit@5": 0.3095
+  }
+}

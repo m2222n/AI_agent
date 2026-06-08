@@ -505,4 +505,8 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-01 (운영 회복력 섹션 + 데이터 완전성 백필 + 블로그 시리즈 8편 완성. 도구 14개, 테스트 584개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-06-08 (dead code 정리: 깨진 아카이브 스크립트 docs/test_scenarios.py 제거 + calc_ichimoku 중복 라인 정리. bare pytest 수집 복구. 도구 14개, 테스트 649개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+
+> ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
+
+> 🔬 **임베딩 A/B 실험 (small 유지 결정, 2026-06-08)**: `eval/exp_embedding_ab.py` — `text-embedding-3-small`(현행) vs `-3-large` 격리 비교. **full 파이프라인은 둘 다 100%**(직접매칭+BM25+Rerank가 천장), 순수 dense-only로 격리하면 large가 Hit@1 0.45→0.79(+0.33)·MRR 0.47→0.80로 압도하나 인덱싱 5.6배 느림(19s→106s)·비용 2배. **결론: small 유지** — 하이브리드 검색 덕에 실서비스 체감 개선 0. PDF 투자설명서 등 비정형 문서 확대로 dense 의존도가 커지면 large 재검토.
