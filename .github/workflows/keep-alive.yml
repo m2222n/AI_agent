@@ -5,12 +5,13 @@ name: Keep Services Alive
 # - Supabase: 7일 무활동 시 일시정지
 # 매일 09:00 KST(00:00 UTC) ping을 보내 카운트를 리셋한다.
 #
-# ⚠️ 한계 (2026-06-08 확인):
-#   1. Streamlit sleep 해제는 본질적으로 브라우저 WebSocket 세션이 필요하다.
-#      단순 HTTP ping은 health 엔드포인트를 건드려 활동 신호를 보내지만 100% 보장은 아니다.
-#   2. 앱이 인증(share.streamlit.io/-/auth) 뒤에 있으면 모든 ping이 로그인 redirect로
-#      막혀 무효가 된다. 반드시 앱을 Public으로 설정해야 ping이 실제 앱에 도달한다.
-#      → 이 워크플로우는 auth redirect를 감지하면 경고를 출력한다.
+# ⚠️ 한계 / 주의 (2026-06-08 확인):
+#   1. public 앱이어도 익명 요청은 share.streamlit.io/-/auth 쿠키 게이트를 거친다
+#      (로그인 벽이 아니라 쿠키 기반 통과 게이트). 쿠키 없는 curl은 303 무한 redirect로
+#      ping이 무효가 된다 → 반드시 -c/-b로 쿠키를 저장·전송하며 redirect를 따라가야 한다.
+#   2. HTTP 도달은 위 방식으로 해결되나, Streamlit sleep 카운터가 단순 HTTP 요청으로
+#      리셋되는지 WebSocket 세션을 요구하는지는 불확실하다. 효과 없으면 외부 업타임
+#      모니터(headless 브라우저) 또는 Railway/Render 호스팅 이전을 검토한다.
 
 on:
   schedule:
@@ -30,34 +31,36 @@ jobs:
         continue-on-error: true
         run: |
           BASE="https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app"
+          CJ=/tmp/st_cookies.txt
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           echo "=== Streamlit keep-alive ping ==="
 
-          # 1) 루트로 첫 응답 확인 — auth 게이트 뒤에 있는지 감지 (redirect 따라가지 않음)
-          LOC=$(curl -sS --max-time 30 -o /dev/null -D - "$BASE/" 2>/dev/null \
-                | grep -i '^location:' | tr -d '\r' | head -1 || echo "")
-          if echo "$LOC" | grep -qi '/-/auth'; then
-            echo "::warning::앱이 인증 게이트 뒤에 있습니다 ($LOC). ping이 무효화됩니다."
-            echo "→ Streamlit Cloud 대시보드에서 앱을 Public으로 설정하세요."
-          fi
+          # public 앱이어도 익명 요청은 /-/auth 쿠키 게이트를 거친다 (로그인 벽 아님).
+          # 쿠키를 저장(-c)·전송(-b)하며 redirect를 따라가야 게이트를 통과해 실제 앱에 도달한다.
+          # 브라우저 UA도 함께 보낸다. (2026-06-08 확인: 쿠키 없이는 303 무한 redirect로 ping 무효)
 
-          # 2) health 엔드포인트 ping (redirect 1회만 허용) — 깨어있는 컨테이너의 health check
-          HEALTH=$(curl -sS --max-time 30 --max-redirs 1 -L \
-                   -o /tmp/health.txt -w "%{http_code}" "$BASE/_stcore/health" 2>/dev/null || echo "000")
-          BODY=$(head -c 50 /tmp/health.txt 2>/dev/null || echo "")
-          echo "health: HTTP $HEALTH, body='$BODY'"
+          STATUS=$(curl -sS --max-time 40 -L --max-redirs 10 -c "$CJ" -b "$CJ" -A "$UA" \
+                   -o /tmp/st_root.html -w "%{http_code}" "$BASE/" 2>/dev/null || echo "000")
+          REDIRS=$(curl -sS --max-time 40 -L --max-redirs 10 -c "$CJ" -b "$CJ" -A "$UA" \
+                   -o /dev/null -w "%{num_redirects}" "$BASE/" 2>/dev/null || echo "?")
+          SIZE=$(wc -c < /tmp/st_root.html 2>/dev/null || echo 0)
+          echo "root: HTTP $STATUS (redirects=$REDIRS, ${SIZE} bytes)"
 
-          # 3) 루트 ping (활동 카운트 리셋 시도)
-          ROOT=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" "$BASE/" 2>/dev/null || echo "000")
-          echo "root:   HTTP $ROOT"
+          # health 엔드포인트도 쿠키 게이트 통과해 확인
+          HEALTH=$(curl -sS --max-time 30 -L --max-redirs 10 -c "$CJ" -b "$CJ" -A "$UA" \
+                   -o /tmp/st_health.html -w "%{http_code}" "$BASE/_stcore/health" 2>/dev/null || echo "000")
+          echo "health: HTTP $HEALTH"
 
-          # 깨어있고 public이면 health가 "ok" 반환. auth/sleep이면 redirect(3xx) 또는 비-ok.
-          if [ "$BODY" = "ok" ]; then
-            echo "✅ Streamlit 앱 정상 (health=ok) — 활동 신호 전달됨"
-          elif [ "$HEALTH" = "000" ] && [ "$ROOT" = "000" ]; then
+          # 게이트 통과 시 최종 200 + 실제 앱 HTML(수 KB) 도달. 여전히 3xx거나 0바이트면 도달 실패.
+          if [ "$STATUS" = "200" ] && [ "$SIZE" -gt 1000 ]; then
+            echo "✅ 앱에 도달 (HTTP 200, ${SIZE} bytes) — 활동 신호 전달됨"
+          elif [ "$STATUS" = "000" ]; then
             echo "::warning::Streamlit 무응답 — 서버 다운 가능성"
           else
-            echo "::warning::health!=ok (HTTP $HEALTH). auth 게이트 또는 sleep 상태일 수 있음 — 위 경고 확인."
+            echo "::warning::앱 미도달 (HTTP $STATUS, ${SIZE} bytes). auth 게이트 통과 실패 가능성 — 쿠키 로직 확인 필요."
           fi
+          # ⚠️ HTTP 도달은 확인되나, Streamlit sleep 카운터가 HTTP 요청으로 리셋되는지
+          #    WebSocket 세션을 요구하는지는 불확실. 효과 없으면 외부 모니터/호스팅 이전 검토.
 
       - name: Ping Supabase REST API
         continue-on-error: true
