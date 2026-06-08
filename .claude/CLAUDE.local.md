@@ -1797,12 +1797,44 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - `feat(frontend)`: F-4a 채팅 UI + health 게이트
 - (문서 커밋 별도)
 
-### 다음 (4b~)
-- **4b**: POST /stream SSE (`@microsoft/fetch-event-source` — 네이티브 EventSource는 GET only). 실시간 토큰(누적→replace) + 상태줄 + react-markdown+remark-gfm. `: ping` 스킵, `done.answer` 우선, onerror re-throw, openWhenHidden:true.
-- **4c**: structured_data 렌더 (comparison_table 표 / technical·portfolio_chart base64 img, next/image 아님).
-- **4d**: 멀티턴(chat_history 전송), 에러 UI, 모바일, localStorage, 후속질문 칩.
+### 콜드스타트/응답 속도 측정 (2026-06-08)
+- FastAPI 백엔드 콜드스타트: 로컬 init ~12초(캐시 있음). 질문당 /chat: 첫 ~12.7s, 이후 ~7.3s (LLM+도구 시간, 데이터로딩 아님).
+- **1.7GB SQLite DB** — 클라우드 첫 부팅 시 GitHub Release에서 다운로드(수십초~1분+), 단 서버당 1회라 사용자 체감과 분리. FAISS/BM25는 디스크 캐시됨 → health 게이트가 가림.
+- **사용자 체감 병목 = 질문당 7초** → 4b 스트리밍이 최우선(총시간 같아도 1~2초 내 첫 글자 → ChatGPT식 체감). 콜드스타트(1.7GB) 최적화는 Railway 이전 시점(영구 디스크). 상세: 메모리 project_ai_agent_ops_resilience.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F 착수: F-1 백엔드 골격 api/ + F-4a 프론트 골격 frontend/ Next.js 16. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F-4b: SSE 실시간 스트리밍 (2026-06-08)
+
+4a의 비스트리밍 `/chat` → `/stream` SSE로 전환. ChatGPT식 실시간 토큰 타이핑 + 마크다운.
+
+### 의존성 (frontend)
+- `@microsoft/fetch-event-source@^2` — **POST SSE** (네이티브 EventSource는 GET only인데 /stream은 POST). SSE 프레이밍(event/data, `: ping` 주석 스킵)을 라이브러리가 처리.
+- `react-markdown@^10` + `remark-gfm@^4` — 스트리밍 답변 마크다운/GFM 테이블 렌더.
+
+### 변경
+- **lib/api.ts `streamChat(question, history, cb)`**: fetchEventSource로 POST. onmessage에서 event별 분기(question_type/tool_call/tool_result/structured_data/token/cov_revision/error/done) → 콜백. **token data는 누적 전체 텍스트** → onToken에서 replace. `onerror`에서 **re-throw**(라이브러리 자동 재POST 방지). `openWhenHidden:true`(탭 백그라운드 유지). AbortController 반환.
+- **lib/types.ts**: `StreamCallbacks`/`DonePayload`/`StructuredData`(comparison_table·technical_chart·portfolio_chart). `UiMessage`에 `structured`/`status`.
+- **lib/labels.ts**: 14개 도구 한국어 라벨 `toolLabel()` (상태줄용).
+- **ChatMessage**: assistant 본문 `react-markdown`+`remark-gfm`. 본문 없을 때 상태줄(현재 도구). user는 plain text 유지.
+- **globals.css**: `.markdown-body` 스타일(헤딩/리스트/코드/테이블 가로스크롤/인용). dark-mode flip 제거 → 라이트 고정(말풍선 색 명시적이라 충돌 방지).
+- **page.tsx**: streamChat 기반. user + **빈 assistant placeholder** push → 콜백마다 마지막 assistant 불변 갱신(`patchLastAssistant`). `onDone`에서 `done.answer`가 마지막 토큰보다 길면 우선(CoV 보정·fallback). `onStructuredData`는 `structured[]`에 수집(렌더는 4c).
+- **MessageList**: 별도 로딩 버블 제거 — placeholder 상태줄이 대체.
+
+### 검증
+- `npm run build` 통과(타입 0). 백엔드 `/stream` 직접 검증: question_type → **token 41개** → done 순서, done.answer에 전체 답변. 프론트 dev 서버 200 + 번들에 streamChat/markdown 포함.
+- 브라우저 SSE 소비(fetchEventSource)는 curl로 완전 재현 불가하나, 백엔드 SSE 스트리밍 + 빌드 컴파일 + 페이지 서빙으로 계약 검증.
+
+### 커밋 (브랜치 phase-f-4b-streaming, main에서 분기)
+- `chore(frontend)`: SSE/마크다운 의존성
+- `feat(frontend)`: F-4b SSE 스트리밍 + 마크다운
+- (문서 별도)
+
+### 다음
+- **4c**: structured_data 렌더 (comparison_table 표 / technical·portfolio_chart base64 img, next/image 아님). 타입/수집은 4b에서 이미 됨 → 렌더 컴포넌트만.
+- **4d**: 멀티턴(chat_history 전송), 에러 UI 개선, 모바일 반응형, localStorage, 후속질문 칩.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a 프론트 골격 + F-4b SSE 스트리밍. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
