@@ -249,6 +249,7 @@
 **4-4. 아키텍처 고도화 (→ Phase F/G로 통합)**
 - [x] Pinecone 듀얼 백엔드 (FAISS+Pinecone, 자동 fallback)
 - [ ] **Phase F: SaaS 전환** — FastAPI + React/Next.js + KIS 실시간 시세 + KoELECTRA 감성 분석
+  - [x] **F-1 백엔드 골격** (2026-06-08): `api/` 패키지 — FastAPI `/health`·`/chat`·`/stream`(SSE). 기존 agent(`run_agent`/`stream_agent`)를 Streamlit 없이 래핑, 동기 호출은 threadpool 경유. Streamlit 앱과 병행.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
@@ -510,3 +511,5 @@ _Last Updated: 2026-06-08 (dead code 정리: 깨진 아카이브 스크립트 do
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
 > 🔬 **임베딩 A/B 실험 (small 유지 결정, 2026-06-08)**: `eval/exp_embedding_ab.py` — `text-embedding-3-small`(현행) vs `-3-large` 격리 비교. **full 파이프라인은 둘 다 100%**(직접매칭+BM25+Rerank가 천장), 순수 dense-only로 격리하면 large가 Hit@1 0.45→0.79(+0.33)·MRR 0.47→0.80로 압도하나 인덱싱 5.6배 느림(19s→106s)·비용 2배. **결론: small 유지** — 하이브리드 검색 덕에 실서비스 체감 개선 0. PDF 투자설명서 등 비정형 문서 확대로 dense 의존도가 커지면 large 재검토.
+
+> 🚀 **Phase F 착수 — F-1 백엔드 골격 (2026-06-08)**: `api/` 패키지 (FastAPI). `/health`·`/chat`·`/stream`(SSE)으로 기존 agent를 Streamlit 없이 노출. 동기 `run_agent`/`stream_agent`는 threadpool 경유, init은 `app.py:init_all()`을 데코레이터 없이 복제(`api/deps.py`). 테스트 **655개**(+6). 단일 워커 전용. Streamlit 앱과 병행. 상세: CLAUDE.local.md.
