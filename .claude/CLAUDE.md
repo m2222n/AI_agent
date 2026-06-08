@@ -250,6 +250,7 @@
 - [x] Pinecone 듀얼 백엔드 (FAISS+Pinecone, 자동 fallback)
 - [ ] **Phase F: SaaS 전환** — FastAPI + React/Next.js + KIS 실시간 시세 + KoELECTRA 감성 분석
   - [x] **F-1 백엔드 골격** (2026-06-08): `api/` 패키지 — FastAPI `/health`·`/chat`·`/stream`(SSE). 기존 agent(`run_agent`/`stream_agent`)를 Streamlit 없이 래핑, 동기 호출은 threadpool 경유. Streamlit 앱과 병행.
+  - [x] **F-4a 프론트 골격** (2026-06-08): `frontend/` Next.js 16(App Router/TS/Tailwind v4) — health 게이트 + 비스트리밍 `/chat` 채팅 UI. 후속: 4b SSE 스트리밍 / 4c 차트 / 4d 멀티턴·모바일.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
