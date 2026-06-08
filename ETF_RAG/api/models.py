@@ -26,3 +26,12 @@ class ChatResponse(BaseModel):
 class HealthResponse(BaseModel):
     ready: bool
     error: Optional[str] = None
+
+
+class TickerSearchResponse(BaseModel):
+    options: List[str]
+
+
+class ComparisonRequest(BaseModel):
+    tickers: List[str] = Field(..., min_length=2, max_length=2)
+    days: int = Field(120, ge=20, le=2500)
