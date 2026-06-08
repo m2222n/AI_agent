@@ -1700,5 +1700,65 @@ Phase 0~E 개발 기록을 Tistory 8편 시리즈로 정리 완료.
 
 ---
 
-_Last Updated: 2026-06-01 (백필 완료 + 블로그 시리즈 8편 작성 완료 반영)_
-_운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성: Series 방어 + keep-alive + timeout + 12년 데이터 검증 + 블로그 8편_
+---
+
+## Phase F-1: FastAPI 백엔드 골격 (2026-06-08)
+
+### 배경
+- SaaS 전환(Phase F)의 첫 단계. 남은 미완료 항목(KIS 실시간/탭별 채팅/Cold Start)이 전부
+  Streamlit 한계라 개별 대응이 무의미 → 먼저 에이전트 로직을 Streamlit과 분리해 REST/SSE로 노출.
+- 기존 Streamlit 앱(`app.py`)은 그대로 두고 **병행** (API는 `api/` 패키지로 추가).
+- 핵심 발견: `src/` 전체가 Streamlit 비의존 → `init_all()`에서 `@st.cache_resource`만 벗기면 그대로 재사용.
+
+### 신규 파일 (`ETF_RAG/api/`)
+- **`deps.py`** — `run_init()`: `app.py:init_all()`(4단계) 복제, 데코레이터 없이.
+  - ensure_db → load_etf/stock_data → create_documents → create_vectorstore + HybridRetriever → set_retriever
+  - retriever는 `src.llm.tools._state` 프로세스 전역에 들어가므로 run_agent/stream_agent가 투명하게 읽음
+  - `AppState(ready, error)` dataclass — init 상태만 보관
+  - 시작 시 `get_api_key(None)` 선검증 (.env/환경변수, Streamlit secrets 불필요)
+- **`models.py`** — Pydantic v2: `ChatMessage`/`ChatRequest`/`ChatResponse`/`HealthResponse`
+  - Python 3.9 호환: `typing.Optional/List`, `typing_extensions.Literal` 사용
+- **`main.py`** — FastAPI 앱
+  - **lifespan** (deprecated `@app.on_event` 대신 `@asynccontextmanager`): `API_SKIP_INIT=1`이면 init 우회(테스트용), 아니면 `run_in_threadpool(run_init)`. init 실패해도 서버는 떠서 `/health`가 에러 보고.
+  - **CORS**: `allow_origins=["*"]`, `allow_credentials=False` (dev용; F-2에서 조임)
+  - **GET /health** → `{ready, error}`
+  - **POST /chat** → `await run_in_threadpool(run_agent, q, history)` → `ChatResponse`. ready=False면 503.
+  - **POST /stream** (SSE) → `sse-starlette` `EventSourceResponse` + `starlette.concurrency.iterate_in_threadpool`로 동기 제너레이터 → async 변환. 이벤트 이름 열거 없이 전부 통과 (question_type/tool_call/tool_result/structured_data/token/cov_revision/error/done). dict data는 `json.dumps(ensure_ascii=False)`.
+
+### 동기 호출 → async 브리지
+- `run_agent`/`stream_agent`는 **동기·블로킹** (LLM/FAISS/BM25). 이벤트 루프 보호 위해 둘 다 threadpool 경유.
+- `/stream`은 `iterate_in_threadpool(sync_generator)`로 each `next()`를 워커 스레드에서 실행.
+
+### requirements.txt 추가
+- `fastapi>=0.110.0,<1.0`, `uvicorn>=0.27.0,<1.0`, `sse-starlette>=2.0.0,<3.0`, `httpx>=0.27.0,<1.0`(TestClient 의존)
+- pydantic v2는 langchain 통해 이미 transitive
+
+### 실행 (repo root에서)
+```bash
+cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
+```
+- repo root여야 `from src...`, `from config import...` 해석됨 (app.py와 동일). sys.path 해킹 불필요.
+
+### 테스트 (`tests/test_api.py`, 6개)
+- import 전 `os.environ["API_SKIP_INIT"]="1"` → 실제 DB 다운로드/임베딩 우회
+- `api.main.run_agent`/`stream_agent` patch + `with TestClient(app)` (lifespan 트리거 위해 컨텍스트 매니저 필수)
+- **sse-starlette 함정**: `AppStatus.should_exit_event`가 모듈 전역 → TestClient 매 테스트 새 루프 → "attached to a different loop" 에러. autouse fixture로 `AppStatus.should_exit_event = None` 리셋 (테스트마다 현재 루프에 재생성).
+- 검증: /health ready, /chat 결과+history 전달, 빈 question 422, /stream 전이벤트 통과+한글 JSON 보존
+
+### 검증 결과
+- `pytest tests/test_api.py`: 6개 통과. 전체: **655개 통과** (649+6, 회귀 0)
+- 수동 스모크 (실제 agent+OpenAI): /health 8s ready, /chat KODEX 200 실데이터 응답(gpt-4o-mini 라우팅), /stream 삼성전자 기술적분석 → question_type→tool_call→tool_result→structured_data(차트 base64)→token→done 전부 정상
+
+### 알려진 한계 (F-1 허용, 문서화)
+1. `token` 이벤트는 델타 아니라 **누적 전체 텍스트** (기존 chat.py 계약) → 클라이언트는 replace
+2. `set_retriever` 프로세스 전역 → **단일 워커 전용**. `--workers N`이면 워커별 재init (ensure_db 스킵+FAISS 캐시로 비용 적음). 멀티워커는 후속 단계.
+3. SSE 도중 클라이언트 끊김 → 워커 스레드의 stream_agent는 끝까지 실행 (Python 스레드 강제 취소 불가). 허용 가능한 누수.
+
+### 다음 (Phase F-2~)
+- F-1 잔여: WebSocket 엔드포인트, SQLite→PostgreSQL, JWT/OAuth2 인증, 유저별 관심종목/히스토리 저장
+- F-2: KIS 실시간 (계좌 개설 — 신분증 필요, 보류 중), F-3: KoELECTRA 감성, F-4: Next.js 프론트, F-5: 배포
+
+---
+
+_Last Updated: 2026-06-08 (Phase F-1 백엔드 골격 추가: api/ FastAPI /health /chat /stream(SSE), 테스트 655개, Streamlit 병행)_
+_운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
