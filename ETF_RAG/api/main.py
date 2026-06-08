@@ -32,6 +32,7 @@ from api.db import init_models
 from api.models import ChatRequest, ChatResponse, HealthResponse
 from api.tabs import router as tabs_router
 from api.auth import router as auth_router
+from api.user_data import router as user_data_router
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,8 @@ app.add_middleware(
 app.include_router(tabs_router)
 # JWT 이메일 인증 (/auth/*)
 app.include_router(auth_router)
+# 유저별 저장 — 관심종목/대화이력 (/me/*)
+app.include_router(user_data_router)
 
 
 def _require_ready() -> None:
