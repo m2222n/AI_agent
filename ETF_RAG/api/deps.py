@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from fastapi import HTTPException, Request
+
 from src.llm.client import get_api_key
 from src.data.db_downloader import ensure_db
 from src.data.loader import (
@@ -35,6 +37,20 @@ class AppState:
     """앱 초기화 상태. /health가 읽고, /chat·/stream이 ready를 가드로 사용."""
     ready: bool = False
     error: Optional[str] = None
+
+
+def require_ready(request: Request) -> None:
+    """라우터용 공유 가드 의존성. ready 아니면 503.
+
+    라우터는 app 참조가 없으므로 Request에서 app.state를 꺼낸다.
+    (main.py의 _require_ready와 동일 동작 — /chat·/stream은 그대로 둠.)
+    """
+    state: AppState = request.app.state.app_state
+    if not state.ready:
+        raise HTTPException(
+            status_code=503,
+            detail=f"초기화 중/실패: {state.error or 'initializing'}",
+        )
 
 
 def run_init() -> None:

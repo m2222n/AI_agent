@@ -1885,5 +1885,43 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a~d 프론트 채팅 완성(스트리밍·차트·멀티턴·모바일). 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F: 5개 데이터 탭 REST API (2026-06-08)
+
+프론트 탭 이식 전, 백엔드에 탭별 데이터 API 추가. Streamlit 탭(src/ui/tabs.py)이 호출하는 기존 동기 함수를 Streamlit 없이 래핑. **백엔드 먼저, 프론트 탭 페이지는 다음 단계.**
+
+### 신규 파일 / 변경
+- **api/deps.py**: `require_ready(request: Request)` FastAPI 의존성 — 라우터 공유 가드(503). 라우터는 app 참조가 없어 Request에서 app.state 추출.
+- **api/models.py**: `TickerSearchResponse`, `ComparisonRequest`.
+- **api/tabs.py** (신규): `APIRouter(prefix="/tabs", dependencies=[Depends(require_ready)])`, 7개 엔드포인트.
+- **api/main.py**: `app.include_router(tabs_router)`.
+
+### 엔드포인트 (전부 기존 함수 래핑, run_in_threadpool, None→404)
+- GET `/tabs/technical?ticker&days` — get_technical_summary + generate_technical_chart
+- GET `/tabs/financial?ticker&quarters` — DB_PATH.exists() 가드 + get_financial_data + chart
+- POST `/tabs/comparison{tickers[2],days}` — comparison/valuation 차트 + 항목 데이터
+- GET `/tabs/outlook?ticker&horizon` — summary+structured 조립 → build_price_outlook
+- GET `/tabs/sector?sector?` — _build_sector_stats(복제) + overview/detail 차트
+- GET `/tabs/tickers?q&limit` — get_available_tickers 부분매칭+cap
+- GET `/tabs/tickers/resolve?q` — _find_structured_data
+
+### 핵심 설계 결정
+- **name 출처**: get_technical_summary는 name 키 없음 → `_find_structured_data(query)`로 ticker/name 먼저 해석 후 summary/chart 호출 (Streamlit 탭의 _resolve_ticker 패턴 복제).
+- **여러 동기 호출은 sync 헬퍼로 묶어 run_in_threadpool 1회** (summary+chart, outlook 조립 등).
+- **복잡 중첩 dict은 response_model=None** (dict 그대로 반환 — 14키 Pydantic 재모델링 ROI 낮음). 단순한 것만 thin model.
+- **src/ui/tabs.py는 streamlit import → API에서 import 금지.** _build_sector_stats(~15줄, streamlit 무관)만 복제.
+- 차트는 base64 str을 JSON 본문에 포함(218KB 등, 채팅 structured_data와 동일).
+
+### 검증
+- `pytest tests/test_api_tabs.py`: 15개. 전체 **670개**(655+15, 회귀 0).
+- 실서버 스모크(uvicorn, 실데이터): resolve(삼성전자→005930,PER49.81), technical(11지표+218KB차트), outlook(composite0.709/B/3시나리오), sector(29섹터,전기·전자338종목), comparison(차트76KB+밸류25KB), financial(HTTP200), tickers(부분매칭). **단, curl URL에 한글 직접 넣으면 "Invalid HTTP request" → --data-urlencode 필요** (브라우저/프론트는 자동 인코딩하므로 무관).
+
+### 커밋 (브랜치 phase-f-tabs-api, main에서 분기)
+- `feat(api)`: require_ready+모델 / `feat(api)`: tabs 라우터 / `test(api)`: 15개 / (문서 별도)
+
+### 다음
+- **프론트 탭 페이지**: Next.js App Router 라우트(`/technical`,`/financial`,`/comparison`,`/outlook`,`/sector`) + 공통 네비 + 종목 자동완성(이 API 소비). URL 라우트 방식.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a~d 프론트 채팅 + 탭 REST API(api/tabs.py). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

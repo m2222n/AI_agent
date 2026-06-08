@@ -1,0 +1,201 @@
+"""5개 탭 + 자동완성 REST 엔드포인트 테스트 (Phase F).
+
+API_SKIP_INIT=1로 실제 init 우회 → 래핑 대상 함수는 api.tabs import 사이트에서 patch.
+"""
+
+import os
+
+os.environ["API_SKIP_INIT"] = "1"
+
+from unittest.mock import MagicMock, patch  # noqa: E402
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from api.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_sse_global():
+    from sse_starlette.sse import AppStatus
+
+    AppStatus.should_exit_event = None
+    yield
+
+
+@pytest.fixture
+def client():
+    with TestClient(app) as c:
+        yield c
+
+
+# ── Technical ──────────────────────────────────────────────────────
+def test_technical_returns_summary_and_chart(client):
+    structured = {"ticker": "005930", "name": "삼성전자", "per": 12.0}
+    summary = {"close": 70000, "rsi": 55.0, "trend": "상승"}
+    with patch("api.tabs._find_structured_data", return_value=structured), patch(
+        "api.tabs.get_technical_summary", return_value=summary
+    ), patch("api.tabs.generate_technical_chart", return_value="BASE64PNG"):
+        r = client.get("/tabs/technical", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ticker"] == "005930"
+    assert body["name"] == "삼성전자"
+    assert body["summary"]["rsi"] == 55.0
+    assert body["chart_b64"] == "BASE64PNG"
+
+
+def test_technical_404_when_unresolved(client):
+    with patch("api.tabs._find_structured_data", return_value=None):
+        r = client.get("/tabs/technical", params={"ticker": "ZZZ"})
+    assert r.status_code == 404
+
+
+def test_technical_404_when_no_summary(client):
+    with patch(
+        "api.tabs._find_structured_data",
+        return_value={"ticker": "005930", "name": "삼성전자"},
+    ), patch("api.tabs.get_technical_summary", return_value=None):
+        r = client.get("/tabs/technical", params={"ticker": "삼성전자"})
+    assert r.status_code == 404
+
+
+# ── Outlook ────────────────────────────────────────────────────────
+def test_outlook_assembles_summary_and_structured(client):
+    structured = {"ticker": "005930", "name": "삼성전자", "per": 12.0}
+    summary = {"close": 70000}
+    outlook = {"composite_score": 0.3, "confidence_grade": "B", "scenarios": {}}
+    with patch("api.tabs._find_structured_data", return_value=structured), patch(
+        "api.tabs.get_technical_summary", return_value=summary
+    ), patch("api.tabs.build_price_outlook", return_value=outlook) as m:
+        r = client.get(
+            "/tabs/outlook", params={"ticker": "삼성전자", "horizon": "1m"}
+        )
+    assert r.status_code == 200
+    assert r.json()["confidence_grade"] == "B"
+    # summary / structured_data가 키워드로 전달됐는지
+    kwargs = m.call_args.kwargs
+    assert kwargs["summary"] == summary
+    assert kwargs["structured_data"] == structured
+
+
+def test_outlook_404_when_no_summary(client):
+    with patch("api.tabs._find_structured_data", return_value={"ticker": "X", "name": "X"}), patch(
+        "api.tabs.get_technical_summary", return_value=None
+    ):
+        r = client.get("/tabs/outlook", params={"ticker": "X"})
+    assert r.status_code == 404
+
+
+# ── Financial ──────────────────────────────────────────────────────
+def test_financial_returns_rows_and_chart(client):
+    rows = [
+        {"fiscal_year": 2025, "fiscal_quarter": 1, "revenue": 1_000_000_000_000, "operating_margin": 10.0}
+    ]
+    with patch("api.tabs.DB_PATH") as db, patch("api.tabs._find_structured_data", return_value={"ticker": "005930", "name": "삼성전자"}), patch(
+        "api.tabs.get_connection", return_value=MagicMock()
+    ), patch("api.tabs.get_financial_data", return_value=rows), patch(
+        "api.tabs.generate_financial_chart", return_value="PNG"
+    ):
+        db.exists.return_value = True
+        r = client.get("/tabs/financial", params={"ticker": "005930"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["rows"][0]["fiscal_year"] == 2025
+    assert body["chart_b64"] == "PNG"
+
+
+def test_financial_404_when_db_missing(client):
+    with patch("api.tabs.DB_PATH") as db:
+        db.exists.return_value = False
+        r = client.get("/tabs/financial", params={"ticker": "005930"})
+    assert r.status_code == 404
+
+
+# ── Comparison ─────────────────────────────────────────────────────
+def test_comparison_two_tickers(client):
+    d1 = {"ticker": "005930", "name": "삼성전자", "per": 12.0, "pbr": 1.2}
+    d2 = {"ticker": "000660", "name": "SK하이닉스", "per": 8.0, "pbr": 1.5}
+    with patch("api.tabs._find_structured_data", side_effect=[d1, d2]), patch(
+        "api.tabs.generate_comparison_chart", return_value="CMP"
+    ), patch("api.tabs.generate_valuation_chart", return_value="VAL"):
+        r = client.post(
+            "/tabs/comparison", json={"tickers": ["삼성전자", "SK하이닉스"]}
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["items"]) == 2
+    assert body["comparison_chart_b64"] == "CMP"
+    assert body["valuation_chart_b64"] == "VAL"
+
+
+def test_comparison_404_when_one_unresolved(client):
+    d1 = {"ticker": "005930", "name": "삼성전자"}
+    with patch("api.tabs._find_structured_data", side_effect=[d1, None]):
+        r = client.post("/tabs/comparison", json={"tickers": ["삼성전자", "ZZZ"]})
+    assert r.status_code == 404
+
+
+# ── Sector ─────────────────────────────────────────────────────────
+def test_sector_overview(client):
+    sector_index = {
+        "전기·전자": [
+            {"name": "삼성전자", "ticker": "005930", "market_cap": 5e14, "change_pct": 1.0, "per": 12.0},
+            {"name": "SK하이닉스", "ticker": "000660", "market_cap": 1e14, "change_pct": -0.5, "per": 8.0},
+        ]
+    }
+    with patch("api.tabs.get_sector_index", return_value=sector_index), patch(
+        "api.tabs.generate_sector_overview_chart", return_value="OVR"
+    ):
+        r = client.get("/tabs/sector")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["overview_chart_b64"] == "OVR"
+    assert body["stats"][0]["sector"] == "전기·전자"
+    assert body["stats"][0]["count"] == 2
+    assert body["stats"][0]["up_count"] == 1
+
+
+def test_sector_detail(client):
+    sector_index = {"전기·전자": [{"name": "삼성전자", "ticker": "005930", "market_cap": 5e14, "change_pct": 1.0, "per": 12.0}]}
+    with patch("api.tabs.get_sector_index", return_value=sector_index), patch(
+        "api.tabs.generate_sector_overview_chart", return_value="OVR"
+    ), patch("api.tabs.generate_sector_detail_chart", return_value="DET"):
+        r = client.get("/tabs/sector", params={"sector": "전기·전자"})
+    assert r.status_code == 200
+    assert r.json()["detail_chart_b64"] == "DET"
+
+
+def test_sector_404_unknown(client):
+    with patch("api.tabs.get_sector_index", return_value={"A": [{"market_cap": 1, "change_pct": 0}]}), patch(
+        "api.tabs.generate_sector_overview_chart", return_value="OVR"
+    ):
+        r = client.get("/tabs/sector", params={"sector": "없는섹터"})
+    assert r.status_code == 404
+
+
+# ── Tickers ────────────────────────────────────────────────────────
+def test_tickers_filters_and_caps(client):
+    opts = [f"삼성전자{i} (0059{i:02d})" for i in range(40)] + ["LG (003550)"]
+    with patch("api.tabs.get_available_tickers", return_value=opts):
+        r = client.get("/tabs/tickers", params={"q": "삼성", "limit": 30})
+    body = r.json()
+    assert len(body["options"]) == 30
+    assert all("삼성" in o for o in body["options"])
+
+
+def test_tickers_resolve_404(client):
+    with patch("api.tabs._find_structured_data", return_value=None):
+        r = client.get("/tabs/tickers/resolve", params={"q": "ZZZ"})
+    assert r.status_code == 404
+
+
+# ── 가드 ───────────────────────────────────────────────────────────
+def test_tabs_require_ready_503(client):
+    # ready=False면 503 (require_ready 의존성)
+    app.state.app_state.ready = False
+    try:
+        r = client.get("/tabs/tickers")
+        assert r.status_code == 503
+    finally:
+        app.state.app_state.ready = True
