@@ -1940,9 +1940,35 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - `feat(frontend)`: 네비 + 자동완성 + 기술분석 탭 + (문서 별도)
 
 ### 다음
-- **나머지 4탭**: `/financial`(재무 테이블+차트), `/comparison`(2종목 TickerSearch 2개+비교/밸류차트), `/outlook`(4축 전망 카드+시나리오), `/sector`(섹터 차트+상세). 전부 같은 패턴(TickerSearch + lib/api 함수 + 페이지). lib/api에 getFinancial/postComparison/getOutlook/getSector 추가.
+- 나머지 4탭으로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4 프론트 채팅 + 탭 REST API + 프론트 탭(공통+기술분석). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F: 프론트 탭 완성 — 재무/비교/전망/섹터 (2026-06-08)
+
+기술분석 탭 패턴 반복으로 나머지 4탭 완성. **F-4 프론트 6탭(채팅+기술/재무/비교/전망/섹터) = Streamlit 기능 패리티 달성.**
+
+### 변경 (frontend/src)
+- **lib/api.ts**: `getFinancial(t,quarters)` / `postComparison([t1,t2],days)` / `getOutlook(t,horizon)` / `getSector(sector?)` — 전부 404→null. **lib/types**: FinancialResponse/ComparisonResponse/OutlookResponse(느슨)/SectorResponse(+SectorStat/FinancialRow).
+- **components/ChartImage.tsx**: base64 PNG `<img>` 공통 컴포넌트(next/image 아님, eslint disable).
+- **app/financial/page.tsx**: TickerSearch + 분기 재무 테이블(억원/영업이익률/매출YoY) + 실적 차트. (주식만 — ETF는 404)
+- **app/comparison/page.tsx**: TickerSearch 2개(각 선택 시 둘 다 차면 비교) + ComparisonTable(채팅 컴포넌트 재사용) + 비교/밸류 차트.
+- **app/outlook/page.tsx**: TickerSearch + horizon(1m/3m/6m/1y) + 종합점수/신뢰등급/현재가 + 4축 카드(기술/펀더멘털/통계/Prophet, key_factors) + 시나리오 3종(상승/중립/하락 확률·목표) + 리스크 + 면책.
+- **app/sector/page.tsx**: mount 시 개요 자동 로드 + 업종 selectbox→상세 차트 + 섹터 요약표 상위20(등락률 빨강/파랑).
+
+### 검증
+- `npm run build` 통과(6라우트: /, /technical, /financial, /comparison, /outlook, /sector). e2e: 4페이지 한국어 렌더 + financial(삼성전자 8분기+차트)/sector(29섹터+차트) API 동작.
+
+### 커밋 (브랜치 phase-f-front-tabs2, main에서 분기)
+- `feat(frontend)`: 4탭 + (문서 별도)
+
+### Phase F-4 완성 정리 — 다음 큰 단계
+프론트가 Streamlit 6탭 기능을 모두 커버. 남은 Phase F:
+- **F-5 배포(Railway/Render)**: 실제 URL + 콜드스타트·유휴정지 해소. 다음 우선순위 후보.
+- **F-1 잔여**: 인증(JWT/소셜) + PostgreSQL + 유저별 저장 + WebSocket.
+- **F-2 KIS 실시간**(신분증 보류), **F-3 KoELECTRA 감성**.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + 탭 REST API + F-4 프론트 6탭 완성(채팅+기술/재무/비교/전망/섹터, Streamlit 패리티). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

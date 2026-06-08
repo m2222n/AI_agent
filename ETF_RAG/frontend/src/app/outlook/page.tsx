@@ -1,0 +1,170 @@
+"use client";
+
+import { useState } from "react";
+import { getOutlook } from "@/lib/api";
+import type { OutlookResponse } from "@/lib/types";
+import TickerSearch from "@/components/TickerSearch";
+
+const HORIZONS = ["1m", "3m", "6m", "1y"];
+
+function str(v: unknown): string {
+  return v == null ? "-" : String(v);
+}
+function axisFactors(axis: Record<string, unknown> | undefined): string[] {
+  const f = axis?.key_factors;
+  return Array.isArray(f) ? (f as string[]) : [];
+}
+
+export default function OutlookPage() {
+  const [horizon, setHorizon] = useState("1m");
+  const [selected, setSelected] = useState<{ ticker: string } | null>(null);
+  const [data, setData] = useState<OutlookResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (ticker: string, h: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getOutlook(ticker, h);
+      if (!res) setError("전망을 생성할 수 없어요.");
+      setData(res);
+    } catch {
+      setError("데이터를 가져오지 못했어요.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSelect = (sel: { ticker: string }) => {
+    setSelected(sel);
+    run(sel.ticker, horizon);
+  };
+  const onHorizon = (h: string) => {
+    setHorizon(h);
+    if (selected) run(selected.ticker, h);
+  };
+
+  const scenarios = data?.scenarios ?? {};
+
+  return (
+    <main className="mx-auto w-full max-w-3xl px-3 py-5 sm:px-4">
+      <h1 className="mb-1 text-lg font-bold text-gray-900">🔮 가격 전망</h1>
+      <p className="mb-4 text-xs text-gray-500">
+        기술적·펀더멘털·통계·Prophet 4축 종합 + 시나리오
+      </p>
+
+      <TickerSearch onSelect={onSelect} />
+
+      {selected && (
+        <div className="mt-3 flex gap-2">
+          {HORIZONS.map((h) => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => onHorizon(h)}
+              className={[
+                "rounded-full px-3 py-1 text-xs",
+                horizon === h
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-300 text-gray-600 hover:bg-gray-100",
+              ].join(" ")}
+            >
+              {h}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading && <p className="mt-6 text-center text-sm text-gray-400">분석 중…</p>}
+      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+
+      {data && !loading && (
+        <div className="mt-5 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Metric label="종합 점수" value={str(data.composite_score)} />
+            <Metric label="신뢰 등급" value={str(data.confidence_grade)} />
+            <Metric label="현재가" value={`${str(data.current_price)}원`} />
+          </div>
+
+          {/* 4축 */}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Axis title="기술적" axis={data.technical} />
+            <Axis title="펀더멘털" axis={data.fundamental} />
+            <Axis title="통계(회귀)" axis={data.statistical} />
+            <Axis title="Prophet" axis={data.prophet} />
+          </div>
+
+          {/* 시나리오 */}
+          <div className="grid grid-cols-3 gap-2">
+            {(["bullish", "neutral", "bearish"] as const).map((k) => {
+              const sc = scenarios[k];
+              const label = { bullish: "🔼 상승", neutral: "➖ 중립", bearish: "🔽 하락" }[k];
+              return (
+                <div key={k} className="rounded-lg border border-gray-200 p-3 text-xs">
+                  <div className="font-semibold">{label}</div>
+                  <div className="mt-1 text-gray-500">
+                    확률 {sc?.probability != null ? `${Math.round(sc.probability * 100)}%` : "-"}
+                  </div>
+                  <div className="text-gray-500">
+                    목표 {sc?.target_return != null ? `${sc.target_return}%` : "-"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 리스크 */}
+          {Array.isArray(data.risk_factors) && data.risk_factors.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
+              <div className="mb-1 font-semibold text-amber-800">⚠️ 리스크 요인</div>
+              <ul className="list-disc pl-4 text-amber-700">
+                {data.risk_factors.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400">
+            📌 데이터 기반 참고 정보입니다. 투자 판단 전 추가 조사와 전문가 상담을 권장합니다.
+          </p>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 px-3 py-2">
+      <div className="text-xs text-gray-500">{label}</div>
+      <div className="text-sm font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function Axis({
+  title,
+  axis,
+}: {
+  title: string;
+  axis: Record<string, unknown> | undefined;
+}) {
+  const factors = axisFactors(axis);
+  return (
+    <div className="rounded-lg border border-gray-200 p-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-xs text-gray-500">{str(axis?.signal)}</span>
+      </div>
+      {factors.length > 0 && (
+        <ul className="mt-1 list-disc pl-4 text-xs text-gray-600">
+          {factors.slice(0, 4).map((f, i) => (
+            <li key={i}>{f}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

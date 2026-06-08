@@ -45,6 +45,67 @@ export interface TickerSearchResponse {
   options: string[];
 }
 
+/** /tabs/financial 응답 */
+export interface FinancialRow {
+  fiscal_year: number;
+  fiscal_quarter: number;
+  revenue?: number | null;
+  operating_profit?: number | null;
+  net_income?: number | null;
+  operating_margin?: number | null;
+  net_margin?: number | null;
+  revenue_growth_yoy?: number | null;
+  op_growth_yoy?: number | null;
+}
+export interface FinancialResponse {
+  ticker: string;
+  name: string;
+  rows: FinancialRow[];
+  chart_b64: string | null;
+}
+
+/** /tabs/comparison 응답 (items = 구조화 데이터 dict) */
+export interface ComparisonResponse {
+  items: Record<string, unknown>[];
+  comparison_chart_b64: string | null;
+  valuation_chart_b64: string | null;
+}
+
+/** /tabs/outlook 응답 (복잡 중첩 — 느슨한 타입) */
+export interface OutlookResponse {
+  ticker?: string;
+  name?: string;
+  horizon?: string;
+  current_price?: number;
+  composite_score?: number;
+  confidence_grade?: string;
+  technical?: Record<string, unknown>;
+  fundamental?: Record<string, unknown>;
+  statistical?: Record<string, unknown>;
+  prophet?: Record<string, unknown>;
+  scenarios?: Record<string, { probability?: number; target_return?: number; description?: string }>;
+  risk_factors?: string[];
+  [k: string]: unknown;
+}
+
+/** /tabs/sector 응답 */
+export interface SectorStat {
+  sector: string;
+  count: number;
+  market_cap: number;
+  change_pct: number;
+  median_per: number;
+  up_count: number;
+  down_count: number;
+}
+export interface SectorResponse {
+  stats: SectorStat[];
+  overview_chart_b64: string | null;
+  sector?: string;
+  detail_chart_b64?: string | null;
+  stocks?: Record<string, unknown>[];
+}
+
 // ── SSE structured_data 변형 (data를 JSON.parse한 결과) ──
 export interface ComparisonItem {
   name: string;
