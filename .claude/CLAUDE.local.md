@@ -1760,5 +1760,49 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F-1 백엔드 골격 추가: api/ FastAPI /health /chat /stream(SSE), 테스트 655개, Streamlit 병행)_
+---
+
+## Phase F-4a: Next.js 프론트엔드 골격 (2026-06-08)
+
+### 배경
+- F-1 백엔드 골격 직후, 백엔드를 눈으로 확인하고 end-to-end로 동작시키기 위해 프론트 착수.
+- 임시 HTML 대신 처음부터 정식 Next.js (어차피 SaaS 본 프론트). **4단계(4a~4d)로 쪼개** 이번엔 4a만.
+- 4a 범위: 스캐폴딩 + `/health` 게이트 + **비스트리밍 `/chat`** 채팅. (스트리밍/차트/멀티턴은 4b~4d)
+
+### 환경
+- create-next-app@latest → **Next 16.2.7 + React 19.2 + Tailwind v4** (계획은 Next15였으나 latest가 16으로 이동, 무방).
+- Node v25.6.0에서 빌드/실행 정상 (SWC 폴백 불필요). Tailwind v4는 `@import "tailwindcss"` (config 파일 없음).
+- **주의**: 스캐폴드가 `frontend/AGENTS.md`(+CLAUDE.md@import) 생성 — "Next 16은 breaking changes, node_modules/next/dist/docs/ 읽고 코딩하라" 경고. use-client/hooks/fetch는 안정 API라 그대로 사용 가능 확인.
+
+### 위치 / CI
+- `ETF_RAG/frontend/` (같은 git repo). git root는 `AI_agent/`.
+- `.github/workflows/ci.yml`(root)이 `ETF_RAG/**` 변경 시 트리거 → `cd ETF_RAG && pytest tests/`만 실행. frontend/는 .py 0개라 pytest 수집 안 함 → **CI 무해** (프론트 PR에서도 파이썬 테스트만 돌고 통과).
+
+### 신규 파일 (frontend/src/)
+- **lib/types.ts**: 백엔드 계약 타입 (Role/QuestionType/ChatHistoryItem/ChatResponse/Health/UiMessage)
+- **lib/api.ts**: `getHealth()`, `chatOnce(question, history)` — `NEXT_PUBLIC_API_BASE`(기본 localhost:8000). streamChat은 4b.
+- **lib/labels.ts**: question_type → 한국어 라벨
+- **components/ChatInput.tsx**: textarea + 전송, Enter 전송/Shift+Enter 줄바꿈, disabled 게이트
+- **components/MessageList.tsx / ChatMessage.tsx**: role별 말풍선(4a 본문 plain text, markdown은 4b), 로딩 표시
+- **app/page.tsx**: `"use client"` 상태 루프 — mount 시 `/health` 3초 폴링(ready까지 입력 비활성), 질문→chatOnce→답변, 에러 말풍선, 자동 스크롤. 4a는 `chat_history: null`(멀티턴 생략).
+- **app/layout.tsx**: `lang="ko"` + 메타데이터
+- **.env.example / README.md**: 실행법(uvicorn + npm run dev), Node 25 폴백 안내. `.gitignore`에 `!.env.example` 예외 추가.
+
+### 검증
+- `npm run build`: 타입/빌드 에러 0 (Turbopack, 3.8s 컴파일).
+- e2e: 백엔드(uvicorn :8128) + 프론트(next dev :3000) 동시 기동 → 2초 내 둘 다 ready. 프론트 HTML에 한국어 UI 렌더. 브라우저와 동일한 `/chat` 호출(Origin: localhost:3000)로 삼성전자 PER 49.81배 실데이터 응답(gpt-4o-mini). CORS 통과.
+
+### 커밋 (브랜치 phase-f-4a-frontend, phase-f-1에서 분기)
+- `chore(frontend)`: Next.js 16 스캐폴딩
+- `feat(frontend)`: F-4a 채팅 UI + health 게이트
+- (문서 커밋 별도)
+
+### 다음 (4b~)
+- **4b**: POST /stream SSE (`@microsoft/fetch-event-source` — 네이티브 EventSource는 GET only). 실시간 토큰(누적→replace) + 상태줄 + react-markdown+remark-gfm. `: ping` 스킵, `done.answer` 우선, onerror re-throw, openWhenHidden:true.
+- **4c**: structured_data 렌더 (comparison_table 표 / technical·portfolio_chart base64 img, next/image 아님).
+- **4d**: 멀티턴(chat_history 전송), 에러 UI, 모바일, localStorage, 후속질문 칩.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F 착수: F-1 백엔드 골격 api/ + F-4a 프론트 골격 frontend/ Next.js 16. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
