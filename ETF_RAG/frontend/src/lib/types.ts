@@ -85,6 +85,7 @@ export interface UiMessage {
   questionType?: QuestionType;
   model?: string;
   isError?: boolean;
-  structured?: StructuredData[]; // 4c에서 렌더 (4b는 수집만)
+  structured?: StructuredData[]; // 4c 렌더
   status?: string; // 스트리밍 중 상태줄 텍스트
+  followups?: string[]; // 4d: 후속 질문 제안 (assistant 완료 시)
 }

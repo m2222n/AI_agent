@@ -1857,9 +1857,33 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - `feat(frontend)`: F-4c 차트/비교표 렌더 + (문서 별도)
 
 ### 다음
-- **4d**: 멀티턴(chat_history 전송 — 백엔드 최근 10턴), 에러 UI 개선, 모바일 반응형, localStorage 영속, 후속질문 칩(src/ui/chat.py:_get_followup_suggestions 규칙 복제).
+- 4d로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a 골격 + F-4b 스트리밍 + F-4c 차트/비교표. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F-4d: 멀티턴 + 후속질문 + 모바일 + localStorage (2026-06-08)
+
+프론트 채팅의 마지막 다듬기. **F-4 프론트 채팅 완성.**
+
+### 변경 (frontend)
+- **멀티턴**: handleSend에서 완료된 대화(content 있고 isError 아님)를 `chat_history`로 streamChat 전달. 백엔드는 최근 10턴 사용 → "그 회사 PER은?" 같은 대명사 참조 동작.
+- **후속질문 칩** (`lib/followup.ts`): streamChat의 onToolCall로 `toolsUsed[]` 수집 + 질문에서 종목명 추출(하드코딩 목록) → `src/ui/chat.py:_get_followup_suggestions` 규칙 복제(최대 3개). 마지막 assistant 답변 아래 칩, 클릭 시 handleSend 재호출.
+- **localStorage 영속** (`STORAGE_KEY="etfrag.messages.v1"`): mount 시 복원(hydrated 가드), 변경 시 저장. **structured(base64 차트)·status는 제외** — 이미지 200KB+라 ~5MB 쿼터 초과 방지, 텍스트 대화(role/content/questionType/model/followups)만. 차트는 재방문 시 사라지지만 텍스트 답변은 유지.
+- **대화 초기화 버튼**: 헤더 우상단, setMessages([]) + localStorage.removeItem.
+- **모바일 반응형**: max-w-3xl, `px-3 sm:px-4`, 헤더 부제 `hidden sm:block`, 입력바 `sticky bottom-0 bg-white`.
+
+### 검증
+- `npm run build` 통과. e2e: **멀티턴** chat_history로 대명사 참조 정답 확인 ("그 회사 PER은?" + 삼성전자 히스토리 → PER 49.81배). 프론트 컴파일/서빙(HTTP 200) 정상.
+
+### 커밋 (브랜치 phase-f-4d-polish, main에서 분기)
+- `feat(frontend)`: F-4d 멀티턴 + 후속질문 + 모바일 + localStorage + (문서 별도)
+
+### Phase F-4 프론트 완성 — 다음 큰 단계
+- **6탭 UI 이식**: 현재 프론트는 종합 채팅만. Streamlit의 기술/재무/비교/전망/섹터 탭은 추후 React로.
+- **F-1 잔여**: WebSocket, SQLite→PostgreSQL, JWT/OAuth2 인증, 유저별 관심종목/히스토리 서버 저장.
+- **F-2**: KIS 실시간(계좌 개설 — 신분증 필요로 보류 중). **F-3**: KoELECTRA 감성. **F-5**: Railway/Render 배포(콜드스타트·유휴정지 해소).
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a~d 프론트 채팅 완성(스트리밍·차트·멀티턴·모바일). 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
