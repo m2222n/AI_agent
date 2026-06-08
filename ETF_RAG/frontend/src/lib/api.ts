@@ -10,6 +10,10 @@ import type {
   StructuredData,
   TechnicalResponse,
   TickerSearchResponse,
+  FinancialResponse,
+  ComparisonResponse,
+  OutlookResponse,
+  SectorResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -135,4 +139,59 @@ export async function getTechnical(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`technical ${res.status}`);
   return (await res.json()) as TechnicalResponse;
+}
+
+/** 재무제표 — 분기 rows + 차트. 404면 null. */
+export async function getFinancial(
+  ticker: string,
+  quarters = 8,
+): Promise<FinancialResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/financial`);
+  url.searchParams.set("ticker", ticker);
+  url.searchParams.set("quarters", String(quarters));
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`financial ${res.status}`);
+  return (await res.json()) as FinancialResponse;
+}
+
+/** 비교 분석 — 2종목. 404면 null. */
+export async function postComparison(
+  tickers: [string, string],
+  days = 120,
+): Promise<ComparisonResponse | null> {
+  const res = await fetch(`${API_BASE}/tabs/comparison`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tickers, days }),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`comparison ${res.status}`);
+  return (await res.json()) as ComparisonResponse;
+}
+
+/** 가격 전망 — 4축. 404면 null. */
+export async function getOutlook(
+  ticker: string,
+  horizon = "1m",
+): Promise<OutlookResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/outlook`);
+  url.searchParams.set("ticker", ticker);
+  url.searchParams.set("horizon", horizon);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`outlook ${res.status}`);
+  return (await res.json()) as OutlookResponse;
+}
+
+/** 섹터 분석 — 전체 또는 특정 섹터. 404면 null. */
+export async function getSector(
+  sector?: string,
+): Promise<SectorResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/sector`);
+  if (sector) url.searchParams.set("sector", sector);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`sector ${res.status}`);
+  return (await res.json()) as SectorResponse;
 }
