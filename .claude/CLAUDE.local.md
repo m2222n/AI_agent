@@ -1919,9 +1919,30 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - `feat(api)`: require_ready+모델 / `feat(api)`: tabs 라우터 / `test(api)`: 15개 / (문서 별도)
 
 ### 다음
-- **프론트 탭 페이지**: Next.js App Router 라우트(`/technical`,`/financial`,`/comparison`,`/outlook`,`/sector`) + 공통 네비 + 종목 자동완성(이 API 소비). URL 라우트 방식.
+- 프론트 탭 페이지로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a~d 프론트 채팅 + 탭 REST API(api/tabs.py). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F: 프론트 탭 — 공통 인프라 + 기술적 분석 (2026-06-08)
+
+`/tabs/*` API 위에 Next.js 탭 페이지 시작. **URL 라우트 방식**(App Router). 공통 인프라 + 첫 탭만, 나머지 4탭은 같은 패턴 반복.
+
+### 변경 (frontend/src)
+- **components/NavBar.tsx**: 6탭(채팅/기술/재무/비교/전망/섹터) URL 라우트 링크. `usePathname`로 활성 표시. layout.tsx 전역 적용 → 모든 페이지 상단 탭 스트립.
+- **components/TickerSearch.tsx**: 디바운스(250ms) 자동완성 입력 → `searchTickers`(/tabs/tickers). "이름 (티커)" 정규식 파싱 → `onSelect{name,ticker,raw}`. 바깥 클릭 시 드롭다운 닫기.
+- **lib/api.ts**: `searchTickers(q,limit)`, `getTechnical(ticker,days)`(404→null). **lib/types**: `TechnicalResponse`(summary는 Record<string,unknown> 느슨한 타입 — 복잡 중첩), `TickerSearchResponse`.
+- **app/technical/page.tsx**: TickerSearch + 기간 버튼(6개월~5년) + 핵심지표 8칸(종가/추세/RSI/MACD/MA5/MA20/MA60/볼린저%B) + base64 차트. summary 중첩값은 `obj()`/`n()` 헬퍼로 안전 추출.
+
+### 검증
+- `npm run build` 통과(/technical 라우트 등록). e2e: 페이지 한국어 UI 렌더, 자동완성 API(삼성전자→ETF목록), 기술분석 API(삼성전자 RSI 63.3 + 218KB 차트), NavBar 전역 표시 확인.
+
+### 커밋 (브랜치 phase-f-front-tabs, main에서 분기)
+- `feat(frontend)`: 네비 + 자동완성 + 기술분석 탭 + (문서 별도)
+
+### 다음
+- **나머지 4탭**: `/financial`(재무 테이블+차트), `/comparison`(2종목 TickerSearch 2개+비교/밸류차트), `/outlook`(4축 전망 카드+시나리오), `/sector`(섹터 차트+상세). 전부 같은 패턴(TickerSearch + lib/api 함수 + 페이지). lib/api에 getFinancial/postComparison/getOutlook/getSector 추가.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4 프론트 채팅 + 탭 REST API + 프론트 탭(공통+기술분석). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
