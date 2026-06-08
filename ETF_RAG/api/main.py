@@ -29,6 +29,7 @@ from src.llm.agent import run_agent, stream_agent
 
 from api.deps import AppState, run_init
 from api.models import ChatRequest, ChatResponse, HealthResponse
+from api.tabs import router as tabs_router
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 5개 데이터 탭 + 자동완성 엔드포인트 (/tabs/*)
+app.include_router(tabs_router)
 
 
 def _require_ready() -> None:
