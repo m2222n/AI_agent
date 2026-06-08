@@ -1831,10 +1831,35 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - (문서 별도)
 
 ### 다음
-- **4c**: structured_data 렌더 (comparison_table 표 / technical·portfolio_chart base64 img, next/image 아님). 타입/수집은 4b에서 이미 됨 → 렌더 컴포넌트만.
 - **4d**: 멀티턴(chat_history 전송), 에러 UI 개선, 모바일 반응형, localStorage, 후속질문 칩.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a 프론트 골격 + F-4b SSE 스트리밍. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F-4c: structured_data 차트/비교표 렌더 (2026-06-08)
+
+4b에서 수집만 하던 `message.structured[]`를 실제로 렌더. 백엔드 차트(base64 PNG)·비교표가 답변에 인라인 표시.
+
+### 백엔드 structured_data 실제 형태 (curl로 확인)
+- **technical_chart**: `{__type__, image_b64(~218KB PNG), name}` — 차트 1장 (가격+MA+볼린저 / RSI / 거래량+MACD)
+- **portfolio_chart**: `{__type__, image_b64, names[]}` — wealth curve + drawdown
+- **comparison_table**: `{__type__, items[2], comparison_chart_b64}` — items에 name/ticker/close/change_pct/return_*/per/pbr/eps/bps/market_cap/div/dps/asset_type/revenue/operating_margin/... + nav/deviation(ETF). asset_type으로 etf/stock 구분.
+
+### 신규 파일 (frontend/src/components)
+- **StructuredData.tsx**: `__type__` 스위치. 차트류 → base64 `<img>` (`data:image/png;base64,...`, **next/image 아님** — data URI 최적화 불가, eslint no-img-element 인라인 disable). comparison_table → ComparisonTable + 선택적 상대수익률 차트.
+- **ComparisonTable.tsx**: items[]를 **항목별 2열로 전치**(행=지표, 열=종목). 값 있는 필드만 행 표시 → ETF(nav/괴리율)·주식(PER/PBR/재무) 자동 분기. 한국어 라벨 + 단위 포맷(조/억원, 배, %, 원).
+- **ChatMessage**: assistant 메시지 본문 아래 `structured[]` 렌더 연결.
+- **globals.css**: `.comparison-table` 스타일.
+
+### 검증
+- `npm run build` 통과. e2e: 백엔드 technical_chart structured_data 이벤트 1개 + 프론트 dev 컴파일/서빙(HTTP 200) 정상. (브라우저 DOM 렌더는 curl 완전검증 불가하나 빌드+SSE흐름+서빙으로 계약 검증.)
+
+### 커밋 (브랜치 phase-f-4c-charts, main에서 분기)
+- `feat(frontend)`: F-4c 차트/비교표 렌더 + (문서 별도)
+
+### 다음
+- **4d**: 멀티턴(chat_history 전송 — 백엔드 최근 10턴), 에러 UI 개선, 모바일 반응형, localStorage 영속, 후속질문 칩(src/ui/chat.py:_get_followup_suggestions 규칙 복제).
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + F-4a 골격 + F-4b 스트리밍 + F-4c 차트/비교표. 백엔드 테스트 655개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
