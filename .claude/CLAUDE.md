@@ -252,7 +252,8 @@
   - [x] **F-1 백엔드 골격** (2026-06-08): `api/` 패키지 — FastAPI `/health`·`/chat`·`/stream`(SSE). 기존 agent(`run_agent`/`stream_agent`)를 Streamlit 없이 래핑, 동기 호출은 threadpool 경유. Streamlit 앱과 병행.
   - [x] **F-4a 프론트 골격** (2026-06-08): `frontend/` Next.js 16(App Router/TS/Tailwind v4) — health 게이트 + 비스트리밍 `/chat` 채팅 UI.
   - [x] **F-4b SSE 스트리밍** (2026-06-08): `/stream` SSE 실시간 토큰 타이핑(@microsoft/fetch-event-source) + react-markdown/remark-gfm + 도구 상태줄.
-  - [x] **F-4c 차트/비교표** (2026-06-08): structured_data 인라인 렌더 — technical/portfolio_chart base64 PNG, comparison_table 항목별 전치 표(+상대수익률 차트). 후속: 4d 멀티턴·모바일·후속질문.
+  - [x] **F-4c 차트/비교표** (2026-06-08): structured_data 인라인 렌더 — technical/portfolio_chart base64 PNG, comparison_table 항목별 전치 표(+상대수익률 차트).
+  - [x] **F-4d 멀티턴/마감** (2026-06-08): chat_history 멀티턴(대명사 참조) + 후속질문 칩 + localStorage 영속(텍스트만) + 대화 초기화 + 모바일 반응형. **F-4 프론트 채팅 완성.** 후속: 6탭 UI 이식, F-1잔여(인증/Postgres/WebSocket), F-2 KIS, F-5 배포.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
