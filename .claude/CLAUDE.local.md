@@ -1970,5 +1970,39 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + 탭 REST API + F-4 프론트 6탭 완성(채팅+기술/재무/비교/전망/섹터, Streamlit 패리티). 백엔드 테스트 670개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F-5: 도커화 + 배포 설정 (2026-06-08)
+
+실제 URL 배포 준비. **설정/도커화 + 가이드만** (실제 배포는 사용자 직접 — 계정/비용). DB 현행 유지(Release 다운로드). 플랫폼 Railway 권장.
+
+### 신규/변경 파일
+- **api/main.py** (변경): CORS `allow_origins`를 `CORS_ORIGINS` env(쉼표 구분)로. 미설정 시 "*"(dev), "*"아닐 때만 credentials. 유일한 백엔드 코드 변경.
+- **Dockerfile** (백엔드): python:3.11-slim + build-essential/cmake(prophet C++)/fonts-nanum(한글차트)/curl. requirements 캐시 레이어. config/src/api/scripts COPY(frontend/tests/eval 제외). HEALTHCHECK(start-period 360s). CMD 쉘형식 `${PORT}` 확장(앱이 PORT 안 읽음), 단일워커.
+- **.dockerignore**: *.db(1.7GB 베이크 금지), faiss/bm25/collected 캐시, frontend/tests/eval 제외. **deploy/ fallback + src/data/*.py 소스는 유지**.
+- **frontend/next.config.ts** (변경): `output:"standalone"` (Next16 확인: `.next/standalone/server.js` + static/public 수동복사).
+- **frontend/Dockerfile**: 멀티스테이지(deps→build→runner node:20-alpine). NEXT_PUBLIC_API_BASE는 빌드타임 baked → build ARG. CMD `node server.js`.
+- **frontend/.dockerignore**, **docker-compose.yml**(로컬 2서비스), **DEPLOY.md**(Railway 가이드).
+
+### 핵심 설계 결정 / 함정
+- **PORT를 앱이 안 읽음** → Dockerfile CMD 쉘형식 `${PORT:-8000}`.
+- **NEXT_PUBLIC_API_BASE 빌드타임 baked** → 프론트는 백엔드 URL을 빌드 시 주입, URL 바뀌면 재빌드. 배포 순서: 백엔드 먼저→URL 확보→프론트 빌드.
+- **⚠️ src/data 볼륨 마운트 금지** (탐색에서 발견): src/data는 순수 데이터가 아니라 **소스 패키지(database/technical/chart_generator/*.py) + git추적 deploy/ fallback** 포함 → 볼륨이 가려 import 깨짐. **영속은 ETF_DATA_DIR(/data 마운트) 권장 후속으로 DEPLOY.md에 문서화**(이번 미구현 — config/deps/vectorstore/retriever 다중 파일 주입 필요해 범위 제외).
+- **단일 워커 전용** 재확인(set_retriever 전역).
+
+### 검증
+- pytest API(test_api + test_api_tabs) 21개 통과 — CORS 변경 회귀 0.
+- frontend `npm run build`(standalone) 성공 — `.next/standalone/server.js` 생성, 6라우트.
+- COPY 대상 존재 + .dockerignore가 deploy/ 안 막음 + compose 문법 OK 확인.
+- **Docker daemon 미실행으로 이미지 실제 빌드는 미검증** — Dockerfile은 검증된 Next16 standalone 사양 + 정확한 시스템 의존성 기반. 사용자가 `docker build`로 최종 확인(prophet 컴파일 수분).
+
+### 커밋 (브랜치 phase-f5-deploy, main에서 분기, 5개)
+- CORS env / 백엔드 Dockerfile / 프론트 Dockerfile+standalone / compose / DEPLOY.md
+
+### 다음
+- **실제 Railway 배포 실행** (사용자) → 첫 실제 URL. 그 후 ETF_DATA_DIR 영속 편집 권장.
+- **F-1 잔여**: 인증(JWT/소셜) + PostgreSQL + 유저별 저장 + WebSocket.
+- **F-2 KIS**(신분증 보류), **F-3 KoELECTRA 감성**.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + 탭 REST API + F-4 프론트 6탭(Streamlit 패리티) + F-5 도커화/배포설정. 백엔드 테스트 670개, 프론트 standalone 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
