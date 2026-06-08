@@ -31,6 +31,20 @@ export interface Health {
   error: string | null;
 }
 
+// ── 탭 API ──────────────────────────────────────────────
+/** /tabs/technical 응답 (summary는 복잡 중첩 dict — 느슨한 타입) */
+export interface TechnicalResponse {
+  ticker: string;
+  name: string;
+  summary: Record<string, unknown>;
+  chart_b64: string | null;
+}
+
+/** 종목 검색 옵션 ("이름 (티커)") */
+export interface TickerSearchResponse {
+  options: string[];
+}
+
 // ── SSE structured_data 변형 (data를 JSON.parse한 결과) ──
 export interface ComparisonItem {
   name: string;
