@@ -2036,9 +2036,29 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 Railway: `DATABASE_URL=postgresql://...`(Postgres 플러그인) + `JWT_SECRET` 추가. init_models가 부팅 시 테이블 생성. etf_rag_users.db는 *.db로 gitignore/dockerignore 제외.
 
 ### 다음
-- **(B)** Watchlist/ChatHistory 모델 + CRUD(get_current_user 뒤). **(C)** 프론트 로그인/회원가입 UI + auth context + Bearer 스레딩(lib/api) + NavBar + 서버/localStorage 대화 전환. 실제 배포. F-2 KIS.
+- (B)로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드+인증(A) + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 678개, 프론트 standalone 빌드, e2e 확인. Streamlit 병행)_
+## Phase F-1 잔여 (B): 유저별 저장 CRUD (2026-06-08)
+
+A(인증) 위에 관심종목/대화이력 서버 저장 추가. 단순 형태(세션 구분 없는 append).
+
+- **models_db.py**: `Watchlist`(user_id+ticker UniqueConstraint), `ChatHistory`(role/content/question_type/model, user+created 복합 인덱스). 둘 다 users FK.
+- **models.py**: WatchlistResponse, ChatHistoryItemDB/Append/Response.
+- **api/user_data.py**(신규): `APIRouter(prefix="/me")`, 전부 `get_current_user` 뒤, 동기 def.
+  - GET/PUT/DELETE `/me/watchlist/{ticker}` — PUT 멱등(중복 무시), 응답은 현재 ticker 리스트.
+  - GET/POST/DELETE `/me/history` — POST append(시간순), DELETE 204.
+- **main.py**: include_router(user_data).
+- 검증: tests/test_user_data.py 6개(add/list/remove/멱등/**유저격리**/인증401, history append/순서/clear/빈payload422). TestClient로 signup→token→CRUD = 실질 e2e. 전체 **684개**(+6).
+
+### 커밋 (브랜치 phase-f1b-userdata, 3개)
+모델+Pydantic / user_data 라우터+main / 테스트.
+
+### 다음
+- **(C)** 프론트: 로그인/회원가입 UI + auth context(토큰 localStorage) + Bearer 스레딩(lib/api 전 함수) + NavBar 로그인/로그아웃 + 로그인 시 서버 대화/관심종목, 비로그인 시 localStorage fallback(get_current_user_optional 활용). 실제 배포. F-2 KIS.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드+인증(A)+유저저장(B) + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 684개, 프론트 standalone 빌드, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

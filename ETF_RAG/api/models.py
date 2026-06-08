@@ -56,3 +56,23 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+
+
+# ── 유저별 저장 (관심종목 / 대화이력) ──────────────────────
+class WatchlistResponse(BaseModel):
+    tickers: List[str]
+
+
+class ChatHistoryItemDB(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    question_type: Optional[str] = None
+    model: Optional[str] = None
+
+
+class ChatHistoryAppend(BaseModel):
+    messages: List[ChatHistoryItemDB] = Field(..., min_length=1)
+
+
+class ChatHistoryResponse(BaseModel):
+    messages: List[ChatHistoryItemDB]
