@@ -30,8 +30,11 @@ HTTP로만 결합된 **독립 2서비스**다. 기존 Streamlit 앱은 그대로
 2. **환경변수** (대시보드):
    - `OPENAI_API_KEY` (필수)
    - `CORS_ORIGINS` = 프론트 URL (2단계 후 설정 — 처음엔 비워두면 `*`)
+   - **`DATABASE_URL`** = `postgresql://user:pass@host:5432/db` (인증/유저 DB — Railway Postgres 플러그인 추가 후 제공되는 URL). 미설정 시 로컬 sqlite(컨테이너 휘발 → 재시작 시 유저 데이터 소실, 프로덕션 비권장).
+   - **`JWT_SECRET`** (필수) = 랜덤 긴 문자열. 미설정 시 dev 기본값 + 경고. `JWT_EXPIRE_MINUTES`(선택, 기본 7일).
    - 선택: `COHERE_API_KEY`, `DART_API_KEY`, `LANGCHAIN_*`, `VECTOR_DB_BACKEND`, `PINECONE_*`
    - `PORT` — Railway가 자동 주입 (Dockerfile CMD가 `${PORT}` 확장).
+   - 인증 테이블은 부팅 시 `init_models()`가 자동 생성(create_all). 마이그레이션 도구(Alembic)는 후속.
 3. 배포 → **첫 부팅 동작**: lifespan `run_init()`이 DB 다운로드(3~5분) + FAISS 인덱스 빌드(~90s).
    그동안 `/health`는 `{ready:false}`, 완료되면 `{ready:true}`. 이후 부팅은 (볼륨 있으면) 빠름.
 4. 백엔드 **public URL** 확보 (예: `https://etf-backend-production.up.railway.app`).

@@ -257,7 +257,8 @@
   - [x] **탭 REST API** (2026-06-08): `api/tabs.py` — `/tabs/{technical,financial,comparison,outlook,sector,tickers}` 엔드포인트. Streamlit 탭 함수를 Streamlit 없이 래핑(기존 함수 재사용). 테스트 670개.
   - [x] **프론트 탭(공통+기술분석)** (2026-06-08): NavBar(6탭 URL 라우트) + TickerSearch(디바운스 자동완성) + `/technical` 페이지(지표+차트).
   - [x] **프론트 탭 완성(재무/비교/전망/섹터)** (2026-06-08): 나머지 4탭 같은 패턴. **F-4 프론트 6탭(채팅+5데이터) 완성 — Streamlit 기능 패리티 달성.**
-  - [x] **F-5 도커화/배포 설정** (2026-06-08): 백엔드/프론트 Dockerfile + docker-compose + DEPLOY.md(Railway) + CORS_ORIGINS env화. 실제 배포는 직접(계정/비용). 영속 볼륨(ETF_DATA_DIR)은 권장 후속으로 문서화. 후속: 실제 배포 실행, F-1잔여(인증/Postgres/WebSocket), F-2 KIS.
+  - [x] **F-5 도커화/배포 설정** (2026-06-08): 백엔드/프론트 Dockerfile + docker-compose + DEPLOY.md(Railway) + CORS_ORIGINS env화. 실제 배포는 직접(계정/비용). 영속 볼륨(ETF_DATA_DIR)은 권장 후속으로 문서화.
+  - [x] **F-1잔여 (A) JWT 인증 백엔드** (2026-06-08): 동기 SQLAlchemy 사용자 DB(stock DB와 분리, Postgres prod/sqlite dev) + bcrypt + PyJWT + `/auth/signup,login,me` + get_current_user. 테스트 678개. 후속: (B) Watchlist/ChatHistory CRUD, (C) 프론트 로그인 UI+Bearer, 실제 배포, F-2 KIS.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
