@@ -1,0 +1,46 @@
+# 백엔드 이미지 빌드 컨텍스트 제외 (frontend는 자체 이미지)
+frontend/
+
+# 테스트/평가/문서 — 런타임 불필요
+tests/
+eval/
+docs/
+
+# Python 로컬 env / 캐시
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+coverage.json
+
+# 대용량 DB + WAL/SHM — 런타임 다운로드, 절대 베이크 금지(~1.7GB)
+*.db
+*.db-wal
+*.db-shm
+src/data/etf_rag.db
+
+# 로컬 수집 데이터 + FAISS/BM25 캐시 (런타임 재생성 / 볼륨)
+src/data/collected/
+src/data/faiss_index/
+src/data/bm25_cache/
+
+# 로그
+logs/
+*.log
+
+# Git / 에디터 / OS
+.git/
+.gitignore
+.DS_Store
+.streamlit/
+
+# env 파일 — 시크릿 베이크 금지
+.env
+.env.*
+!.env.example
+
+# 계획/문서 산출물
+DEPLOY.md
+*.md

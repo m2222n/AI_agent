@@ -55,11 +55,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="ETF RAG API", version="0.1.0", lifespan=lifespan)
 app.state.app_state = AppState()
 
-# 프론트엔드는 추후 별도 origin → dev용 permissive CORS (F-2에서 조임)
+# CORS: CORS_ORIGINS 환경변수(쉼표 구분)로 제어, 미설정 시 "*"(로컬/dev).
+# 프로덕션은 프론트 배포 origin을 지정. "*"일 때만 credentials 비활성(브라우저 제약).
+_cors_env = os.getenv("CORS_ORIGINS", "*")
+_cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()] or ["*"]
+_allow_credentials = _cors_origins != ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,  # allow_origins=["*"]와 함께 쓰려면 False여야 함
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

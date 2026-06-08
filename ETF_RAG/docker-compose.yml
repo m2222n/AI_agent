@@ -1,0 +1,40 @@
+# 로컬 2서비스 테스트용 (백엔드 + 프론트). 프로덕션 아님.
+# 사용: OPENAI_API_KEY=sk-... docker compose up --build
+#
+# 주의:
+#  - 백엔드 첫 부팅 시 ensure_db()가 1.7GB DB를 다운로드(3~5분). 이번 범위에선
+#    영속 볼륨 미구현(src/data 마운트는 소스 shadow → 불가). DEPLOY.md의 ETF_DATA_DIR
+#    후속 편집을 적용하면 /data 볼륨으로 영속 가능. 그전엔 컨테이너 새로 만들 때마다 재다운로드.
+#  - NEXT_PUBLIC_API_BASE는 브라우저에서 실행되는 번들에 baked → http://localhost:8000
+#    (compose 네트워크 별칭 backend:8000 아님 — 브라우저가 localhost를 해석).
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      COHERE_API_KEY: ${COHERE_API_KEY:-}
+      DART_API_KEY: ${DART_API_KEY:-}
+      CORS_ORIGINS: "http://localhost:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 360s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: "http://localhost:8000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend

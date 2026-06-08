@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Docker 배포용 — .next/standalone/server.js 생성 (린 runner 이미지)
+  output: "standalone",
 };
 
 export default nextConfig;
