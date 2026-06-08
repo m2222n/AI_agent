@@ -28,8 +28,10 @@ from starlette.concurrency import iterate_in_threadpool
 from src.llm.agent import run_agent, stream_agent
 
 from api.deps import AppState, run_init
+from api.db import init_models
 from api.models import ChatRequest, ChatResponse, HealthResponse
 from api.tabs import router as tabs_router
+from api.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """서버 시작 시 1회 초기화. 실패해도 서버는 떠서 /health가 에러를 보고한다."""
     state: AppState = app.state.app_state
+    # 사용자 DB 테이블 보장 (멱등, 싸다) — RAG init/API_SKIP_INIT과 무관하게 항상.
+    init_models()
     if os.getenv("API_SKIP_INIT") == "1":
         # 테스트: 실제 DB 다운로드/임베딩 우회 (retriever는 테스트에서 mock 주입)
         state.ready, state.error = True, None
@@ -70,6 +74,8 @@ app.add_middleware(
 
 # 5개 데이터 탭 + 자동완성 엔드포인트 (/tabs/*)
 app.include_router(tabs_router)
+# JWT 이메일 인증 (/auth/*)
+app.include_router(auth_router)
 
 
 def _require_ready() -> None:

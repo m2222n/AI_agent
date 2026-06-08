@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from typing_extensions import Literal
 
 
@@ -35,3 +35,24 @@ class TickerSearchResponse(BaseModel):
 class ComparisonRequest(BaseModel):
     tickers: List[str] = Field(..., min_length=2, max_length=2)
     days: int = Field(120, ge=20, le=2500)
+
+
+# ── 인증 ────────────────────────────────────────────────
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
