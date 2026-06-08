@@ -109,3 +109,19 @@ body {
   margin: 0.5em 0;
   color: #6b7280;
 }
+
+/* structured_data 비교표 */
+.comparison-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.comparison-table th,
+.comparison-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.35em 0.6em;
+  white-space: nowrap;
+}
+.comparison-table thead th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
