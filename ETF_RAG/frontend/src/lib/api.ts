@@ -8,6 +8,8 @@ import type {
   QuestionType,
   StreamCallbacks,
   StructuredData,
+  TechnicalResponse,
+  TickerSearchResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -103,4 +105,34 @@ export function streamChat(
   });
 
   return () => ctrl.abort();
+}
+
+// ── 탭 API ──────────────────────────────────────────────
+
+/** 종목 자동완성 ("이름 (티커)" 옵션 리스트) */
+export async function searchTickers(
+  q: string,
+  limit = 20,
+): Promise<string[]> {
+  const url = new URL(`${API_BASE}/tabs/tickers`);
+  if (q) url.searchParams.set("q", q);
+  url.searchParams.set("limit", String(limit));
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return [];
+  const body = (await res.json()) as TickerSearchResponse;
+  return body.options;
+}
+
+/** 기술적 분석 — 지표 summary + 차트 base64. 404면 null. */
+export async function getTechnical(
+  ticker: string,
+  days = 120,
+): Promise<TechnicalResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/technical`);
+  url.searchParams.set("ticker", ticker);
+  url.searchParams.set("days", String(days));
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`technical ${res.status}`);
+  return (await res.json()) as TechnicalResponse;
 }
