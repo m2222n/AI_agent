@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { UiMessage } from "@/lib/types";
 import { questionTypeLabel } from "@/lib/labels";
+import StructuredDataView from "./StructuredData";
 
 export default function ChatMessage({ message }: { message: UiMessage }) {
   const isUser = message.role === "user";
@@ -43,6 +44,12 @@ export default function ChatMessage({ message }: { message: UiMessage }) {
             </div>
           )
         )}
+
+        {/* 차트/비교표 (structured_data) */}
+        {!isUser &&
+          message.structured?.map((d, i) => (
+            <StructuredDataView key={i} data={d} />
+          ))}
       </div>
     </div>
   );
