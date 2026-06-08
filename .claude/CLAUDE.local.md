@@ -1998,11 +1998,47 @@ cd ETF_RAG && uvicorn api.main:app --host 0.0.0.0 --port 8000   # 단일 워커
 - CORS env / 백엔드 Dockerfile / 프론트 Dockerfile+standalone / compose / DEPLOY.md
 
 ### 다음
-- **실제 Railway 배포 실행** (사용자) → 첫 실제 URL. 그 후 ETF_DATA_DIR 영속 편집 권장.
-- **F-1 잔여**: 인증(JWT/소셜) + PostgreSQL + 유저별 저장 + WebSocket.
-- **F-2 KIS**(신분증 보류), **F-3 KoELECTRA 감성**.
+- F-1잔여 (A) 인증으로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드 + 탭 REST API + F-4 프론트 6탭(Streamlit 패리티) + F-5 도커화/배포설정. 백엔드 테스트 670개, 프론트 standalone 빌드 통과, e2e 확인. Streamlit 병행)_
+## Phase F-1 잔여 (A): JWT 이메일 인증 백엔드 (2026-06-08)
+
+유저별 저장(관심종목/대화이력)의 전제인 인증 추가. 3단계 중 **A(인증 백엔드)만** 이번 세션.
+사용자 DB는 stock DB(read-only)와 **별개 엔진** — Postgres(prod)/sqlite(dev).
+
+### 핵심 결정: 동기 SQLAlchemy (async 아님)
+코드베이스가 100% 동기 → FastAPI가 `def`(non-async) 핸들러를 자동 threadpool 실행하므로 blocking Session OK. async SQLAlchemy(2번째 패러다임)는 기각. 신규 auth 핸들러 `def`, 기존 /chat·/stream은 `async def` 유지(혼용 OK).
+
+### 신규/변경 파일
+- **config.py**: `DATABASE_URL`(기본 sqlite ETF_RAG/etf_rag_users.db — stock DB와 다른 경로), `JWT_SECRET/ALGORITHM/EXPIRE_MINUTES`(dev 기본 시 경고).
+- **api/db.py**(신규): 동기 create_engine(postgresql/sqlite 공통 API) + SessionLocal + Base + get_db + init_models(create_all 멱등).
+- **api/models_db.py**(신규): User(email unique, password_hash, created_at). Python 3.9 호환(Mapped[Optional], datetime.now(timezone.utc)).
+- **api/models.py**: Signup/Login/Token/UserResponse (EmailStr).
+- **api/auth.py**(신규): `/auth/signup,login,me` + get_current_user(+optional은 C용). HTTPBearer.
+- **api/main.py**: lifespan 맨 앞 init_models()(API_SKIP_INIT 무관) + include_router(auth).
+- **.env.example/DEPLOY.md**: DATABASE_URL/JWT_SECRET 안내.
+
+### ⚠️ 함정 (이번에 실제로 부딪힘)
+- **passlib 1.7.4 + bcrypt 5.0 비호환**: passlib self-test가 72바이트 에러로 깨지고 `__about__` 못 읽음. → **passlib 버리고 bcrypt 직접 사용**(hashpw/checkpw, 72바이트 수동 절단). requirements도 `bcrypt>=4.0,<6`로.
+- **Python 3.9**: `datetime.UTC` 없음→`datetime.now(timezone.utc)`, `Mapped[str|None]` 금지→`Mapped[Optional[str]]`.
+- **sqlite :memory: 테스트**: 커넥션마다 별도 DB → StaticPool 단일 공유 커넥션 + get_db override 필요.
+- JWT dev 시크릿이 짧아 InsecureKeyLengthWarning(프로덕션 긴 시크릿이면 무관).
+
+### 검증
+- pytest tests/test_auth.py 8개 통과. 전체 **678개**(670+8, 회귀 0).
+- 실서버 스모크: signup→토큰, login→토큰, me(Bearer)→{id:1,email}, 토큰없음 401, 중복 400, 틀린비번 401 전부 정상.
+
+### 커밋 (브랜치 phase-f1a-auth, main에서 분기, 5개)
+의존성 / config / db+모델 / auth라우터+main / 테스트.
+
+### 배포 영향
+Railway: `DATABASE_URL=postgresql://...`(Postgres 플러그인) + `JWT_SECRET` 추가. init_models가 부팅 시 테이블 생성. etf_rag_users.db는 *.db로 gitignore/dockerignore 제외.
+
+### 다음
+- **(B)** Watchlist/ChatHistory 모델 + CRUD(get_current_user 뒤). **(C)** 프론트 로그인/회원가입 UI + auth context + Bearer 스레딩(lib/api) + NavBar + 서버/localStorage 대화 전환. 실제 배포. F-2 KIS.
+
+---
+
+_Last Updated: 2026-06-08 (Phase F: F-1 백엔드+인증(A) + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 678개, 프론트 standalone 빌드, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
