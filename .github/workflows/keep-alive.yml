@@ -4,6 +4,13 @@ name: Keep Services Alive
 # - Streamlit Cloud: 7일 무활동 시 비활성화
 # - Supabase: 7일 무활동 시 일시정지
 # 매일 09:00 KST(00:00 UTC) ping을 보내 카운트를 리셋한다.
+#
+# ⚠️ 한계 (2026-06-08 확인):
+#   1. Streamlit sleep 해제는 본질적으로 브라우저 WebSocket 세션이 필요하다.
+#      단순 HTTP ping은 health 엔드포인트를 건드려 활동 신호를 보내지만 100% 보장은 아니다.
+#   2. 앱이 인증(share.streamlit.io/-/auth) 뒤에 있으면 모든 ping이 로그인 redirect로
+#      막혀 무효가 된다. 반드시 앱을 Public으로 설정해야 ping이 실제 앱에 도달한다.
+#      → 이 워크플로우는 auth redirect를 감지하면 경고를 출력한다.
 
 on:
   schedule:
@@ -22,17 +29,34 @@ jobs:
       - name: Ping Streamlit app
         continue-on-error: true
         run: |
-          URL="https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/"
-          echo "Pinging Streamlit: $URL"
-          # Streamlit Cloud는 슬립 상태일 때 깨우는 동안 redirect 체인이 길어
-          # curl -L의 기본 redirect 한도(50)에 걸릴 수 있다. redirect 따라가지 않고
-          # 첫 응답만 받아도 활동 카운트는 리셋된다.
-          STATUS=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" "$URL" || echo "000")
-          echo "HTTP $STATUS"
-          if [ "$STATUS" = "000" ]; then
-            echo "Streamlit ping 실패 — 서버 응답 없음"
+          BASE="https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app"
+          echo "=== Streamlit keep-alive ping ==="
+
+          # 1) 루트로 첫 응답 확인 — auth 게이트 뒤에 있는지 감지 (redirect 따라가지 않음)
+          LOC=$(curl -sS --max-time 30 -o /dev/null -D - "$BASE/" 2>/dev/null \
+                | grep -i '^location:' | tr -d '\r' | head -1 || echo "")
+          if echo "$LOC" | grep -qi '/-/auth'; then
+            echo "::warning::앱이 인증 게이트 뒤에 있습니다 ($LOC). ping이 무효화됩니다."
+            echo "→ Streamlit Cloud 대시보드에서 앱을 Public으로 설정하세요."
+          fi
+
+          # 2) health 엔드포인트 ping (redirect 1회만 허용) — 깨어있는 컨테이너의 health check
+          HEALTH=$(curl -sS --max-time 30 --max-redirs 1 -L \
+                   -o /tmp/health.txt -w "%{http_code}" "$BASE/_stcore/health" 2>/dev/null || echo "000")
+          BODY=$(head -c 50 /tmp/health.txt 2>/dev/null || echo "")
+          echo "health: HTTP $HEALTH, body='$BODY'"
+
+          # 3) 루트 ping (활동 카운트 리셋 시도)
+          ROOT=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" "$BASE/" 2>/dev/null || echo "000")
+          echo "root:   HTTP $ROOT"
+
+          # 깨어있고 public이면 health가 "ok" 반환. auth/sleep이면 redirect(3xx) 또는 비-ok.
+          if [ "$BODY" = "ok" ]; then
+            echo "✅ Streamlit 앱 정상 (health=ok) — 활동 신호 전달됨"
+          elif [ "$HEALTH" = "000" ] && [ "$ROOT" = "000" ]; then
+            echo "::warning::Streamlit 무응답 — 서버 다운 가능성"
           else
-            echo "Streamlit ping 성공 — 서버 응답 받음 (활동 카운트 리셋)"
+            echo "::warning::health!=ok (HTTP $HEALTH). auth 게이트 또는 sleep 상태일 수 있음 — 위 경고 확인."
           fi
 
       - name: Ping Supabase REST API
