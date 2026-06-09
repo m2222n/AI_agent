@@ -5,19 +5,26 @@ import { getHealth, streamChat } from "@/lib/api";
 import type { ChatHistoryItem, Health, UiMessage } from "@/lib/types";
 import { toolLabel } from "@/lib/labels";
 import { getFollowupSuggestions } from "@/lib/followup";
+import { useAuth } from "@/lib/AuthContext";
+import {
+  appendServerHistory,
+  clearServerHistory,
+  getServerHistory,
+} from "@/lib/auth";
 import MessageList from "@/components/MessageList";
 import ChatInput from "@/components/ChatInput";
 
 const STORAGE_KEY = "etfrag.messages.v1";
 
 export default function Home() {
+  const { user } = useAuth();
   const [health, setHealth] = useState<Health | null>(null);
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // mount 시 localStorage 복원 (1회)
+  // mount 시 localStorage 복원 (1회). 로그인 사용자는 아래 effect가 서버 이력으로 덮어씀.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -28,8 +35,29 @@ export default function Home() {
     setHydrated(true);
   }, []);
 
+  // 로그인 상태 변화 시 서버 대화 이력 로드(로그인) — localStorage 위에 덮어씀.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getServerHistory().then((rows) => {
+      if (cancelled || rows.length === 0) return;
+      setMessages(
+        rows.map((r) => ({
+          role: r.role,
+          content: r.content,
+          questionType: (r.question_type as UiMessage["questionType"]) ?? undefined,
+          model: r.model ?? undefined,
+        })),
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   // 대화 변경 시 영속. base64 차트(structured)·전이 상태(status)는 제외 —
   // 이미지가 200KB+라 localStorage(~5MB) 초과 위험. 텍스트 대화만 보존.
+  // (로그인 사용자도 localStorage는 오프라인 캐시로 병행 — 서버가 정본.)
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -144,18 +172,30 @@ export default function Home() {
           status: undefined,
           followups,
         });
+        let finalAnswer = "";
         setMessages((prev) => {
           const next = [...prev];
           const last = next[next.length - 1];
-          if (
-            last &&
-            last.role === "assistant" &&
-            d.answer.length > last.content.length
-          ) {
-            next[next.length - 1] = { ...last, content: d.answer };
+          if (last && last.role === "assistant") {
+            if (d.answer.length > last.content.length) {
+              next[next.length - 1] = { ...last, content: d.answer };
+            }
+            finalAnswer = next[next.length - 1].content;
           }
           return next;
         });
+        // 로그인 시 user+assistant 쌍을 서버에 append (실패해도 UI 영향 없음)
+        if (user && finalAnswer) {
+          appendServerHistory([
+            { role: "user", content: question },
+            {
+              role: "assistant",
+              content: finalAnswer,
+              question_type: d.question_type,
+              model: d.model,
+            },
+          ]).catch(() => {});
+        }
         setIsLoading(false);
       },
       onError: (msg) => {
@@ -173,6 +213,7 @@ export default function Home() {
     } catch {
       /* 무시 */
     }
+    if (user) clearServerHistory().catch(() => {});
   };
 
   const statusText = !health
