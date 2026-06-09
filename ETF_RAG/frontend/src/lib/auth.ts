@@ -105,3 +105,34 @@ export async function clearServerHistory(): Promise<void> {
 export function toServerMessages(items: ChatHistoryItem[]): ServerChatMessage[] {
   return items.map((m) => ({ role: m.role, content: m.content }));
 }
+
+// ── 관심종목 (로그인 시) ─────────────────────────────────
+export async function getWatchlist(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/me/watchlist`, {
+    headers: authHeader(),
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.tickers ?? []) as string[];
+}
+
+export async function addWatchlist(ticker: string): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/me/watchlist/${ticker}`, {
+    method: "PUT",
+    headers: authHeader(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.tickers ?? []) as string[];
+}
+
+export async function removeWatchlist(ticker: string): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/me/watchlist/${ticker}`, {
+    method: "DELETE",
+    headers: authHeader(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.tickers ?? []) as string[];
+}
