@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth";
 import MessageList from "@/components/MessageList";
 import ChatInput from "@/components/ChatInput";
+import WatchlistBar from "@/components/WatchlistBar";
 
 const STORAGE_KEY = "etfrag.messages.v1";
 
@@ -258,6 +259,10 @@ export default function Home() {
           </button>
         )}
       </header>
+
+      <div className="pt-3">
+        <WatchlistBar />
+      </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
         {messages.length === 0 ? (

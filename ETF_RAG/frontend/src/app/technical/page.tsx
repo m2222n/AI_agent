@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getTechnical } from "@/lib/api";
 import type { TechnicalResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
+import WatchlistStar from "@/components/WatchlistStar";
 
 const PERIODS: { label: string; days: number }[] = [
   { label: "6개월", days: 120 },
@@ -46,6 +47,16 @@ export default function TechnicalPage() {
     setSelected(sel);
     run(sel.ticker, days);
   };
+
+  // 관심종목 칩 등에서 /technical?ticker=005930 로 진입 시 자동 조회 (mount 1회)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("ticker");
+    if (t) {
+      setSelected({ name: t, ticker: t });
+      run(t, 120);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onPeriod = (d: number) => {
     setDays(d);
@@ -93,9 +104,10 @@ export default function TechnicalPage() {
 
       {data && !loading && (
         <div className="mt-5">
-          <div className="mb-3 flex items-baseline gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <h2 className="text-base font-semibold">{data.name}</h2>
             <span className="text-xs text-gray-400">{data.ticker}</span>
+            <WatchlistStar ticker={data.ticker} />
           </div>
 
           {/* 핵심 지표 */}

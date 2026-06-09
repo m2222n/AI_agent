@@ -2083,9 +2083,23 @@ lib(auth/context/api) / 로그인UI+NavBar+layout / 채팅 서버영속.
 인증(A) + 유저저장(B) + 프론트(C) 다 됨. SaaS 코어 완성 — 이제 **로그인하면 기기 넘어 대화 유지**.
 
 ### 다음
-- **실제 Railway 배포**(사용자 액션 — 계정/비용/Postgres). **PWA**(비용 0, 홈화면 설치 — 사용자 합의됨, manifest+SW). F-2 KIS(신분증). 관심종목 프론트 연결(watchlist UI)은 미구현(백엔드 /me/watchlist는 준비됨).
+- 관심종목 UI로 이어짐.
+
+## 관심종목(watchlist) 프론트 UI (2026-06-09)
+
+백엔드 `/me/watchlist`(B에서 준비됨)를 프론트 연결. 로그인 시에만 동작.
+- **lib/auth.ts**: getWatchlist/addWatchlist/removeWatchlist.
+- **lib/useWatchlist.ts**: 로그인 변화 시 서버 로드 + **낙관적 토글**(즉시 UI 반영 → 서버 응답 보정).
+- **WatchlistStar**: 종목 ⭐ 토글 — 기술적 분석 탭 종목명 옆. **WatchlistBar**: 채팅 홈 상단 칩 → 클릭 시 `/technical?ticker=`.
+- **technical/page**: `?ticker=` 쿼리 진입 시 자동 조회(mount, `window.location.search` — useSearchParams Suspense 회피).
+- 검증: build(10라우트), e2e PUT/GET/DELETE 005930·000660 정상.
+- 미구현: 다른 탭(재무/전망 등) ⭐ 미배치(기술탭만). 필요 시 후속.
+
+### 다음 (남은 것)
+- **실제 Railway 배포**(사용자 — 계정/비용/Postgres). **PWA**(비용 0, manifest+SW, 합의됨). **F-2 KIS**(신분증).
+- 코드로 더 만들 SaaS 코어는 사실상 완료. 다음 우선순위는 배포 또는 PWA.
 
 ---
 
-_Last Updated: 2026-06-09 (Phase F-1 완료: 인증(A)+유저저장(B)+프론트인증(C). + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 684개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
+_Last Updated: 2026-06-09 (Phase F-1 완료 + 관심종목 UI. SaaS 코어 완성. 백엔드 테스트 684개, 프론트 빌드 통과(10라우트), e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
