@@ -2056,9 +2056,36 @@ A(인증) 위에 관심종목/대화이력 서버 저장 추가. 단순 형태(�
 모델+Pydantic / user_data 라우터+main / 테스트.
 
 ### 다음
-- **(C)** 프론트: 로그인/회원가입 UI + auth context(토큰 localStorage) + Bearer 스레딩(lib/api 전 함수) + NavBar 로그인/로그아웃 + 로그인 시 서버 대화/관심종목, 비로그인 시 localStorage fallback(get_current_user_optional 활용). 실제 배포. F-2 KIS.
+- (C)로 이어짐.
 
 ---
 
-_Last Updated: 2026-06-08 (Phase F: F-1 백엔드+인증(A)+유저저장(B) + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 684개, 프론트 standalone 빌드, e2e 확인. Streamlit 병행)_
+## Phase F-1 잔여 (C): 프론트 인증 UI (2026-06-09)
+
+A(인증 백엔드)+B(유저저장)에 프론트 연결. **로그인 선택제** — 비로그인도 전 기능 사용, 로그인 시 서버 동기화.
+
+### 신규/변경 (frontend/src)
+- **lib/auth.ts**(신규): 토큰 localStorage(`etfrag.token`), `authHeader()`, `signup/login/fetchMe`, 서버 대화이력 `getServerHistory/appendServerHistory/clearServerHistory`(/me/history).
+- **lib/AuthContext.tsx**(신규): `useAuth()` — user/loading/login/signup/logout. mount 시 토큰→fetchMe 복원.
+- **lib/api.ts**: chatOnce/streamChat에 `authHeader()` 스레딩(로그인 시 Bearer, 탭 API는 public이라 미적용).
+- **app/login/page.tsx**(신규): 로그인↔회원가입 토글 폼, 에러, 성공 시 router.push("/").
+- **layout.tsx**: AuthProvider로 감쌈.
+- **NavBar**: 우측 인증 영역 — 비로그인 "로그인" 링크 / 로그인 시 이메일+로그아웃.
+- **app/page.tsx**: 로그인 변화 시 서버 이력 로드(localStorage 위 덮어씀), onDone에서 로그인 시 user+assistant append, handleReset이 로그인 시 서버도 clear.
+
+### 검증
+- `npm run build` 통과(/login 라우트 추가, 10라우트). e2e(백엔드+프론트 기동): /login 렌더, signup→token→me(c@test.com), /me/history append(201)→get(2개) 정상. 프론트가 하는 호출 전부 통과.
+
+### 커밋 (브랜치 phase-f1c-frontend-auth, 3개)
+lib(auth/context/api) / 로그인UI+NavBar+layout / 채팅 서버영속.
+
+### Phase F-1 완료
+인증(A) + 유저저장(B) + 프론트(C) 다 됨. SaaS 코어 완성 — 이제 **로그인하면 기기 넘어 대화 유지**.
+
+### 다음
+- **실제 Railway 배포**(사용자 액션 — 계정/비용/Postgres). **PWA**(비용 0, 홈화면 설치 — 사용자 합의됨, manifest+SW). F-2 KIS(신분증). 관심종목 프론트 연결(watchlist UI)은 미구현(백엔드 /me/watchlist는 준비됨).
+
+---
+
+_Last Updated: 2026-06-09 (Phase F-1 완료: 인증(A)+유저저장(B)+프론트인증(C). + 탭 REST API + F-4 프론트 6탭 + F-5 도커화. 백엔드 테스트 684개, 프론트 빌드 통과, e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
