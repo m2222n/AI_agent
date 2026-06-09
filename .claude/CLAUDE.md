@@ -259,7 +259,8 @@
   - [x] **프론트 탭 완성(재무/비교/전망/섹터)** (2026-06-08): 나머지 4탭 같은 패턴. **F-4 프론트 6탭(채팅+5데이터) 완성 — Streamlit 기능 패리티 달성.**
   - [x] **F-5 도커화/배포 설정** (2026-06-08): 백엔드/프론트 Dockerfile + docker-compose + DEPLOY.md(Railway) + CORS_ORIGINS env화. 실제 배포는 직접(계정/비용). 영속 볼륨(ETF_DATA_DIR)은 권장 후속으로 문서화.
   - [x] **F-1잔여 (A) JWT 인증 백엔드** (2026-06-08): 동기 SQLAlchemy 사용자 DB(stock DB와 분리, Postgres prod/sqlite dev) + bcrypt + PyJWT + `/auth/signup,login,me` + get_current_user.
-  - [x] **F-1잔여 (B) 유저별 저장 CRUD** (2026-06-08): Watchlist/ChatHistory 모델 + `/me/watchlist`·`/me/history` CRUD(get_current_user 뒤, 유저 격리). 테스트 684개. 후속: (C) 프론트 로그인 UI+Bearer+서버 대화 전환, 실제 배포, F-2 KIS.
+  - [x] **F-1잔여 (B) 유저별 저장 CRUD** (2026-06-08): Watchlist/ChatHistory 모델 + `/me/watchlist`·`/me/history` CRUD(get_current_user 뒤, 유저 격리). 테스트 684개.
+  - [x] **F-1잔여 (C) 프론트 인증 UI** (2026-06-09): lib/auth(토큰)+AuthContext + `/login`(로그인/회원가입 토글) + NavBar 로그인/로그아웃 + chat/stream Bearer 스레딩 + **로그인 시 서버 대화이력 로드/append**(비로그인은 localStorage). **로그인 선택제 — 비로그인도 전 기능 사용.** **Phase F-1 완료(인증+유저저장+프론트).** 후속: 실제 배포, PWA(저비용), F-2 KIS.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)

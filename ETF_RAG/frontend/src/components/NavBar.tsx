@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 
 const TABS = [
   { href: "/", label: "💬 채팅" },
@@ -14,6 +15,7 @@ const TABS = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
 
   return (
     <nav className="border-b border-gray-200">
@@ -35,6 +37,36 @@ export default function NavBar() {
             </Link>
           );
         })}
+
+        {/* 인증 영역 (오른쪽) */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 pl-2">
+          {loading ? null : user ? (
+            <>
+              <span className="hidden text-xs text-gray-500 sm:inline">
+                {user.email}
+              </span>
+              <button
+                type="button"
+                onClick={logout}
+                className="shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className={[
+                "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium",
+                pathname === "/login"
+                  ? "bg-blue-600 text-white"
+                  : "text-blue-600 hover:bg-blue-50",
+              ].join(" ")}
+            >
+              로그인
+            </Link>
+          )}
+        </div>
       </div>
     </nav>
   );
