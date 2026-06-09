@@ -7,13 +7,15 @@ FROM python:3.11-slim
 #  - fonts-nanum: matplotlib 한글 차트 글리프 (chart_generator)
 #  - curl: HEALTHCHECK용
 # pip install 전에 설치해야 prophet/kiwipiepy 컴파일이 컴파일러/cmake를 찾는다.
+#  - fontconfig: fc-cache 제공 (slim 이미지에 미포함 → fonts-nanum 캐시 갱신용)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         fonts-nanum \
+        fontconfig \
         curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && fc-cache -f
+    && fc-cache -f \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
