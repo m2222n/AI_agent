@@ -261,7 +261,8 @@
   - [x] **F-1잔여 (A) JWT 인증 백엔드** (2026-06-08): 동기 SQLAlchemy 사용자 DB(stock DB와 분리, Postgres prod/sqlite dev) + bcrypt + PyJWT + `/auth/signup,login,me` + get_current_user.
   - [x] **F-1잔여 (B) 유저별 저장 CRUD** (2026-06-08): Watchlist/ChatHistory 모델 + `/me/watchlist`·`/me/history` CRUD(get_current_user 뒤, 유저 격리). 테스트 684개.
   - [x] **F-1잔여 (C) 프론트 인증 UI** (2026-06-09): lib/auth(토큰)+AuthContext + `/login`(로그인/회원가입 토글) + NavBar 로그인/로그아웃 + chat/stream Bearer 스레딩 + **로그인 시 서버 대화이력 로드/append**(비로그인은 localStorage). **로그인 선택제 — 비로그인도 전 기능 사용.** **Phase F-1 완료(인증+유저저장+프론트).** 후속: 실제 배포, PWA(저비용), F-2 KIS.
-  - [x] **관심종목(watchlist) 프론트 UI** (2026-06-09): `/me/watchlist` 연결 — useWatchlist hook(낙관적 토글) + ⭐ 토글(기술탭) + 홈 관심종목 칩(→/technical?ticker=). 로그인 시에만. 후속: 실제 배포, PWA, F-2 KIS.
+  - [x] **관심종목(watchlist) 프론트 UI** (2026-06-09): `/me/watchlist` 연결 — useWatchlist hook(낙관적 토글) + ⭐ 토글(기술탭) + 홈 관심종목 칩(→/technical?ticker=). 로그인 시에만.
+  - [x] **PWA(설치형, 비용 0)** (2026-06-09): app/manifest.ts(standalone) + 아이콘(192/512) + public/sw.js(same-origin GET network-first, API 미캐시) + SW 등록(prod). 휴대폰 "홈 화면에 추가"→앱처럼 전체화면. 앱스토어 불필요. 푸시는 후속(VAPID+서버). 후속: 실제 배포, F-2 KIS.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
