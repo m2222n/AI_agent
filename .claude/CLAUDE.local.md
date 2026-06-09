@@ -2110,10 +2110,36 @@ lib(auth/context/api) / 로그인UI+NavBar+layout / 채팅 서버영속.
 - **푸시 알림은 미구현**(VAPID 키 + 서버 푸시 인프라 필요) → 후속. 이번은 설치형 PWA만.
 
 ### 다음 (남은 것)
-- **실제 Railway 배포**(사용자 — 계정/비용/Postgres). **F-2 KIS**(신분증). 푸시 알림(VAPID).
-- **코드로 만들 SaaS 코어 + 설치형 PWA까지 완료.** 다음 우선순위는 사실상 "실제 배포".
+- 실제 배포로 이어짐.
+
+## 🚀 실제 Railway 배포 성공 (2026-06-09)
+
+DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계별 안내 + 실패 진단). **실제 동작 확인 — 채팅/탭 됨.**
+
+**라이브 URL** (무료 trial $5/30일):
+- 프론트: https://radiant-abundance-production-bdf0.up.railway.app
+- 백엔드: https://aiagent-production-75ca.up.railway.app (`/health`→ready:true)
+
+**배포 구성** (한 Railway 프로젝트, 2서비스, 같은 repo m2222n/AI_agent):
+- 백엔드 서비스: Root Dir `ETF_RAG`, Dockerfile 자동인식, 도메인 포트 8080.
+  env: OPENAI_API_KEY, JWT_SECRET, CORS_ORIGINS(=프론트 URL). DB는 첫 부팅 시 Release에서 1.7GB 다운로드(영구볼륨 미설정 → 재배포마다 재다운로드, 현재 감수).
+- 프론트 서비스: Root Dir `ETF_RAG/frontend`, Dockerfile 자동인식, 도메인 포트 8080.
+  build ARG/env: NEXT_PUBLIC_API_BASE(=백엔드 URL, 빌드타임 baked).
+
+**배포 중 실제로 부딪힌 함정 (다음에 반복 방지):**
+1. **fc-cache: not found** → 백엔드 Dockerfile이 `fc-cache -f` 호출하는데 slim 이미지에 fontconfig 없음. `fontconfig` apt 추가로 수정(PR #37, fix-dockerfile-fccache).
+2. **Root Directory 필수** → Railway는 repo 루트에서 빌드 시도 → "Add Root Directory"로 백엔드 `ETF_RAG`, 프론트 `ETF_RAG/frontend` 지정해야 Dockerfile 인식. 안 하면 빌드 ~2초만에 실패.
+3. **포트 8080 (3000 아님)** → 프론트 Dockerfile `ENV PORT=3000`이지만 **Railway가 $PORT=8080 주입 → Next standalone server.js가 8080 listen**. 도메인 Generate 시 포트를 3000으로 하면 502(라우터3000↔앱8080 불일치). **도메인 포트를 8080으로** 맞춰야 함. 백엔드도 동일(8080).
+4. **도메인 직후 잠깐 502** → 라우팅 붙는 데 시간. CORS env 추가 시 백엔드 재배포(DB 재다운로드)로 잠시 502 후 ready.
+5. GitHub 2FA로 Railway 가입 → Configure GitHub App에서 repo 권한 부여 필요(처음 "No repositories found").
+
+**아키텍처 메모**: 백엔드 단일 워커(set_retriever 전역). DEPLOY.md의 ETF_DATA_DIR 영구볼륨은 **미적용**(콜드스타트마다 DB 재다운로드 감수 — 사용자 트래픽 적어 OK, 필요시 후속).
+
+### 다음 (남은 것)
+- **F-2 KIS 실시간**(신분증 보류). **푸시 알림**(VAPID). 커스텀 도메인(선택). ETF_DATA_DIR 영구볼륨(콜드스타트 개선). 무료 trial 만료 후 유료 전환 검토.
+- **블로그**: Phase F + 실제 배포 = Tistory 시리즈 9편~ 좋은 소재.
 
 ---
 
-_Last Updated: 2026-06-09 (Phase F-1 완료 + 관심종목 UI + 설치형 PWA. SaaS 코어 완성. 백엔드 테스트 684개, 프론트 빌드 통과(10라우트), e2e 확인. Streamlit 병행)_
+_Last Updated: 2026-06-09 (🚀 실제 Railway 배포 성공 — 프론트/백엔드 라이브, 채팅·탭 동작 확인. Phase F-1 완료 + 관심종목 + PWA. 백엔드 테스트 684개. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

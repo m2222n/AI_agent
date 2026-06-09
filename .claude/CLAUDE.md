@@ -11,7 +11,10 @@
 - Function Calling 기반 Multi-Tool Agent — 질문에 따라 도구를 자동 선택
 
 **GitHub:** https://github.com/m2222n/AI_agent.git
-**배포:** https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/
+**배포 (Streamlit, 프로토타입):** https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/
+**배포 (SaaS, Railway — 2026-06-09 실제 배포 성공):**
+- 프론트(Next.js): https://radiant-abundance-production-bdf0.up.railway.app
+- 백엔드(FastAPI): https://aiagent-production-75ca.up.railway.app
 
 ---
 
@@ -262,7 +265,8 @@
   - [x] **F-1잔여 (B) 유저별 저장 CRUD** (2026-06-08): Watchlist/ChatHistory 모델 + `/me/watchlist`·`/me/history` CRUD(get_current_user 뒤, 유저 격리). 테스트 684개.
   - [x] **F-1잔여 (C) 프론트 인증 UI** (2026-06-09): lib/auth(토큰)+AuthContext + `/login`(로그인/회원가입 토글) + NavBar 로그인/로그아웃 + chat/stream Bearer 스레딩 + **로그인 시 서버 대화이력 로드/append**(비로그인은 localStorage). **로그인 선택제 — 비로그인도 전 기능 사용.** **Phase F-1 완료(인증+유저저장+프론트).** 후속: 실제 배포, PWA(저비용), F-2 KIS.
   - [x] **관심종목(watchlist) 프론트 UI** (2026-06-09): `/me/watchlist` 연결 — useWatchlist hook(낙관적 토글) + ⭐ 토글(기술탭) + 홈 관심종목 칩(→/technical?ticker=). 로그인 시에만.
-  - [x] **PWA(설치형, 비용 0)** (2026-06-09): app/manifest.ts(standalone) + 아이콘(192/512) + public/sw.js(same-origin GET network-first, API 미캐시) + SW 등록(prod). 휴대폰 "홈 화면에 추가"→앱처럼 전체화면. 앱스토어 불필요. 푸시는 후속(VAPID+서버). 후속: 실제 배포, F-2 KIS.
+  - [x] **PWA(설치형, 비용 0)** (2026-06-09): app/manifest.ts(standalone) + 아이콘(192/512) + public/sw.js(same-origin GET network-first, API 미캐시) + SW 등록(prod). 휴대폰 "홈 화면에 추가"→앱처럼 전체화면. 앱스토어 불필요. 푸시는 후속(VAPID+서버).
+  - [x] **🚀 실제 Railway 배포 성공** (2026-06-09): 2서비스(백엔드 ETF_RAG/ + 프론트 ETF_RAG/frontend/) Dockerfile 배포. env: 백엔드 OPENAI_API_KEY/JWT_SECRET/CORS_ORIGINS, 프론트 NEXT_PUBLIC_API_BASE(빌드ARG). **실제 동작 확인(채팅·탭).** 배포 함정: ①fc-cache not found→fontconfig 추가(#37) ②프론트 Railway가 $PORT=8080 주입→Next standalone이 8080 listen→도메인 포트도 8080으로 맞춤(3000 아님). 무료 trial $5/30일. 후속: F-2 KIS(신분증), 푸시, 도메인.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
