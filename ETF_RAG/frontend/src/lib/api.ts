@@ -1,5 +1,6 @@
 // 백엔드 API 클라이언트.
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { authHeader } from "./auth";
 import type {
   ChatHistoryItem,
   ChatResponse,
@@ -30,7 +31,7 @@ export async function chatOnce(
 ): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({
       question,
       chat_history: history.length ? history : null,
@@ -55,7 +56,7 @@ export function streamChat(
 
   fetchEventSource(`${API_BASE}/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({
       question,
       chat_history: history.length ? history : null,
