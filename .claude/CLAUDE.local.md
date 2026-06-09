@@ -2096,10 +2096,24 @@ lib(auth/context/api) / 로그인UI+NavBar+layout / 채팅 서버영속.
 - 미구현: 다른 탭(재무/전망 등) ⭐ 미배치(기술탭만). 필요 시 후속.
 
 ### 다음 (남은 것)
-- **실제 Railway 배포**(사용자 — 계정/비용/Postgres). **PWA**(비용 0, manifest+SW, 합의됨). **F-2 KIS**(신분증).
-- 코드로 더 만들 SaaS 코어는 사실상 완료. 다음 우선순위는 배포 또는 PWA.
+- PWA로 이어짐.
+
+## PWA — 설치형 (비용 0) (2026-06-09)
+
+사용자 합의대로 "앱처럼 홈화면 설치" PWA 추가(앱스토어·계정 불필요). Next 16 docs 확인 후 구현.
+- **app/manifest.ts**: `MetadataRoute.Manifest` — name/short_name/`display:standalone`/theme #2563eb/아이콘(192·512·maskable).
+- **public/icons/icon-{192,512}.png**: 상승차트+"투자AI" 모노그램(PIL 생성, .venv).
+- **public/sw.js**: 최소 SW — **same-origin GET만** network-first+캐시 fallback. **POST/SSE·백엔드 API(타 오리진)는 미처리**(동적 데이터 캐시 방지 — 중요).
+- **components/ServiceWorkerRegister**: `NODE_ENV==="production"`에서만 `/sw.js` 등록(dev HMR 충돌 방지).
+- **layout**: manifest/appleWebApp/icons 메타 + `viewport.themeColor` + SW 등록 컴포넌트.
+- 검증: build(/manifest.webmanifest 라우트), `npm start`로 manifest/sw.js/아이콘 200 + HTML head에 manifest·theme-color·apple-web-app 메타 주입 확인.
+- **푸시 알림은 미구현**(VAPID 키 + 서버 푸시 인프라 필요) → 후속. 이번은 설치형 PWA만.
+
+### 다음 (남은 것)
+- **실제 Railway 배포**(사용자 — 계정/비용/Postgres). **F-2 KIS**(신분증). 푸시 알림(VAPID).
+- **코드로 만들 SaaS 코어 + 설치형 PWA까지 완료.** 다음 우선순위는 사실상 "실제 배포".
 
 ---
 
-_Last Updated: 2026-06-09 (Phase F-1 완료 + 관심종목 UI. SaaS 코어 완성. 백엔드 테스트 684개, 프론트 빌드 통과(10라우트), e2e 확인. Streamlit 병행)_
+_Last Updated: 2026-06-09 (Phase F-1 완료 + 관심종목 UI + 설치형 PWA. SaaS 코어 완성. 백엔드 테스트 684개, 프론트 빌드 통과(10라우트), e2e 확인. Streamlit 병행)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
