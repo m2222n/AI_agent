@@ -32,6 +32,7 @@ HTTP로만 결합된 **독립 2서비스**다. 기존 Streamlit 앱은 그대로
    - `CORS_ORIGINS` = 프론트 URL (2단계 후 설정 — 처음엔 비워두면 `*`)
    - **`DATABASE_URL`** = `postgresql://user:pass@host:5432/db` (인증/유저 DB — Railway Postgres 플러그인 추가 후 제공되는 URL). 미설정 시 로컬 sqlite(컨테이너 휘발 → 재시작 시 유저 데이터 소실, 프로덕션 비권장).
    - **`JWT_SECRET`** (필수) = 랜덤 긴 문자열. 미설정 시 dev 기본값 + 경고. `JWT_EXPIRE_MINUTES`(선택, 기본 7일).
+   - 선택: `SUPABASE_URL` + `SUPABASE_KEY` (방문자 카운터 — 미설정 시 카운터 숨김). Streamlit과 같은 `visitor_stats` 테이블 공유.
    - 선택: `COHERE_API_KEY`, `DART_API_KEY`, `LANGCHAIN_*`, `VECTOR_DB_BACKEND`, `PINECONE_*`
    - `PORT` — Railway가 자동 주입 (Dockerfile CMD가 `${PORT}` 확장).
    - 인증 테이블은 부팅 시 `init_models()`가 자동 생성(create_all). 마이그레이션 도구(Alembic)는 후속.
