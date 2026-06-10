@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getSector } from "@/lib/api";
 import type { SectorResponse } from "@/lib/types";
 import ChartImage from "@/components/ChartImage";
+import DataRangeNote from "@/components/DataRangeNote";
 
 function jo(v: number): string {
   const 조 = 1_0000_0000_0000;
@@ -116,6 +117,8 @@ export default function SectorPage() {
           </div>
         </div>
       )}
+
+      <DataRangeNote />
     </main>
   );
 }

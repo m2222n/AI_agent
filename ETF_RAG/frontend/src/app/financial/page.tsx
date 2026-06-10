@@ -5,6 +5,7 @@ import { getFinancial } from "@/lib/api";
 import type { FinancialResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
+import DataRangeNote from "@/components/DataRangeNote";
 
 // 억원 단위
 function eok(v: number | null | undefined): string {
@@ -119,6 +120,8 @@ export default function FinancialPage() {
           <ChartImage b64={data.chart_b64} alt={`${data.name} 실적 추이`} />
         </div>
       )}
+
+      <DataRangeNote />
     </main>
   );
 }
