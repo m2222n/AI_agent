@@ -27,12 +27,18 @@ from starlette.concurrency import iterate_in_threadpool
 
 from src.llm.agent import run_agent, stream_agent
 
+from typing import Optional
+
+from fastapi import Depends
+
 from api.deps import AppState, run_init
 from api.db import init_models
-from api.models import ChatRequest, ChatResponse, HealthResponse
+from api.models import ChatRequest, ChatResponse, FeedbackRequest, HealthResponse
 from api.tabs import router as tabs_router
-from api.auth import router as auth_router
+from api.auth import router as auth_router, get_current_user_optional
 from api.user_data import router as user_data_router
+from api.models_db import User
+from src.utils.logging import log_feedback
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +106,20 @@ async def chat(req: ChatRequest) -> ChatResponse:
     history = [m.model_dump() for m in req.chat_history] if req.chat_history else None
     result = await run_in_threadpool(run_agent, req.question, history)
     return ChatResponse(**result)
+
+
+@app.post("/feedback", status_code=204)
+async def feedback(
+    req: FeedbackRequest,
+    user: Optional[User] = Depends(get_current_user_optional),
+) -> None:
+    """답변 피드백 수집. 익명 허용, 로그인 시 user 기록. JSONL 로그(베스트에포트)."""
+    tag = req.rating
+    if req.reason:
+        tag += f":{req.reason}"
+    if user:
+        tag += f" (user={user.id})"
+    await run_in_threadpool(log_feedback, req.question, req.answer, tag)
 
 
 @app.post("/stream")

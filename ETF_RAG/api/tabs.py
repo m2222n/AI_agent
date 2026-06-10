@@ -14,7 +14,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 
 from api.deps import require_ready
-from api.models import ComparisonRequest, TickerSearchResponse
+from api.models import (
+    ComparisonRequest,
+    MoverItem,
+    MoversResponse,
+    TickerSearchResponse,
+)
 from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.chart_generator import (
@@ -28,6 +33,7 @@ from src.data.chart_generator import (
 from src.data.database import get_connection, get_financial_data, DB_PATH
 from src.llm.tools import (
     get_available_tickers,
+    get_data_indices,
     get_sector_index,
     _find_structured_data,
 )
@@ -233,3 +239,43 @@ async def resolve(q: str = Query(..., min_length=1)):
     if not data:
         raise HTTPException(404, f"'{q}'을(를) 찾을 수 없습니다.")
     return data
+
+
+# ── 동적 추천질문용 movers (오늘의 급등/급락/거래대금 TOP) ──────────
+def _movers_blocking(n: int) -> dict:
+    etf_idx, stock_idx = get_data_indices()
+    # ticker 기준 dedup (인덱스는 name/ticker 둘 다 키라 중복됨)
+    seen = {}
+    for idx in (etf_idx, stock_idx):
+        for data in idx.values():
+            t = data.get("ticker")
+            name = data.get("name")
+            if not t or not name or t in seen:
+                continue
+            seen[t] = {
+                "name": name,
+                "ticker": t,
+                "change_pct": data.get("change_pct", 0) or 0,
+                "trade_value": data.get("trade_value", 0) or 0,
+                "close": data.get("close", 0) or 0,
+            }
+    items = [v for v in seen.values() if v["close"] > 0]
+
+    def _to(rows):
+        return [MoverItem(name=r["name"], ticker=r["ticker"],
+                          change_pct=round(r["change_pct"], 2)) for r in rows]
+
+    gainers = sorted(items, key=lambda x: x["change_pct"], reverse=True)
+    losers = sorted(items, key=lambda x: x["change_pct"])
+    traded = sorted(items, key=lambda x: x["trade_value"], reverse=True)
+    return {
+        "gainers": _to([r for r in gainers if r["change_pct"] > 0][:n]),
+        "losers": _to([r for r in losers if r["change_pct"] < 0][:n]),
+        "most_traded": _to(traded[:n]),
+    }
+
+
+@router.get("/movers", response_model=MoversResponse)
+async def movers(n: int = Query(3, ge=1, le=10)):
+    result = await run_in_threadpool(_movers_blocking, n)
+    return MoversResponse(**result)
