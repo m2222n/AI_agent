@@ -32,6 +32,12 @@ class TickerSearchResponse(BaseModel):
     options: List[str]
 
 
+class VisitorResponse(BaseModel):
+    """방문자 카운터 (당일/누적). Supabase 미설정 시 둘 다 0."""
+    daily: int
+    total: int
+
+
 class ComparisonRequest(BaseModel):
     tickers: List[str] = Field(..., min_length=2, max_length=2)
     days: int = Field(120, ge=20, le=2500)
