@@ -2168,12 +2168,16 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 **[완료] 사이드바 업종 필터 (2026-06-10):** 주식 탭에 업종 드롭다운(`data.sectors`) — 선택 시 `/tabs/overview?sector=` 재조회. 백엔드 `_overview_blocking(top, sector)` — sector 지정 시 **전체 종목 목록**에서 해당 업종 거래대금 TOP(top-20 내 필터 아님). ETF/주식 탭 분리는 이미 존재. lint(setState-in-effect) 회피: 동기 reset을 onChange 핸들러로 이동. 테스트 +1(test_api_tabs). → **2차 대조 4건 전부 해소, Streamlit 패리티 완료.**
 
+**[완료] 방문자 카운터 라이브 검증 (2026-06-10):** Railway 백엔드(AI_agent 서비스, `aiagent-production-75ca`) Variables에 SUPABASE_URL/KEY 등록 → Deploy → `GET /stats/visit` = `{"daily":16,"total":148}` 확인(Supabase 연결 성공). **함정**: ①변수 추가만으론 미적용 — "Apply changes → Deploy" 눌러야 재배포됨(누르기 전엔 구버전이라 0,0). ②Railway Raw Editor의 ENV 형식은 값의 `"..."`를 자동 strip하므로 따옴표 둬도 무방(기존 OPENAI_API_KEY도 동일). Supabase 키는 `sb_publishable_...`(anon/공개키).
+
+**[KIS 계좌 개설] (2026-06-10):** 한국투자증권 **계좌 개설 완료**. 다음 단계 = KIS Developers 앱 등록 → appkey/appsecret 발급 → F-2 실시간 시세 연동. (메모리: project_ai_agent_saas_roadmap.md의 KIS 항목 참조)
+
 **참고**: Streamlit 전수 인벤토리는 이 세션 탐색 결과(167개).
 
 ### 다음
-- Streamlit 패리티 완료(2026-06-10). **F-2 KIS**(신분증), **푸시**(VAPID), 유료 전환($5/월~), 블로그 9편.
+- **F-2 KIS 실시간** 착수 가능(계좌 개설 완료 2026-06-10) → KIS Developers 앱 등록·API 키 발급부터. **푸시**(VAPID), 유료 전환($5/월~), 블로그 9편.
 
 ---
 
-_Last Updated: 2026-06-10 (Streamlit 패리티 보강 완료: 채팅 + 사이드바 + 기술탭(11지표/크로스/장중차트) + 비교탭(returns 버그수정/5기간 수익률/분기실적) + 재무탭(1~5년 기간) + 전망탭(Prophet/통계 축 렌더 버그수정) + 5탭 데이터범위 안내문. 라이브 운영 중. Streamlit 병행. 다음: F-2 KIS/푸시/유료전환)_
+_Last Updated: 2026-06-10 (Streamlit↔SaaS 패리티 완료 PR #42~48: 비교/재무/전망/데이터범위안내/기술10년/방문자카운터(라이브검증 누적148)/업종필터. KIS 계좌 개설 완료→F-2 착수 가능. 라이브 운영 중, Streamlit 병행. 다음: KIS API키 발급→실시간시세, 푸시, 유료전환)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

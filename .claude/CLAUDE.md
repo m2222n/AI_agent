@@ -77,7 +77,8 @@
 - [x] 데이터 정합성 검증 로직 — validate_result() 구현 완료
 
 **1-3. 한국투자증권 OpenAPI 연동**
-- [ ] KIS Developers 계좌 개설 + API 키 발급
+- [x] 한국투자증권 계좌 개설 (2026-06-10) — KIS Developers API 키 발급은 다음 단계
+- [ ] KIS Developers 앱 등록 + API 키(appkey/appsecret) 발급
 - [ ] 실시간 시세 조회 연동 (REST, 추후 WebSocket)
 - [ ] 에러 핸들링 패턴 적용 (timeout, retry, rate limit)
 
@@ -269,7 +270,8 @@
   - [x] **🚀 실제 Railway 배포 성공** (2026-06-09): 2서비스(백엔드 ETF_RAG/ + 프론트 ETF_RAG/frontend/) Dockerfile 배포. env: 백엔드 OPENAI_API_KEY/JWT_SECRET/CORS_ORIGINS, 프론트 NEXT_PUBLIC_API_BASE(빌드ARG). **실제 동작 확인(채팅·탭).** 배포 함정: ①fc-cache not found→fontconfig 추가(#37) ②프론트 Railway가 $PORT=8080 주입→Next standalone이 8080 listen→도메인 포트도 8080으로 맞춤(3000 아님). 무료 trial $5/30일(이후 Hobby $5/월~). 후속: F-2 KIS(신분증), 푸시, 도메인.
   - [x] **채팅 패리티 보강** (2026-06-10): Streamlit 대비 누락분 일부 — 동적 추천질문(`/tabs/movers` 급등/급락/거래대금) + 피드백(`/feedback` 익명/로그인) + 에러 재시도 버튼.
   - [x] **사이드바 신설** (2026-06-10): `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar(데스크톱 좌측, 종목검색, 클릭→기술분석).
-  - [x] **기술 분석 탭 보강** (2026-06-10): `/tabs/intraday`(장중 15분봉) + 11개 지표 전부(스토캐스틱/일목/CCI/ADX/OBV/ATR) + 골든/데드크로스. **남은 격차(비교/재무 탭)는 CLAUDE.local.md "기능 격차 체크리스트" 참조.**
+  - [x] **기술 분석 탭 보강** (2026-06-10): `/tabs/intraday`(장중 15분봉) + 11개 지표 전부(스토캐스틱/일목/CCI/ADX/OBV/ATR) + 골든/데드크로스.
+  - [x] **🎯 Streamlit ↔ SaaS 기능 패리티 완료** (2026-06-10): PR #42~#48 (7개). 비교탭(returns 버그수정/5기간 수익률/분기실적/기간선택) + 재무탭(1~5년 기간) + 전망탭(Prophet·통계 축 렌더 버그수정) + 5탭 데이터범위 안내문 + 기술탭 10년 + **방문자 카운터**(`/stats/visit` Supabase, Railway 백엔드 env 등록·라이브 검증 완료 누적 148) + 사이드바 업종 필터. 2회 Explore 대조로 누락분 색출. **상세는 CLAUDE.local.md "SaaS ↔ Streamlit 격차 체크리스트".**
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
