@@ -14,6 +14,31 @@ function axisFactors(axis: Record<string, unknown> | undefined): string[] {
   const f = axis?.key_factors;
   return Array.isArray(f) ? (f as string[]) : [];
 }
+function num(v: unknown): number | null {
+  return typeof v === "number" ? v : null;
+}
+function signedPct(v: unknown): string {
+  const n = num(v);
+  return n == null ? "-" : `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+// statistical/prophet 축은 예측 수익률·신뢰구간·추세 형태(key_factors 없음) → 별도 렌더
+function forecastView(axis: Record<string, unknown> | undefined) {
+  if (!axis) return null;
+  const ci = axis.confidence_interval;
+  const hasForecast =
+    "predicted_return" in axis || (Array.isArray(ci) && ci.length === 2);
+  if (!hasForecast) return null;
+  const [lo, hi] = Array.isArray(ci) ? ci : [undefined, undefined];
+  return {
+    predicted: signedPct(axis.predicted_return),
+    ci:
+      num(lo) != null && num(hi) != null
+        ? `${signedPct(lo)} ~ ${signedPct(hi)}`
+        : null,
+    trend: typeof axis.trend === "string" ? axis.trend : null,
+    available: axis.available !== false,
+  };
+}
 
 export default function OutlookPage() {
   const [horizon, setHorizon] = useState("1m");
@@ -92,7 +117,7 @@ export default function OutlookPage() {
             <Axis title="기술적" axis={data.technical} />
             <Axis title="펀더멘털" axis={data.fundamental} />
             <Axis title="통계(회귀)" axis={data.statistical} />
-            <Axis title="Prophet" axis={data.prophet} />
+            <Axis title="Prophet 시계열" axis={data.prophet} accent />
           </div>
 
           {/* 시나리오 */}
@@ -147,17 +172,52 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Axis({
   title,
   axis,
+  accent = false,
 }: {
   title: string;
   axis: Record<string, unknown> | undefined;
+  accent?: boolean;
 }) {
   const factors = axisFactors(axis);
+  const fc = forecastView(axis);
   return (
-    <div className="rounded-lg border border-gray-200 p-3">
+    <div
+      className={[
+        "rounded-lg border p-3",
+        accent ? "border-violet-300 bg-violet-50" : "border-gray-200",
+      ].join(" ")}
+    >
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="text-xs text-gray-500">{str(axis?.signal)}</span>
+        <span className="text-sm font-semibold">
+          {accent && <span className="mr-1">📈</span>}
+          {title}
+        </span>
+        {/* signal 형태 축(기술/펀더멘털) → signal, 예측 형태 축(통계/Prophet) → 추세 */}
+        <span className="text-xs text-gray-500">
+          {fc ? fc.trend ?? "-" : str(axis?.signal)}
+        </span>
       </div>
+
+      {/* 예측 수익률 + 신뢰구간 (통계/Prophet) */}
+      {fc &&
+        (fc.available ? (
+          <div className="mt-1.5 text-xs">
+            <div className="font-semibold tabular-nums text-gray-800">
+              예측 수익률 {fc.predicted}
+            </div>
+            {fc.ci && (
+              <div className="text-gray-500 tabular-nums">
+                신뢰구간 {fc.ci}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-1.5 text-xs text-gray-400">
+            데이터 부족으로 예측 불가
+          </div>
+        ))}
+
+      {/* key_factors (기술/펀더멘털) */}
       {factors.length > 0 && (
         <ul className="mt-1 list-disc pl-4 text-xs text-gray-600">
           {factors.slice(0, 4).map((f, i) => (
