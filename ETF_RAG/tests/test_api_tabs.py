@@ -209,6 +209,28 @@ def test_movers(client):
     assert body["most_traded"][0]["ticker"] == "005930"  # 거래대금 최대
 
 
+# ── Overview (사이드바) ────────────────────────────────────────────
+def test_overview(client):
+    etf_idx = {
+        "kodex 200": {"name": "KODEX 200", "ticker": "069500", "close": 45000, "change_pct": 1.2, "trade_value": 9e10, "date": "20260609"},
+        "069500": {"name": "KODEX 200", "ticker": "069500", "close": 45000, "change_pct": 1.2, "trade_value": 9e10, "date": "20260609"},
+    }
+    stock_idx = {
+        "삼성전자": {"name": "삼성전자", "ticker": "005930", "close": 70000, "change_pct": -0.5, "trade_value": 5e11, "sector": "전기·전자", "per": 49.8, "market_cap": 4e14, "date": "20260609"},
+        "005930": {"name": "삼성전자", "ticker": "005930", "close": 70000, "change_pct": -0.5, "trade_value": 5e11, "sector": "전기·전자", "per": 49.8, "market_cap": 4e14, "date": "20260609"},
+    }
+    with patch("api.tabs.get_data_indices", return_value=(etf_idx, stock_idx)):
+        r = client.get("/tabs/overview", params={"top": 20})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["etf_count"] == 1  # dedup
+    assert b["stock_count"] == 1
+    assert b["as_of"] == "20260609"
+    assert b["top_etfs"][0]["ticker"] == "069500"
+    assert b["top_stocks"][0]["sector"] == "전기·전자"
+    assert "전기·전자" in b["sectors"]
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)
