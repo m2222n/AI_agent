@@ -144,6 +144,18 @@ export async function getTechnical(
   return (await res.json()) as TechnicalResponse;
 }
 
+/** 장중 시세 차트 (yfinance 15분봉). 장 외/데이터 없으면 null. */
+export async function getIntraday(
+  ticker: string,
+): Promise<{ ticker: string; name: string; chart_b64: string } | null> {
+  const url = new URL(`${API_BASE}/tabs/intraday`);
+  url.searchParams.set("ticker", ticker);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`intraday ${res.status}`);
+  return (await res.json()) as { ticker: string; name: string; chart_b64: string };
+}
+
 /** 재무제표 — 분기 rows + 차트. 404면 null. */
 export async function getFinancial(
   ticker: string,
