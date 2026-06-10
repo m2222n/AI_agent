@@ -87,6 +87,26 @@ def test_outlook_404_when_no_summary(client):
     assert r.status_code == 404
 
 
+# ── Intraday ───────────────────────────────────────────────────────
+def test_intraday_returns_chart(client):
+    data = {"ticker": "005930", "name": "삼성전자", "close": 70000}
+    with patch("api.tabs._find_structured_data", return_value=data), patch(
+        "api.tabs.generate_intraday_chart", return_value="INTRADAY_PNG"
+    ):
+        r = client.get("/tabs/intraday", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    assert r.json()["chart_b64"] == "INTRADAY_PNG"
+
+
+def test_intraday_404_when_no_data(client):
+    data = {"ticker": "005930", "name": "삼성전자", "close": 70000}
+    with patch("api.tabs._find_structured_data", return_value=data), patch(
+        "api.tabs.generate_intraday_chart", return_value=None
+    ):
+        r = client.get("/tabs/intraday", params={"ticker": "삼성전자"})
+    assert r.status_code == 404
+
+
 # ── Financial ──────────────────────────────────────────────────────
 def test_financial_returns_rows_and_chart(client):
     rows = [

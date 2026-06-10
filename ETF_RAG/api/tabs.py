@@ -26,6 +26,7 @@ from src.data.technical import get_technical_summary
 from src.data.predictor import build_price_outlook
 from src.data.chart_generator import (
     generate_technical_chart,
+    generate_intraday_chart,
     generate_comparison_chart,
     generate_valuation_chart,
     generate_financial_chart,
@@ -99,6 +100,28 @@ async def technical(
     result = await run_in_threadpool(_technical_blocking, ticker, days)
     if result is None:
         raise HTTPException(404, f"'{ticker}' 기술적 데이터를 찾을 수 없습니다.")
+    return result
+
+
+# ── 장중 시세 차트 (yfinance 15분봉, 15분 지연) ────────────────────
+def _intraday_blocking(query: str) -> Optional[dict]:
+    data = _find_structured_data(query)
+    if not data:
+        return None
+    ticker = data.get("ticker") or query
+    name = data.get("name") or query
+    prev_close = data.get("close") or None
+    chart_b64 = generate_intraday_chart(ticker, name, prev_close)
+    if not chart_b64:
+        return None  # 장 외 시간/데이터 없음
+    return {"ticker": ticker, "name": name, "chart_b64": chart_b64}
+
+
+@router.get("/intraday", response_model=None)
+async def intraday(ticker: str = Query(..., min_length=1)):
+    result = await run_in_threadpool(_intraday_blocking, ticker)
+    if result is None:
+        raise HTTPException(404, "장중 시세를 불러올 수 없습니다. (장 외 시간이거나 데이터 없음)")
     return result
 
 
