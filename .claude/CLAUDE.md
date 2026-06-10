@@ -267,8 +267,9 @@
   - [x] **관심종목(watchlist) 프론트 UI** (2026-06-09): `/me/watchlist` 연결 — useWatchlist hook(낙관적 토글) + ⭐ 토글(기술탭) + 홈 관심종목 칩(→/technical?ticker=). 로그인 시에만.
   - [x] **PWA(설치형, 비용 0)** (2026-06-09): app/manifest.ts(standalone) + 아이콘(192/512) + public/sw.js(same-origin GET network-first, API 미캐시) + SW 등록(prod). 휴대폰 "홈 화면에 추가"→앱처럼 전체화면. 앱스토어 불필요. 푸시는 후속(VAPID+서버).
   - [x] **🚀 실제 Railway 배포 성공** (2026-06-09): 2서비스(백엔드 ETF_RAG/ + 프론트 ETF_RAG/frontend/) Dockerfile 배포. env: 백엔드 OPENAI_API_KEY/JWT_SECRET/CORS_ORIGINS, 프론트 NEXT_PUBLIC_API_BASE(빌드ARG). **실제 동작 확인(채팅·탭).** 배포 함정: ①fc-cache not found→fontconfig 추가(#37) ②프론트 Railway가 $PORT=8080 주입→Next standalone이 8080 listen→도메인 포트도 8080으로 맞춤(3000 아님). 무료 trial $5/30일(이후 Hobby $5/월~). 후속: F-2 KIS(신분증), 푸시, 도메인.
-  - [x] **채팅 패리티 보강** (2026-06-10): Streamlit 대비 누락분 일부 — 동적 추천질문(`/tabs/movers` 급등/급락/거래대금) + 피드백(`/feedback` 익명/로그인) + 에러 재시도 버튼. **남은 SaaS↔Streamlit 격차는 CLAUDE.local.md "기능 격차 체크리스트" 참조.**
-  - [x] **사이드바 신설** (2026-06-10): `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar 컴포넌트(데스크톱 좌측, 종목검색, 클릭→기술분석). Streamlit 사이드바 패리티(최대 격차 해소). 남은 격차: 기술탭 장중차트/지표상세, 비교 막대차트, 재무 연도슬라이더.
+  - [x] **채팅 패리티 보강** (2026-06-10): Streamlit 대비 누락분 일부 — 동적 추천질문(`/tabs/movers` 급등/급락/거래대금) + 피드백(`/feedback` 익명/로그인) + 에러 재시도 버튼.
+  - [x] **사이드바 신설** (2026-06-10): `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar(데스크톱 좌측, 종목검색, 클릭→기술분석).
+  - [x] **기술 분석 탭 보강** (2026-06-10): `/tabs/intraday`(장중 15분봉) + 11개 지표 전부(스토캐스틱/일목/CCI/ADX/OBV/ATR) + 골든/데드크로스. **남은 격차(비교/재무 탭)는 CLAUDE.local.md "기능 격차 체크리스트" 참조.**
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
