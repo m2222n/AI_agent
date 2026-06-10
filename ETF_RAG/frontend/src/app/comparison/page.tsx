@@ -13,20 +13,34 @@ import ChartImage from "@/components/ChartImage";
 import ComparisonTable from "@/components/ComparisonTable";
 import DataRangeNote from "@/components/DataRangeNote";
 
+// 상대 수익률 차트 기간 (기술 분석 탭과 동일 옵션)
+const PERIODS: { label: string; days: number }[] = [
+  { label: "6개월", days: 120 },
+  { label: "1년", days: 250 },
+  { label: "3년", days: 750 },
+  { label: "5년", days: 1250 },
+  { label: "10년", days: 2500 },
+];
+
 export default function ComparisonPage() {
   const [t1, setT1] = useState<{ name: string; ticker: string } | null>(null);
   const [t2, setT2] = useState<{ name: string; ticker: string } | null>(null);
+  const [days, setDays] = useState(120);
   const [data, setData] = useState<ComparisonResponse | null>(null);
   const [fin, setFin] = useState<(FinancialResponse | null)[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (a: { ticker: string }, b: { ticker: string }) => {
+  const run = async (
+    a: { ticker: string },
+    b: { ticker: string },
+    d: number,
+  ) => {
     setLoading(true);
     setError(null);
     setFin(null);
     try {
-      const res = await postComparison([a.ticker, b.ticker]);
+      const res = await postComparison([a.ticker, b.ticker], d);
       if (!res) setError("비교할 종목을 찾을 수 없어요.");
       setData(res);
       // 최근 분기 실적 비교 (각 종목 재무제표 병렬 — 없으면 null, 표 자체 생략)
@@ -48,11 +62,15 @@ export default function ComparisonPage() {
 
   const pick1 = (sel: { name: string; ticker: string }) => {
     setT1(sel);
-    if (t2) run(sel, t2);
+    if (t2) run(sel, t2, days);
   };
   const pick2 = (sel: { name: string; ticker: string }) => {
     setT2(sel);
-    if (t1) run(t1, sel);
+    if (t1) run(t1, sel, days);
+  };
+  const onPeriod = (d: number) => {
+    setDays(d);
+    if (t1 && t2) run(t1, t2, d);
   };
 
   return (
@@ -69,6 +87,24 @@ export default function ComparisonPage() {
           <div className="mb-1 text-xs text-gray-500">종목 2</div>
           <TickerSearch onSelect={pick2} />
         </div>
+      </div>
+
+      {/* 상대 수익률 차트 기간 선택 */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {PERIODS.map((p) => (
+          <button
+            key={p.days}
+            type="button"
+            onClick={() => onPeriod(p.days)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              days === p.days
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       {loading && <p className="mt-6 text-center text-sm text-gray-400">비교 중…</p>}

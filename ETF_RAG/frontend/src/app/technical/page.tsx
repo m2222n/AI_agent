@@ -12,6 +12,7 @@ const PERIODS: { label: string; days: number }[] = [
   { label: "1년", days: 250 },
   { label: "3년", days: 750 },
   { label: "5년", days: 1250 },
+  { label: "10년", days: 2500 },
 ];
 
 // summary에서 안전하게 값 추출
