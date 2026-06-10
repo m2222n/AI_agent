@@ -5,6 +5,7 @@ import { getTechnical, getIntraday } from "@/lib/api";
 import type { TechnicalResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import WatchlistStar from "@/components/WatchlistStar";
+import DataRangeNote from "@/components/DataRangeNote";
 
 const PERIODS: { label: string; days: number }[] = [
   { label: "6개월", days: 120 },
@@ -229,6 +230,8 @@ export default function TechnicalPage() {
           </div>
         </div>
       )}
+
+      <DataRangeNote />
     </main>
   );
 }

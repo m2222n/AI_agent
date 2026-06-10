@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getOutlook } from "@/lib/api";
 import type { OutlookResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
+import DataRangeNote from "@/components/DataRangeNote";
 
 const HORIZONS = ["1m", "3m", "6m", "1y"];
 
@@ -151,11 +152,10 @@ export default function OutlookPage() {
             </div>
           )}
 
-          <p className="text-xs text-gray-400">
-            📌 데이터 기반 참고 정보입니다. 투자 판단 전 추가 조사와 전문가 상담을 권장합니다.
-          </p>
         </div>
       )}
+
+      <DataRangeNote />
     </main>
   );
 }

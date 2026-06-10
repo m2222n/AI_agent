@@ -11,6 +11,7 @@ import type {
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import ComparisonTable from "@/components/ComparisonTable";
+import DataRangeNote from "@/components/DataRangeNote";
 
 export default function ComparisonPage() {
   const [t1, setT1] = useState<{ name: string; ticker: string } | null>(null);
@@ -81,6 +82,8 @@ export default function ComparisonPage() {
           {fin && <FinancialCompare fin={fin} />}
         </div>
       )}
+
+      <DataRangeNote />
     </main>
   );
 }
