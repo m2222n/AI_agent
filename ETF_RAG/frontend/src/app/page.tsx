@@ -14,6 +14,8 @@ import {
 import MessageList from "@/components/MessageList";
 import ChatInput from "@/components/ChatInput";
 import WatchlistBar from "@/components/WatchlistBar";
+import ExampleQuestions from "@/components/ExampleQuestions";
+import FeedbackButtons from "@/components/FeedbackButtons";
 
 const STORAGE_KEY = "etfrag.messages.v1";
 
@@ -229,6 +231,8 @@ export default function Home() {
     !isLoading && lastMsg?.role === "assistant" && !lastMsg.isError
       ? (lastMsg.followups ?? [])
       : [];
+  // 마지막 user 질문 (재시도/피드백용) — 끝에서부터 첫 user 메시지
+  const lastUserQ = [...messages].reverse().find((m) => m.role === "user")?.content;
 
   return (
     <main className="mx-auto flex h-full w-full max-w-3xl flex-col px-3 sm:px-4">
@@ -266,12 +270,32 @@ export default function Home() {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
         {messages.length === 0 ? (
-          <div className="mt-12 text-center text-sm text-gray-400">
-            궁금한 ETF나 주식을 물어보세요.
-            <br />예: &ldquo;KODEX 200 수익률 알려줘&rdquo;
-          </div>
+          <ExampleQuestions onPick={handleSend} />
         ) : (
-          <MessageList messages={messages} />
+          <>
+            <MessageList messages={messages} />
+            {/* 마지막 assistant 답변에 피드백 / 에러면 재시도 */}
+            {!isLoading &&
+              lastMsg?.role === "assistant" &&
+              (lastMsg.isError ? (
+                <div className="mt-2 flex justify-start">
+                  <button
+                    type="button"
+                    onClick={() => lastUserQ && handleSend(lastUserQ)}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                  >
+                    🔄 다시 시도
+                  </button>
+                </div>
+              ) : (
+                lastMsg.content && (
+                  <FeedbackButtons
+                    question={lastUserQ ?? ""}
+                    answer={lastMsg.content}
+                  />
+                )
+              ))}
+          </>
         )}
       </div>
 

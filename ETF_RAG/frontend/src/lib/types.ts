@@ -31,6 +31,18 @@ export interface Health {
   error: string | null;
 }
 
+// ── 동적 추천질문 (movers) ──────────────────────────────
+export interface MoverItem {
+  name: string;
+  ticker: string;
+  change_pct: number;
+}
+export interface MoversResponse {
+  gainers: MoverItem[];
+  losers: MoverItem[];
+  most_traded: MoverItem[];
+}
+
 // ── 탭 API ──────────────────────────────────────────────
 /** /tabs/technical 응답 (summary는 복잡 중첩 dict — 느슨한 타입) */
 export interface TechnicalResponse {

@@ -15,6 +15,7 @@ import type {
   ComparisonResponse,
   OutlookResponse,
   SectorResponse,
+  MoversResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -195,4 +196,35 @@ export async function getSector(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`sector ${res.status}`);
   return (await res.json()) as SectorResponse;
+}
+
+/** 오늘의 급등/급락/거래대금 TOP — 동적 추천질문용. 실패 시 null. */
+export async function getMovers(n = 3): Promise<MoversResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/movers`);
+  url.searchParams.set("n", String(n));
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as MoversResponse;
+  } catch {
+    return null;
+  }
+}
+
+/** 답변 피드백 전송 (익명 허용, 로그인 시 Bearer 포함). 실패 무시. */
+export async function sendFeedback(
+  question: string,
+  answer: string,
+  rating: "positive" | "negative",
+  reason?: string,
+): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ question, answer, rating, reason: reason ?? null }),
+    });
+  } catch {
+    /* 피드백 실패는 무시 */
+  }
 }
