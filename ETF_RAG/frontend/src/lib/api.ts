@@ -16,6 +16,7 @@ import type {
   OutlookResponse,
   SectorResponse,
   MoversResponse,
+  OverviewResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -196,6 +197,19 @@ export async function getSector(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`sector ${res.status}`);
   return (await res.json()) as SectorResponse;
+}
+
+/** 사이드바 개요 — 데이터 현황 + ETF/주식 TOP. 실패 시 null. */
+export async function getOverview(top = 20): Promise<OverviewResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/overview`);
+  url.searchParams.set("top", String(top));
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as OverviewResponse;
+  } catch {
+    return null;
+  }
 }
 
 /** 오늘의 급등/급락/거래대금 TOP — 동적 추천질문용. 실패 시 null. */

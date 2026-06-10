@@ -96,3 +96,24 @@ class FeedbackRequest(BaseModel):
     answer: str
     rating: Literal["positive", "negative"]
     reason: Optional[str] = None  # 부정 피드백 사유
+
+
+# ── 사이드바 (데이터 현황 + 종목 목록) ──────────────────
+class InstrumentItem(BaseModel):
+    name: str
+    ticker: str
+    close: float
+    change_pct: float
+    trade_value: float
+    sector: Optional[str] = None
+    per: Optional[float] = None
+    market_cap: Optional[float] = None
+
+
+class OverviewResponse(BaseModel):
+    etf_count: int
+    stock_count: int
+    as_of: Optional[str] = None  # 기준일 (YYYYMMDD 또는 YYYY-MM-DD)
+    top_etfs: List[InstrumentItem]
+    top_stocks: List[InstrumentItem]
+    sectors: List[str]  # 주식 섹터 목록

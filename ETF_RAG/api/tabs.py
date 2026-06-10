@@ -16,8 +16,10 @@ from fastapi.concurrency import run_in_threadpool
 from api.deps import require_ready
 from api.models import (
     ComparisonRequest,
+    InstrumentItem,
     MoverItem,
     MoversResponse,
+    OverviewResponse,
     TickerSearchResponse,
 )
 from src.data.technical import get_technical_summary
@@ -279,3 +281,59 @@ def _movers_blocking(n: int) -> dict:
 async def movers(n: int = Query(3, ge=1, le=10)):
     result = await run_in_threadpool(_movers_blocking, n)
     return MoversResponse(**result)
+
+
+# ── 사이드바 개요 (데이터 현황 + ETF/주식 TOP 목록) ────────────────
+def _dedup_items(idx: dict) -> list:
+    """인덱스(name/ticker 둘 다 키)를 ticker 기준 dedup → 원본 dict 리스트."""
+    seen = {}
+    for data in idx.values():
+        t = data.get("ticker")
+        if t and t not in seen:
+            seen[t] = data
+    return list(seen.values())
+
+
+def _to_instrument(d: dict) -> InstrumentItem:
+    return InstrumentItem(
+        name=d.get("name", ""),
+        ticker=d.get("ticker", ""),
+        close=d.get("close", 0) or 0,
+        change_pct=round(d.get("change_pct", 0) or 0, 2),
+        trade_value=d.get("trade_value", 0) or 0,
+        sector=d.get("sector") or None,
+        per=d.get("per") or None,
+        market_cap=d.get("market_cap") or None,
+    )
+
+
+def _overview_blocking(top: int) -> dict:
+    etf_idx, stock_idx = get_data_indices()
+    etfs = _dedup_items(etf_idx)
+    stocks = _dedup_items(stock_idx)
+
+    # 기준일 — 아무 항목의 date
+    as_of = None
+    for d in etfs or stocks:
+        if d.get("date"):
+            as_of = d["date"]
+            break
+
+    top_etfs = sorted(etfs, key=lambda x: x.get("trade_value", 0) or 0, reverse=True)[:top]
+    top_stocks = sorted(stocks, key=lambda x: x.get("trade_value", 0) or 0, reverse=True)[:top]
+    sectors = sorted({d.get("sector") for d in stocks if d.get("sector")})
+
+    return {
+        "etf_count": len(etfs),
+        "stock_count": len(stocks),
+        "as_of": as_of,
+        "top_etfs": [_to_instrument(d) for d in top_etfs],
+        "top_stocks": [_to_instrument(d) for d in top_stocks],
+        "sectors": sectors,
+    }
+
+
+@router.get("/overview", response_model=OverviewResponse)
+async def overview(top: int = Query(20, ge=1, le=50)):
+    result = await run_in_threadpool(_overview_blocking, top)
+    return OverviewResponse(**result)
