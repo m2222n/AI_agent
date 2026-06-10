@@ -330,7 +330,7 @@ def _to_instrument(d: dict) -> InstrumentItem:
     )
 
 
-def _overview_blocking(top: int) -> dict:
+def _overview_blocking(top: int, sector: Optional[str] = None) -> dict:
     etf_idx, stock_idx = get_data_indices()
     etfs = _dedup_items(etf_idx)
     stocks = _dedup_items(stock_idx)
@@ -342,8 +342,13 @@ def _overview_blocking(top: int) -> dict:
             as_of = d["date"]
             break
 
+    # 업종 필터 — 지정 시 해당 업종 종목만(전체 목록 기준), 미지정 시 전체에서 거래대금 TOP
+    filtered_stocks = stocks
+    if sector:
+        filtered_stocks = [d for d in stocks if d.get("sector") == sector]
+
     top_etfs = sorted(etfs, key=lambda x: x.get("trade_value", 0) or 0, reverse=True)[:top]
-    top_stocks = sorted(stocks, key=lambda x: x.get("trade_value", 0) or 0, reverse=True)[:top]
+    top_stocks = sorted(filtered_stocks, key=lambda x: x.get("trade_value", 0) or 0, reverse=True)[:top]
     sectors = sorted({d.get("sector") for d in stocks if d.get("sector")})
 
     return {
@@ -357,6 +362,9 @@ def _overview_blocking(top: int) -> dict:
 
 
 @router.get("/overview", response_model=OverviewResponse)
-async def overview(top: int = Query(20, ge=1, le=50)):
-    result = await run_in_threadpool(_overview_blocking, top)
+async def overview(
+    top: int = Query(20, ge=1, le=50),
+    sector: Optional[str] = Query(None),
+):
+    result = await run_in_threadpool(_overview_blocking, top, sector)
     return OverviewResponse(**result)
