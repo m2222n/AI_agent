@@ -15,16 +15,26 @@ function pct(v: number | null | undefined): string {
   return typeof v === "number" ? `${v.toFixed(1)}%` : "-";
 }
 
+// 조회 기간 옵션 (분기 수 ↔ 라벨)
+const RANGES = [
+  { quarters: 4, label: "1년" },
+  { quarters: 8, label: "2년" },
+  { quarters: 12, label: "3년" },
+  { quarters: 20, label: "5년" },
+];
+
 export default function FinancialPage() {
   const [data, setData] = useState<FinancialResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ticker, setTicker] = useState<string | null>(null);
+  const [quarters, setQuarters] = useState(12);
 
-  const onSelect = async (sel: { ticker: string }) => {
+  const fetchFin = async (tk: string, q: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getFinancial(sel.ticker, 12);
+      const res = await getFinancial(tk, q);
       if (!res) setError("재무 데이터를 찾을 수 없어요. (재무제표는 상장 주식만 제공)");
       setData(res);
     } catch {
@@ -34,12 +44,39 @@ export default function FinancialPage() {
     }
   };
 
+  const onSelect = (sel: { ticker: string }) => {
+    setTicker(sel.ticker);
+    fetchFin(sel.ticker, quarters);
+  };
+
+  const onRange = (q: number) => {
+    setQuarters(q);
+    if (ticker) fetchFin(ticker, q);
+  };
+
   return (
     <main className="mx-auto w-full max-w-3xl px-3 py-5 sm:px-4">
       <h1 className="mb-1 text-lg font-bold text-gray-900">📑 재무제표</h1>
       <p className="mb-4 text-xs text-gray-500">분기별 매출·영업이익·순이익·마진</p>
 
       <TickerSearch onSelect={onSelect} placeholder="종목명 또는 티커 (주식만)" />
+
+      {/* 조회 기간 선택 */}
+      <div className="mt-3 flex gap-1.5">
+        {RANGES.map((r) => (
+          <button
+            key={r.quarters}
+            onClick={() => onRange(r.quarters)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              quarters === r.quarters
+                ? "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
 
       {loading && <p className="mt-6 text-center text-sm text-gray-400">조회 중…</p>}
       {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
