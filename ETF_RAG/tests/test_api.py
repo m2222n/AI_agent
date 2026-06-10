@@ -134,3 +134,23 @@ def test_feedback_negative_with_reason(client):
     # log_feedback(question, answer, tag) — tag에 rating+reason 포함
     tag = m.call_args.args[2]
     assert "negative" in tag and "부정확" in tag
+
+
+def test_visit_records_and_returns_counts(client):
+    """POST /stats/visit이 record_visit 결과를 VisitorResponse로 반환."""
+    with patch("api.main.record_visit", return_value=(3, 42)) as m:
+        r = client.post("/stats/visit")
+    assert r.status_code == 200
+    assert r.json() == {"daily": 3, "total": 42}
+    m.assert_called_once()
+
+
+def test_visit_read_only(client):
+    """GET /stats/visit은 get_visitor_counts만 호출(기록 없이)."""
+    with patch("api.main.get_visitor_counts", return_value=(5, 100)) as m, \
+            patch("api.main.record_visit") as rec:
+        r = client.get("/stats/visit")
+    assert r.status_code == 200
+    assert r.json() == {"daily": 5, "total": 100}
+    m.assert_called_once()
+    rec.assert_not_called()

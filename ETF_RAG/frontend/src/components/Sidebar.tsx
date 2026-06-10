@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getOverview } from "@/lib/api";
-import type { InstrumentItem, OverviewResponse } from "@/lib/types";
+import { getOverview, getVisitor } from "@/lib/api";
+import type {
+  InstrumentItem,
+  OverviewResponse,
+  VisitorResponse,
+} from "@/lib/types";
 
 function fmtDate(s: string | null): string {
   if (!s) return "-";
@@ -51,11 +55,18 @@ function ItemRow({
 export default function Sidebar() {
   const router = useRouter();
   const [data, setData] = useState<OverviewResponse | null>(null);
+  const [visitor, setVisitor] = useState<VisitorResponse | null>(null);
   const [tab, setTab] = useState<"etf" | "stock">("etf");
   const [q, setQ] = useState("");
 
   useEffect(() => {
     getOverview(20).then(setData);
+    // 방문은 브라우저 세션당 1회만 기록(POST), 이후 마운트는 조회(GET)
+    const recorded = sessionStorage.getItem("etfrag.visited") === "1";
+    getVisitor(!recorded).then((v) => {
+      if (v) setVisitor(v);
+      if (!recorded) sessionStorage.setItem("etfrag.visited", "1");
+    });
   }, []);
 
   const list = data ? (tab === "etf" ? data.top_etfs : data.top_stocks) : [];
@@ -87,6 +98,12 @@ export default function Sidebar() {
           </>
         ) : (
           <div className="mt-1 text-xs text-gray-400">불러오는 중…</div>
+        )}
+        {visitor && visitor.total > 0 && (
+          <div className="mt-1 text-xs text-gray-400">
+            👤 오늘 <b>{visitor.daily.toLocaleString("ko-KR")}</b> · 누적{" "}
+            <b>{visitor.total.toLocaleString("ko-KR")}</b>
+          </div>
         )}
       </div>
 

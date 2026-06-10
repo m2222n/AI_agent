@@ -63,6 +63,11 @@ export interface OverviewResponse {
   sectors: string[];
 }
 
+export interface VisitorResponse {
+  daily: number;
+  total: number;
+}
+
 // ── 탭 API ──────────────────────────────────────────────
 /** /tabs/technical 응답 (summary는 복잡 중첩 dict — 느슨한 타입) */
 export interface TechnicalResponse {

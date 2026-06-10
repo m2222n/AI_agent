@@ -2164,6 +2164,8 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 **[완료] 기간 선택 보강 (2026-06-10):** 기술 탭 10년(2500일) 옵션 추가 + 비교 탭 기간 선택(6개월~10년) 신설(`days` state→`postComparison(tickers, days)`, 종목 둘 다 선택 시 기간 변경 재조회). 백엔드 technical/comparison 모두 `days` le=2500 이미 허용.
 
+**[완료] 방문자 카운터 (2026-06-10):** 기존 `src/data/visitor.py`(Supabase REST, Streamlit과 공유)를 백엔드에서 재사용 → `POST/GET /stats/visit`(VisitorResponse{daily,total}, record_visit/get_visitor_counts를 threadpool 실행). 프론트 `getVisitor(record)` + Sidebar 표시(👤 오늘/누적, total>0일 때만). **세션당 1회만 POST**(sessionStorage `etfrag.visited`), 이후 GET. Supabase 미설정 시 (0,0)→숨김. SUPABASE_URL/KEY를 .env.example + DEPLOY.md에 추가(Railway 백엔드 env 등록 필요). 테스트 +2(test_api.py).
+
 **참고**: Streamlit 전수 인벤토리는 이 세션 탐색 결과(167개).
 
 ### 다음

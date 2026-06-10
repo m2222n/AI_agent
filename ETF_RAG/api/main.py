@@ -26,6 +26,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import iterate_in_threadpool
 
 from src.llm.agent import run_agent, stream_agent
+from src.data.visitor import record_visit, get_visitor_counts
 
 from typing import Optional
 
@@ -33,7 +34,13 @@ from fastapi import Depends
 
 from api.deps import AppState, run_init
 from api.db import init_models
-from api.models import ChatRequest, ChatResponse, FeedbackRequest, HealthResponse
+from api.models import (
+    ChatRequest,
+    ChatResponse,
+    FeedbackRequest,
+    HealthResponse,
+    VisitorResponse,
+)
 from api.tabs import router as tabs_router
 from api.auth import router as auth_router, get_current_user_optional
 from api.user_data import router as user_data_router
@@ -97,6 +104,23 @@ def _require_ready() -> None:
 async def health() -> HealthResponse:
     state: AppState = app.state.app_state
     return HealthResponse(ready=state.ready, error=state.error)
+
+
+@app.post("/stats/visit", response_model=VisitorResponse)
+async def visit() -> VisitorResponse:
+    """방문 1회 기록 + (당일, 누적) 반환. Supabase 미설정/오류 시 (0,0).
+
+    프론트가 앱 마운트 시 1회 호출. record_visit이 requests 동기 I/O라 threadpool 실행.
+    """
+    daily, total = await run_in_threadpool(record_visit)
+    return VisitorResponse(daily=daily, total=total)
+
+
+@app.get("/stats/visit", response_model=VisitorResponse)
+async def visit_read() -> VisitorResponse:
+    """방문자 수 조회만 (기록 없이)."""
+    daily, total = await run_in_threadpool(get_visitor_counts)
+    return VisitorResponse(daily=daily, total=total)
 
 
 @app.post("/chat", response_model=ChatResponse)

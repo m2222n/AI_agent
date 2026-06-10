@@ -17,6 +17,7 @@ import type {
   SectorResponse,
   MoversResponse,
   OverviewResponse,
+  VisitorResponse,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -232,6 +233,20 @@ export async function getMovers(n = 3): Promise<MoversResponse | null> {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as MoversResponse;
+  } catch {
+    return null;
+  }
+}
+
+/** 방문 기록(POST, 세션당 1회) 또는 조회(GET). 실패 시 null. */
+export async function getVisitor(record: boolean): Promise<VisitorResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/stats/visit`, {
+      method: record ? "POST" : "GET",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as VisitorResponse;
   } catch {
     return null;
   }
