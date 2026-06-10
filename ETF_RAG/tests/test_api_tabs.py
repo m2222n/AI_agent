@@ -251,6 +251,23 @@ def test_overview(client):
     assert "전기·전자" in b["sectors"]
 
 
+def test_overview_sector_filter(client):
+    """sector 지정 시 해당 업종 종목만 top_stocks에 포함."""
+    etf_idx = {}
+    stock_idx = {
+        "005930": {"name": "삼성전자", "ticker": "005930", "close": 70000, "change_pct": -0.5, "trade_value": 5e11, "sector": "전기·전자", "date": "20260609"},
+        "035720": {"name": "카카오", "ticker": "035720", "close": 50000, "change_pct": 1.0, "trade_value": 3e11, "sector": "서비스업", "date": "20260609"},
+    }
+    with patch("api.tabs.get_data_indices", return_value=(etf_idx, stock_idx)):
+        r = client.get("/tabs/overview", params={"top": 20, "sector": "서비스업"})
+    assert r.status_code == 200
+    b = r.json()
+    # 서비스업만 — 카카오 1종목
+    assert [s["ticker"] for s in b["top_stocks"]] == ["035720"]
+    # sectors는 항상 전체 업종(필터와 무관)
+    assert set(b["sectors"]) == {"전기·전자", "서비스업"}
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)

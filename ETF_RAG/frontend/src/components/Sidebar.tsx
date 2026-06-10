@@ -58,6 +58,8 @@ export default function Sidebar() {
   const [visitor, setVisitor] = useState<VisitorResponse | null>(null);
   const [tab, setTab] = useState<"etf" | "stock">("etf");
   const [q, setQ] = useState("");
+  const [sector, setSector] = useState(""); // "" = 전체
+  const [sectorStocks, setSectorStocks] = useState<InstrumentItem[] | null>(null);
 
   useEffect(() => {
     getOverview(20).then(setData);
@@ -69,7 +71,25 @@ export default function Sidebar() {
     });
   }, []);
 
-  const list = data ? (tab === "etf" ? data.top_etfs : data.top_stocks) : [];
+  // 업종 선택 시 해당 업종 종목 재조회(전체 목록 기준 거래대금 TOP). 전체면 기본 목록 사용.
+  useEffect(() => {
+    if (!sector) return;
+    let alive = true;
+    getOverview(20, sector).then((r) => {
+      if (alive) setSectorStocks(r ? r.top_stocks : []);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [sector]);
+
+  const onSectorChange = (s: string) => {
+    setSector(s);
+    setSectorStocks(null); // 새 선택 로딩 표시(전체면 그대로 null → 기본 목록 사용)
+  };
+
+  const stockList = sector ? sectorStocks ?? [] : data?.top_stocks ?? [];
+  const list = data ? (tab === "etf" ? data.top_etfs : stockList) : [];
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     if (!ql) return list;
@@ -124,6 +144,22 @@ export default function Sidebar() {
         ))}
       </div>
 
+      {/* 업종 필터 (주식 탭에서만) */}
+      {tab === "stock" && data && data.sectors.length > 0 && (
+        <select
+          value={sector}
+          onChange={(e) => onSectorChange(e.target.value)}
+          className="mb-2 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+        >
+          <option value="">전체 업종</option>
+          {data.sectors.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      )}
+
       {/* 검색 */}
       <input
         value={q}
@@ -136,7 +172,9 @@ export default function Sidebar() {
       <div className="space-y-0.5">
         {filtered.length === 0 ? (
           <div className="px-2 py-3 text-center text-xs text-gray-400">
-            {data ? "결과 없음" : "…"}
+            {!data || (tab === "stock" && sector && sectorStocks === null)
+              ? "…"
+              : "결과 없음"}
           </div>
         ) : (
           filtered.map((it) => <ItemRow key={it.ticker} it={it} onClick={() => go(it)} />)

@@ -2166,10 +2166,12 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 **[완료] 방문자 카운터 (2026-06-10):** 기존 `src/data/visitor.py`(Supabase REST, Streamlit과 공유)를 백엔드에서 재사용 → `POST/GET /stats/visit`(VisitorResponse{daily,total}, record_visit/get_visitor_counts를 threadpool 실행). 프론트 `getVisitor(record)` + Sidebar 표시(👤 오늘/누적, total>0일 때만). **세션당 1회만 POST**(sessionStorage `etfrag.visited`), 이후 GET. Supabase 미설정 시 (0,0)→숨김. SUPABASE_URL/KEY를 .env.example + DEPLOY.md에 추가(Railway 백엔드 env 등록 필요). 테스트 +2(test_api.py).
 
+**[완료] 사이드바 업종 필터 (2026-06-10):** 주식 탭에 업종 드롭다운(`data.sectors`) — 선택 시 `/tabs/overview?sector=` 재조회. 백엔드 `_overview_blocking(top, sector)` — sector 지정 시 **전체 종목 목록**에서 해당 업종 거래대금 TOP(top-20 내 필터 아님). ETF/주식 탭 분리는 이미 존재. lint(setState-in-effect) 회피: 동기 reset을 onChange 핸들러로 이동. 테스트 +1(test_api_tabs). → **2차 대조 4건 전부 해소, Streamlit 패리티 완료.**
+
 **참고**: Streamlit 전수 인벤토리는 이 세션 탐색 결과(167개).
 
 ### 다음
-- Streamlit 패리티 마무리. **F-2 KIS**(신분증), **푸시**(VAPID), 유료 전환($5/월~), 블로그 9편.
+- Streamlit 패리티 완료(2026-06-10). **F-2 KIS**(신분증), **푸시**(VAPID), 유료 전환($5/월~), 블로그 9편.
 
 ---
 

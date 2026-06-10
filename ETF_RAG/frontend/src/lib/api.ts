@@ -212,10 +212,14 @@ export async function getSector(
   return (await res.json()) as SectorResponse;
 }
 
-/** 사이드바 개요 — 데이터 현황 + ETF/주식 TOP. 실패 시 null. */
-export async function getOverview(top = 20): Promise<OverviewResponse | null> {
+/** 사이드바 개요 — 데이터 현황 + ETF/주식 TOP. sector 지정 시 해당 업종 종목만. 실패 시 null. */
+export async function getOverview(
+  top = 20,
+  sector?: string,
+): Promise<OverviewResponse | null> {
   const url = new URL(`${API_BASE}/tabs/overview`);
   url.searchParams.set("top", String(top));
+  if (sector) url.searchParams.set("sector", sector);
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
