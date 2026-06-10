@@ -43,6 +43,26 @@ export interface MoversResponse {
   most_traded: MoverItem[];
 }
 
+// ── 사이드바 개요 ────────────────────────────────────────
+export interface InstrumentItem {
+  name: string;
+  ticker: string;
+  close: number;
+  change_pct: number;
+  trade_value: number;
+  sector?: string | null;
+  per?: number | null;
+  market_cap?: number | null;
+}
+export interface OverviewResponse {
+  etf_count: number;
+  stock_count: number;
+  as_of: string | null;
+  top_etfs: InstrumentItem[];
+  top_stocks: InstrumentItem[];
+  sectors: string[];
+}
+
 // ── 탭 API ──────────────────────────────────────────────
 /** /tabs/technical 응답 (summary는 복잡 중첩 dict — 느슨한 타입) */
 export interface TechnicalResponse {
