@@ -111,3 +111,26 @@ def test_stream_dict_data_is_json(client):
         r = client.post("/stream", json={"question": "x"})
     assert r.status_code == 200
     assert "한글유지" in r.text  # \uXXXX 이스케이프 안 됨
+
+
+def test_feedback_anonymous(client):
+    """피드백 — 익명(토큰 없음) 허용, 204."""
+    with patch("api.main.log_feedback") as m:
+        r = client.post("/feedback", json={
+            "question": "삼성전자?", "answer": "PER 49.81배",
+            "rating": "positive",
+        })
+    assert r.status_code == 204
+    m.assert_called_once()
+
+
+def test_feedback_negative_with_reason(client):
+    with patch("api.main.log_feedback") as m:
+        r = client.post("/feedback", json={
+            "question": "x", "answer": "y",
+            "rating": "negative", "reason": "정보가 부정확해요",
+        })
+    assert r.status_code == 204
+    # log_feedback(question, answer, tag) — tag에 rating+reason 포함
+    tag = m.call_args.args[2]
+    assert "negative" in tag and "부정확" in tag

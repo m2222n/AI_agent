@@ -76,3 +76,23 @@ class ChatHistoryAppend(BaseModel):
 
 class ChatHistoryResponse(BaseModel):
     messages: List[ChatHistoryItemDB]
+
+
+# ── 동적 추천질문 / 피드백 ──────────────────────────────
+class MoverItem(BaseModel):
+    name: str
+    ticker: str
+    change_pct: float
+
+
+class MoversResponse(BaseModel):
+    gainers: List[MoverItem]
+    losers: List[MoverItem]
+    most_traded: List[MoverItem]
+
+
+class FeedbackRequest(BaseModel):
+    question: str
+    answer: str
+    rating: Literal["positive", "negative"]
+    reason: Optional[str] = None  # 부정 피드백 사유

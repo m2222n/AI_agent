@@ -190,6 +190,25 @@ def test_tickers_resolve_404(client):
     assert r.status_code == 404
 
 
+# ── Movers (동적 추천질문) ─────────────────────────────────────────
+def test_movers(client):
+    etf_idx = {
+        "kodex 200": {"name": "KODEX 200", "ticker": "069500", "change_pct": 2.1, "trade_value": 1e11, "close": 45000},
+    }
+    stock_idx = {
+        "삼성전자": {"name": "삼성전자", "ticker": "005930", "change_pct": -1.5, "trade_value": 5e11, "close": 70000},
+        "005930": {"name": "삼성전자", "ticker": "005930", "change_pct": -1.5, "trade_value": 5e11, "close": 70000},  # dedup 대상
+    }
+    with patch("api.tabs.get_data_indices", return_value=(etf_idx, stock_idx)):
+        r = client.get("/tabs/movers", params={"n": 3})
+    assert r.status_code == 200
+    body = r.json()
+    # dedup 후 2종목: 삼성전자(-1.5)는 losers·traded, KODEX(+2.1)는 gainers
+    assert body["gainers"][0]["ticker"] == "069500"
+    assert body["losers"][0]["ticker"] == "005930"
+    assert body["most_traded"][0]["ticker"] == "005930"  # 거래대금 최대
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)
