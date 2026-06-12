@@ -19,6 +19,7 @@ from api.models import (
     InstrumentItem,
     MoverItem,
     MoversResponse,
+    OrderbookResponse,
     OverviewResponse,
     PriceResponse,
     TickerSearchResponse,
@@ -312,6 +313,42 @@ async def price(ticker: str = Query(..., min_length=1)):
     if not result:
         raise HTTPException(404, f"'{ticker}'을(를) 찾을 수 없습니다.")
     return PriceResponse(**result)
+
+
+# ── 호가 10단계 (KIS 전용, 장중) ───────────────────────────
+def _orderbook_blocking(q: str) -> Optional[dict]:
+    """종목 해석 → KIS 호가 조회. KIS 비활성/장외/조회 실패 시 None.
+
+    호가는 KIS만 제공(yfinance 미지원) → fallback 없음.
+    """
+    data = _find_structured_data(q)
+    if not data:
+        return None
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+
+    from src.data import kis_client
+    if not kis_client.is_enabled():
+        return None
+    ob = kis_client.get_orderbook(ticker)
+    if not ob:
+        return None
+    return {
+        "name": name, "ticker": ticker,
+        "asks": ob["asks"], "bids": ob["bids"],
+        "total_ask_qty": ob["total_ask_qty"],
+        "total_bid_qty": ob["total_bid_qty"],
+        "timestamp": ob.get("timestamp"), "source": ob.get("source", "kis"),
+    }
+
+
+@router.get("/orderbook", response_model=OrderbookResponse)
+async def orderbook(ticker: str = Query(..., min_length=1)):
+    """종목 호가 10단계 (KIS 전용). KIS 미설정/장 외/조회 실패 시 404."""
+    result = await run_in_threadpool(_orderbook_blocking, ticker)
+    if not result:
+        raise HTTPException(404, "호가를 가져올 수 없습니다. (KIS 미연동이거나 장 외 시간)")
+    return OrderbookResponse(**result)
 
 
 # ── 동적 추천질문용 movers (오늘의 급등/급락/거래대금 TOP) ──────────

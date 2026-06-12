@@ -112,6 +112,23 @@ class PriceResponse(BaseModel):
     market_open: bool                 # 현재 장 운영 여부
 
 
+# ── 호가 10단계 (KIS, 장중 전용) ────────────────────────
+class OrderbookLevel(BaseModel):
+    price: int
+    qty: int
+
+
+class OrderbookResponse(BaseModel):
+    name: str
+    ticker: str
+    asks: List[OrderbookLevel]      # 매도호가 1~10단계
+    bids: List[OrderbookLevel]      # 매수호가 1~10단계
+    total_ask_qty: int
+    total_bid_qty: int
+    timestamp: Optional[str] = None
+    source: str                     # "kis"
+
+
 class FeedbackRequest(BaseModel):
     question: str
     answer: str
