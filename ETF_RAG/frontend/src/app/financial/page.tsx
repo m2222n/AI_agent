@@ -63,7 +63,7 @@ export default function FinancialPage() {
       <TickerSearch onSelect={onSelect} placeholder="종목명 또는 티커 (주식만)" />
 
       {/* 조회 기간 선택 */}
-      <div className="mt-3 flex gap-1.5">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {RANGES.map((r) => (
           <button
             key={r.quarters}
