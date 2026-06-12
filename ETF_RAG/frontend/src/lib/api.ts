@@ -19,6 +19,7 @@ import type {
   OverviewResponse,
   VisitorResponse,
   PriceData,
+  OrderbookData,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -154,6 +155,16 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`price ${res.status}`);
   return (await res.json()) as PriceData;
+}
+
+/** 호가 10단계 (KIS 전용). KIS 미연동/장 외/실패 시 null. */
+export async function getOrderbook(ticker: string): Promise<OrderbookData | null> {
+  const url = new URL(`${API_BASE}/tabs/orderbook`);
+  url.searchParams.set("ticker", ticker);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`orderbook ${res.status}`);
+  return (await res.json()) as OrderbookData;
 }
 
 /** 장중 시세 차트 (yfinance 15분봉). 장 외/데이터 없으면 null. */
