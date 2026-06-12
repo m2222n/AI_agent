@@ -327,6 +327,55 @@ def test_price_404_when_unresolved(client):
     assert r.status_code == 404
 
 
+# ── 호가 /tabs/orderbook ───────────────────────────────────────────
+def _ob():
+    return {
+        "asks": [{"price": 70000 + i * 100, "qty": i * 10} for i in range(1, 11)],
+        "bids": [{"price": 69900 - i * 100, "qty": i * 20} for i in range(1, 11)],
+        "total_ask_qty": 5500, "total_bid_qty": 11000,
+        "timestamp": "2026-06-12 10:00", "source": "kis",
+    }
+
+
+def test_orderbook_success(client):
+    structured = {"ticker": "005930", "name": "삼성전자"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.kis_client.is_enabled", return_value=True), \
+         patch("src.data.kis_client.get_orderbook", return_value=_ob()):
+        r = client.get("/tabs/orderbook", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["ticker"] == "005930"
+    assert len(b["asks"]) == 10 and len(b["bids"]) == 10
+    assert b["asks"][0] == {"price": 70100, "qty": 10}
+    assert b["total_bid_qty"] == 11000
+    assert b["source"] == "kis"
+
+
+def test_orderbook_404_when_kis_disabled(client):
+    structured = {"ticker": "005930", "name": "삼성전자"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.kis_client.is_enabled", return_value=False):
+        r = client.get("/tabs/orderbook", params={"ticker": "삼성전자"})
+    assert r.status_code == 404
+
+
+def test_orderbook_404_when_no_data(client):
+    """KIS 활성이나 장 외/조회 실패(None) → 404."""
+    structured = {"ticker": "005930", "name": "삼성전자"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.kis_client.is_enabled", return_value=True), \
+         patch("src.data.kis_client.get_orderbook", return_value=None):
+        r = client.get("/tabs/orderbook", params={"ticker": "삼성전자"})
+    assert r.status_code == 404
+
+
+def test_orderbook_404_when_unresolved(client):
+    with patch("api.tabs._find_structured_data", return_value=None):
+        r = client.get("/tabs/orderbook", params={"ticker": "ZZZ"})
+    assert r.status_code == 404
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)

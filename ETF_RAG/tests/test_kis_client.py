@@ -13,6 +13,7 @@ def _isolate_kis(tmp_path):
     """매 테스트마다 인메모리 캐시 초기화 + 토큰 디스크 캐시를 임시 경로로 격리."""
     kis_client.clear_cache()
     kis_client._price_cache.clear()
+    kis_client._orderbook_cache.clear()
     kis_client._token_state.clear()
     with patch.object(kis_client, "_TOKEN_CACHE_PATH",
                       tmp_path / "kis_token.json"):
@@ -229,6 +230,100 @@ def test_get_current_price_no_token_none():
     with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG), \
          patch("requests.post", side_effect=Exception("token fail")):
         assert kis_client.get_current_price("005930") is None
+
+
+# ── 호가 10단계 파싱 ──────────────────────────────────────
+
+def _make_orderbook_output():
+    """askp1~10/bidp1~10 + 잔량 + 총잔량 샘플."""
+    out = {}
+    for i in range(1, 11):
+        out[f"askp{i}"] = str(70000 + i * 100)        # 매도호가 (i↑ = 고가)
+        out[f"askp_rsqn{i}"] = str(100 * i)           # 매도 잔량
+        out[f"bidp{i}"] = str(69900 - i * 100)        # 매수호가 (i↑ = 저가)
+        out[f"bidp_rsqn{i}"] = str(200 * i)           # 매수 잔량
+    out["total_askp_rsqn"] = "5500"
+    out["total_bidp_rsqn"] = "11000"
+    return out
+
+
+def test_parse_orderbook_output_full():
+    p = kis_client._parse_orderbook_output(_make_orderbook_output())
+    assert len(p["asks"]) == 10
+    assert len(p["bids"]) == 10
+    assert p["asks"][0] == {"price": 70100, "qty": 100}
+    assert p["asks"][9] == {"price": 71000, "qty": 1000}
+    assert p["bids"][0] == {"price": 69800, "qty": 200}
+    assert p["total_ask_qty"] == 5500
+    assert p["total_bid_qty"] == 11000
+    assert p["source"] == "kis"
+
+
+def test_parse_orderbook_output_all_zero_none():
+    out = {f"askp{i}": "0" for i in range(1, 11)}
+    out.update({f"bidp{i}": "0" for i in range(1, 11)})
+    assert kis_client._parse_orderbook_output(out) is None
+
+
+def test_parse_orderbook_output_malformed_qty_zero():
+    """잔량 필드가 비거나 비정상이면 0으로."""
+    out = _make_orderbook_output()
+    out["askp_rsqn1"] = ""
+    out["bidp_rsqn1"] = None
+    p = kis_client._parse_orderbook_output(out)
+    assert p["asks"][0]["qty"] == 0
+    assert p["bids"][0]["qty"] == 0
+    assert p["asks"][0]["price"] == 70100  # 가격은 유효
+
+
+# ── 호가 조회 (통합) ──────────────────────────────────────
+
+def test_get_orderbook_disabled_none():
+    with patch.object(kis_client, "_kis_config", return_value=DISABLED_CFG):
+        assert kis_client.get_orderbook("005930") is None
+
+
+def test_get_orderbook_success():
+    token_resp = _mock_resp({"access_token": "tok", "expires_in": 86400})
+    ob_resp = _mock_resp({"rt_cd": "0", "output1": _make_orderbook_output()})
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG), \
+         patch("requests.post", return_value=token_resp), \
+         patch("requests.get", return_value=ob_resp) as get:
+        p = kis_client.get_orderbook("005930")
+    assert p["asks"][0]["price"] == 70100
+    assert p["total_bid_qty"] == 11000
+    _, kw = get.call_args
+    assert kw["headers"]["tr_id"] == "FHKST01010200"
+    assert kw["params"]["fid_input_iscd"] == "005930"
+    assert "inquire-asking-price-exp-ccn" in get.call_args[0][0]
+
+
+def test_get_orderbook_cache_hit():
+    token_resp = _mock_resp({"access_token": "tok", "expires_in": 86400})
+    ob_resp = _mock_resp({"rt_cd": "0", "output1": _make_orderbook_output()})
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG), \
+         patch("requests.post", return_value=token_resp), \
+         patch("requests.get", return_value=ob_resp) as get:
+        kis_client.get_orderbook("005930", cache_ttl=5)
+        kis_client.get_orderbook("005930", cache_ttl=5)
+    assert get.call_count == 1
+
+
+def test_get_orderbook_rt_cd_error_none():
+    token_resp = _mock_resp({"access_token": "tok", "expires_in": 86400})
+    err = _mock_resp({"rt_cd": "1", "msg_cd": "X", "msg1": "오류"})
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG), \
+         patch("requests.post", return_value=token_resp), \
+         patch("requests.get", return_value=err):
+        assert kis_client.get_orderbook("005930") is None
+
+
+def test_get_orderbook_http_error_none():
+    token_resp = _mock_resp({"access_token": "tok", "expires_in": 86400})
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG), \
+         patch("requests.post", return_value=token_resp), \
+         patch("requests.get", side_effect=Exception("timeout")):
+        assert kis_client.get_orderbook("005930") is None
 
 
 # ── realtime.py 통합: KIS 우선 → yfinance fallback ────────

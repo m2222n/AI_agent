@@ -32,6 +32,9 @@ _token_lock = threading.Lock()
 # 현재가 캐시: {ticker: {"data": dict, "fetched_at": float}}
 _price_cache: dict = {}
 
+# 호가 캐시: {ticker: {"data": dict, "fetched_at": float}}
+_orderbook_cache: dict = {}
+
 
 def _kis_config() -> dict:
     """config.KIS 를 매 호출 시 읽어 테스트에서 patch 가능하게 한다."""
@@ -234,7 +237,106 @@ def get_current_price(ticker: str, cache_ttl: int = 300) -> Optional[dict]:
     return parsed
 
 
+# ── 호가 10단계 조회 ──────────────────────────────────────
+
+def _parse_orderbook_output(output: dict) -> Optional[dict]:
+    """KIS inquire-asking-price-exp-ccn output1 → 호가 10단계 표준 구조.
+
+    askp{1..10}/bidp{1..10} 호가, askp_rsqn{1..10}/bidp_rsqn{1..10} 잔량,
+    total_askp_rsqn/total_bidp_rsqn 총잔량.
+    Returns {"asks": [{"price","qty"}×10(고가→저가)], "bids": [...(고가→저가)],
+             "total_ask_qty", "total_bid_qty", "timestamp", "source"} 또는 None.
+    """
+    def _to_int(v):
+        try:
+            return int(float(v))
+        except (TypeError, ValueError):
+            return 0
+
+    asks, bids = [], []
+    for i in range(1, 11):
+        ap = _to_int(output.get(f"askp{i}"))
+        aq = _to_int(output.get(f"askp_rsqn{i}"))
+        bp = _to_int(output.get(f"bidp{i}"))
+        bq = _to_int(output.get(f"bidp_rsqn{i}"))
+        asks.append({"price": ap, "qty": aq})
+        bids.append({"price": bp, "qty": bq})
+
+    # 매도호가 전부 0이면 무효(장 외/조회 실패)
+    if not any(a["price"] for a in asks) and not any(b["price"] for b in bids):
+        return None
+
+    return {
+        "asks": asks,   # 1단계(최우선 매도, 최저가) → 10단계 순
+        "bids": bids,   # 1단계(최우선 매수, 최고가) → 10단계 순
+        "total_ask_qty": _to_int(output.get("total_askp_rsqn")),
+        "total_bid_qty": _to_int(output.get("total_bidp_rsqn")),
+        "timestamp": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
+        "source": "kis",
+    }
+
+
+def get_orderbook(ticker: str, cache_ttl: int = 5) -> Optional[dict]:
+    """국내 주식/ETF 호가 10단계 조회 (FHKST01010200).
+
+    호가는 빠르게 변하므로 기본 TTL 5초.
+
+    Returns:
+        성공 시 _parse_orderbook_output 구조, 실패/비활성 시 None.
+    """
+    if not is_enabled():
+        return None
+
+    now = time.time()
+    cached = _orderbook_cache.get(ticker)
+    if cached and (now - cached["fetched_at"]) < cache_ttl:
+        return cached["data"]
+
+    token = _get_access_token()
+    if not token:
+        return None
+
+    cfg = _kis_config()
+    import requests
+    url = (f"{cfg['base_url']}"
+           "/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn")
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "authorization": f"Bearer {token}",
+        "appkey": cfg["app_key"],
+        "appsecret": cfg["app_secret"],
+        "tr_id": "FHKST01010200",
+    }
+    params = {
+        "fid_cond_mrkt_div_code": "J",   # J: 주식/ETF/ETN
+        "fid_input_iscd": ticker,
+    }
+
+    try:
+        resp = requests.get(url, headers=headers, params=params,
+                            timeout=cfg.get("timeout", 5))
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        logger.warning(f"KIS 호가 조회 실패 ({ticker}): {e}")
+        return None
+
+    if data.get("rt_cd") != "0":
+        logger.warning(f"KIS 호가 응답 오류 ({ticker}): "
+                       f"{data.get('msg_cd')} {data.get('msg1')}")
+        return None
+
+    # 호가정보는 output1 (output2는 예상체결정보)
+    parsed = _parse_orderbook_output(data.get("output1", {}))
+    if parsed is None:
+        return None
+
+    _orderbook_cache[ticker] = {"data": parsed, "fetched_at": now}
+    return parsed
+
+
 def clear_cache() -> None:
-    """현재가/토큰 인메모리 캐시 초기화 (디스크 캐시는 유지)."""
+    """현재가/호가/토큰 인메모리 캐시 초기화 (디스크 캐시는 유지)."""
     _price_cache.clear()
+    _orderbook_cache.clear()
     _token_state.clear()

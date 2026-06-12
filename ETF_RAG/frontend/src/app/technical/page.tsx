@@ -7,6 +7,7 @@ import TickerSearch from "@/components/TickerSearch";
 import WatchlistStar from "@/components/WatchlistStar";
 import DataRangeNote from "@/components/DataRangeNote";
 import PriceCard from "@/components/PriceCard";
+import OrderbookCard from "@/components/OrderbookCard";
 
 const PERIODS: { label: string; days: number }[] = [
   { label: "6개월", days: 120 },
@@ -155,6 +156,11 @@ export default function TechnicalPage() {
 
           {/* 실시간 시세 (KIS 우선 → yfinance, 장 외엔 종가) */}
           <PriceCard ticker={data.ticker} />
+
+          {/* 호가 10단계 (KIS 전용, 장중에만 표시) */}
+          <div className="mt-3">
+            <OrderbookCard ticker={data.ticker} />
+          </div>
 
           {/* 핵심 지표 */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 max-[380px]:grid-cols-1">

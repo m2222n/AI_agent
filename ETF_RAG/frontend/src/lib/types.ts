@@ -97,6 +97,22 @@ export interface PriceData {
   market_open: boolean;
 }
 
+/** 호가 10단계 (/tabs/orderbook, KIS 전용) */
+export interface OrderbookLevel {
+  price: number;
+  qty: number;
+}
+export interface OrderbookData {
+  name: string;
+  ticker: string;
+  asks: OrderbookLevel[]; // 매도호가 1~10
+  bids: OrderbookLevel[]; // 매수호가 1~10
+  total_ask_qty: number;
+  total_bid_qty: number;
+  timestamp: string | null;
+  source: string;
+}
+
 /** /tabs/financial 응답 */
 export interface FinancialRow {
   fiscal_year: number;
