@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import NavBar from "@/components/NavBar";
-import Sidebar from "@/components/Sidebar";
+import ChromeShell from "@/components/ChromeShell";
 import { AuthProvider } from "@/lib/AuthContext";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
@@ -47,11 +46,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          <NavBar />
-          <div className="flex flex-1 overflow-hidden">
-            <Sidebar />
-            <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
-          </div>
+          <ChromeShell>{children}</ChromeShell>
         </AuthProvider>
         <ServiceWorkerRegister />
       </body>

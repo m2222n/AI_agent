@@ -83,7 +83,7 @@ export default function OutlookPage() {
       <TickerSearch onSelect={onSelect} />
 
       {selected && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {HORIZONS.map((h) => (
             <button
               key={h}
@@ -122,7 +122,7 @@ export default function OutlookPage() {
           </div>
 
           {/* 시나리오 */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(["bullish", "neutral", "bearish"] as const).map((k) => {
               const sc = scenarios[k];
               const label = { bullish: "🔼 상승", neutral: "➖ 중립", bearish: "🔽 하락" }[k];

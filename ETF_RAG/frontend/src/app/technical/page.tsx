@@ -153,7 +153,7 @@ export default function TechnicalPage() {
           </div>
 
           {/* 핵심 지표 */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 max-[380px]:grid-cols-1">
             <Metric label="종가" value={`${n(s.close)}원`} />
             <Metric label="추세" value={String(s.trend ?? "-")} />
             <Metric label="MA5" value={n(ma.ma5)} />
