@@ -165,7 +165,10 @@ def get_realtime_price(name_or_ticker: str) -> str:
                     line += f", 전일대비: {rt['change']:+,}원 ({rt['change_pct']:+.2f}%)"
                 if rt.get("volume"):
                     line += f", 거래량: {rt['volume']:,}주"
-                line += f"\n(yfinance 15분 지연 데이터, 조회시각: {rt['timestamp']})"
+                if rt.get("source") == "kis":
+                    line += f"\n(한국투자증권 실시간 시세, 조회시각: {rt['timestamp']})"
+                else:
+                    line += f"\n(yfinance 15분 지연 데이터, 조회시각: {rt['timestamp']})"
                 return line
         except Exception as e:
             logger.warning(f"실시간 가격 조회 실패: {e}")

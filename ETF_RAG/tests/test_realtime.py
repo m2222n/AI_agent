@@ -169,6 +169,7 @@ def test_get_realtime_price_success():
     mock_ticker.fast_info = mock_info
 
     with patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.kis_client.is_enabled", return_value=False), \
          patch("yfinance.Ticker", return_value=mock_ticker):
         result = get_realtime_price("069500", "etf")
 
@@ -210,6 +211,7 @@ def test_get_realtime_price_cache_expired():
     mock_ticker.fast_info = mock_info
 
     with patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.kis_client.is_enabled", return_value=False), \
          patch("yfinance.Ticker", return_value=mock_ticker):
         result = get_realtime_price("069500", "etf", cache_ttl=300)
 
@@ -220,6 +222,7 @@ def test_get_realtime_price_yfinance_error():
     """yfinance 예외 → None"""
     clear_cache()
     with patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.kis_client.is_enabled", return_value=False), \
          patch("yfinance.Ticker", side_effect=Exception("API error")):
         result = get_realtime_price("069500", "etf")
     assert result is None
@@ -234,6 +237,7 @@ def test_get_realtime_price_no_last_price():
     mock_ticker.fast_info = mock_info
 
     with patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.kis_client.is_enabled", return_value=False), \
          patch("yfinance.Ticker", return_value=mock_ticker):
         result = get_realtime_price("069500", "etf")
     assert result is None
