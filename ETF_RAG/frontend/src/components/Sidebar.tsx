@@ -52,7 +52,13 @@ function ItemRow({
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({
+  open = false,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+} = {}) {
   const router = useRouter();
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [visitor, setVisitor] = useState<VisitorResponse | null>(null);
@@ -98,11 +104,13 @@ export default function Sidebar() {
     );
   }, [list, q]);
 
-  const go = (it: InstrumentItem) =>
+  const go = (it: InstrumentItem) => {
     router.push(`/technical?ticker=${encodeURIComponent(it.ticker)}`);
+    onClose?.(); // 모바일 드로워에서 종목 선택 시 닫기
+  };
 
-  return (
-    <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-gray-200 p-3 text-sm lg:block">
+  const content = (
+    <>
       {/* 데이터 현황 */}
       <div className="mb-3">
         <div className="text-xs font-semibold text-gray-700">📊 데이터 현황</div>
@@ -186,6 +194,41 @@ export default function Sidebar() {
         ⚠️ 본 정보는 투자 참고용입니다. 투자 판단과 책임은 본인에게 있으며, 실제
         투자 시 추가 조사와 전문가 상담을 권장합니다.
       </p>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* 데스크톱: 고정 사이드바 (lg 이상) */}
+      <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-gray-200 p-3 text-sm lg:block">
+        {content}
+      </aside>
+
+      {/* 모바일/태블릿: 드로워 오버레이 (lg 미만, open일 때만) */}
+      {open && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          {/* 배경 딤 — 클릭 시 닫기 */}
+          <button
+            type="button"
+            aria-label="사이드바 닫기"
+            onClick={onClose}
+            className="absolute inset-0 bg-black/40"
+          />
+          {/* 드로워 패널 (좌측 슬라이드) */}
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[85%] overflow-y-auto border-r border-gray-200 bg-white p-3 text-sm shadow-xl">
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              >
+                ✕ 닫기
+              </button>
+            </div>
+            {content}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

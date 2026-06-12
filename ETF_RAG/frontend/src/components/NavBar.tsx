@@ -13,13 +13,24 @@ const TABS = [
   { href: "/sector", label: "🏭 섹터" },
 ];
 
-export default function NavBar() {
+export default function NavBar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
 
   return (
     <nav className="border-b border-gray-200">
       <div className="mx-auto flex max-w-3xl items-center gap-1 overflow-x-auto px-3 py-2 sm:px-4">
+        {/* 모바일 햄버거 — 사이드바 드로워 열기 (lg 미만에서만) */}
+        {onMenuClick && (
+          <button
+            type="button"
+            aria-label="메뉴 열기"
+            onClick={onMenuClick}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-base text-gray-600 hover:bg-gray-100 lg:hidden"
+          >
+            ☰
+          </button>
+        )}
         {TABS.map((t) => {
           const active = t.href === pathname;
           return (
