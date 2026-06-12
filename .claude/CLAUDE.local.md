@@ -2149,7 +2149,7 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 - ⏭️ 긴 답변 섹션 접기(expander) — 생략(react-markdown 헤더로 충분, 저가치).
 - ⏭️ 기능 카드 그리드(홈) — 생략(NavBar 탭으로 대체됨).
 
-**[완료] 사이드바 신설 (2026-06-10):** `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar(데스크톱 좌측, 종목검색, 클릭→기술분석, 투자유의). ⏭️섹터필터/방문자카운터/모바일드로어는 후속.
+**[완료] 사이드바 신설 (2026-06-10):** `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar(데스크톱 좌측, 종목검색, 클릭→기술분석, 투자유의). ⏭️섹터필터/방문자카운터/모바일드로어는 후속. → 섹터필터·방문자 6-10 완료, **모바일 드로워 6-12 완료(아래 Phase F-mobile)**.
 **[완료] 기술 분석 탭 보강 (2026-06-10):** `/tabs/intraday`(장중 15분봉) + 11지표 전부(MA120/스토캐스틱/CCI/ADX/일목/OBV/ATR 추가, 모멘텀·추세 2단) + 골든/데드크로스(🟢🔴) + 장중차트 버튼.
 
 **[완료] 비교 탭 보강 (2026-06-10):** ComparisonTable returns 버그 수정(중첩 `returns["1w/1m/3m/1y"]` — 기존 flat key라 항상 "-") + 5기간 수익률 행(1주/1개월/3개월/1년) + 최근 분기 실적 비교표(`getFinancial` 2종목 병렬→FinancialCompare: 매출/영업이익/순이익/마진/YoY). 수익률 막대차트는 백엔드 `comparison_chart_b64`(상대수익률 시계열)로 이미 커버.
@@ -2220,5 +2220,25 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 ---
 
-_Last Updated: 2026-06-12 (Phase F-2 KIS 실시간 현재가 REST 연동 PR #50: kis_client.py OAuth 토큰 캐시+FHKST01010100 현재가, realtime KIS 우선→yfinance fallback, 테스트 22개(전체 671), 장중 라이브 검증. 다음: WebSocket·호가, Railway KIS env, 푸시, 유료전환)_
+## Phase F-mobile: 모바일 사이드바 드로워 + 데이터 탭 반응형 (2026-06-12, PR #51)
+
+사용자 "모바일에서 PC랑 다른 거 해결됐나?" 지적으로 점검. **핵심 격차 발견**: SaaS 프론트 사이드바가 `lg:block`(1024px+)이라 **모바일/태블릿에서 통째로 사라짐** → 데이터현황·ETF/주식 거래대금TOP·업종필터·종목검색→기술분석점프·방문자카운터를 모바일에서 전혀 못 씀. (Streamlit은 모바일 사이드바 동작 → SaaS만 빠진 부분.)
+
+**수정 (PR #51, 커밋 2개)**:
+- **드로워**: `Sidebar`에 open/onClose prop. 데스크톱(lg+)은 기존 고정 aside, 모바일은 ☰→좌측 슬라이드 오버레이(배경 딤 클릭/✕/종목선택 시 닫기). 내부 컨텐츠는 `content` 프래그먼트로 추출해 양쪽 재사용.
+- `NavBar` ☰ 햄버거(lg:hidden)+onMenuClick. **`ChromeShell`(신규 client 컴포넌트)** — NavBar+Sidebar+본문 감싸고 드로워 open state 보유(서버 layout.tsx에서 클라이언트 상태 분리). layout.tsx는 `<ChromeShell>{children}</ChromeShell>`로 위임.
+- **데이터 탭 반응형**: 전망 시나리오 카드 `grid-cols-3`→`grid-cols-1 sm:grid-cols-3`(모바일 스택), 전망/재무 기간버튼 `flex flex-wrap`, 기술 지표카드 `max-[380px]:grid-cols-1`.
+
+**점검 방법**: Explore 에이전트로 5개 탭 페이지 전수 점검 → 표는 이미 `overflow-x-auto`, 차트는 `w-full`로 양호 확인(수정 불필요). 깨지는 건 위 그리드/줄바꿈 4곳 + 사이드바뿐.
+
+**검증**: `npm run build` 통과(9라우트). prod 서버 스모크 — `/` HTML에 ☰(lg:hidden)+데스크톱 aside(lg:block) 동시 존재, 탭 200. 드로워 오버레이는 client open state라 SSR 미출현(정상). CI green.
+
+**참고**: Streamlit 쪽 모바일 CSS(2026-04-23 `styles.py` 768/480 breakpoint)와 **별개** — 이번은 SaaS Next.js 프론트. 두 앱 다 모바일 대응 완료.
+
+### 다음
+- WebSocket 실시간(F-2 후속), Railway KIS env 등록, 푸시(VAPID), 유료 전환, 블로그 9편.
+
+---
+
+_Last Updated: 2026-06-12 (Phase F-2 KIS 실시간 현재가 REST PR #50 + 모바일 사이드바 드로워 PR #51. KIS: kis_client.py OAuth 토큰캐시+FHKST01010100, realtime KIS 우선→yfinance fallback, 테스트 22개(671), 장중 라이브. 모바일: 사이드바 lg:block→드로워(ChromeShell), 데이터탭 그리드/줄바꿈 반응형. 다음: WebSocket·호가, Railway KIS env, 푸시, 유료전환)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
