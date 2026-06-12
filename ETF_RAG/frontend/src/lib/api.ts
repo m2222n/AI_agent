@@ -18,6 +18,7 @@ import type {
   MoversResponse,
   OverviewResponse,
   VisitorResponse,
+  PriceData,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -143,6 +144,16 @@ export async function getTechnical(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`technical ${res.status}`);
   return (await res.json()) as TechnicalResponse;
+}
+
+/** 실시간 시세 — 장중엔 KIS 우선(yfinance fallback), 장 외엔 수집 종가. 404면 null. */
+export async function getPrice(ticker: string): Promise<PriceData | null> {
+  const url = new URL(`${API_BASE}/tabs/price`);
+  url.searchParams.set("ticker", ticker);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`price ${res.status}`);
+  return (await res.json()) as PriceData;
 }
 
 /** 장중 시세 차트 (yfinance 15분봉). 장 외/데이터 없으면 null. */
