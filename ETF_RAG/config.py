@@ -121,6 +121,26 @@ REALTIME_PRICE = {
     "enabled": True,            # 기능 활성화 플래그
 }
 
+# 한국투자증권 KIS Open API (F-2 실시간 시세)
+# 키 3종이 모두 설정돼야 활성화. 미설정 시 realtime.py가 yfinance로 fallback.
+# KIS_ENV: real(실전, openapi.koreainvestment.com:9443) | vps(모의, openapivts:29443)
+# 시세 조회만 하므로 real로 충분 (주문 권한과 무관).
+KIS_APP_KEY = os.getenv("KIS_APP_KEY", "")
+KIS_APP_SECRET = os.getenv("KIS_APP_SECRET", "")
+KIS = {
+    "enabled": bool(os.getenv("KIS_APP_KEY") and os.getenv("KIS_APP_SECRET")),
+    "app_key": KIS_APP_KEY,
+    "app_secret": KIS_APP_SECRET,
+    "env": os.getenv("KIS_ENV", "real"),    # real | vps
+    "base_url": (
+        "https://openapivts.koreainvestment.com:29443"
+        if os.getenv("KIS_ENV", "real") == "vps"
+        else "https://openapi.koreainvestment.com:9443"
+    ),
+    "timeout": 5,               # REST 호출 타임아웃 (초)
+    "token_margin": 600,        # 토큰 만료 N초 전 선제 갱신 (10분)
+}
+
 # Vector DB backend: "faiss" (default) or "pinecone"
 VECTOR_DB_BACKEND = os.getenv("VECTOR_DB_BACKEND", "faiss")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
