@@ -528,7 +528,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-12 (Phase F-2 착수 — KIS Open API 실시간 현재가 REST 연동 PR #50: src/data/kis_client.py(OAuth 토큰 디스크 캐시 + FHKST01010100 현재가), realtime.py KIS 우선→yfinance fallback, 테스트 22개(전체 671), 장중 라이브 검증. 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2")_
+_Last Updated: 2026-06-12 (Phase F-2 진행 — KIS 실시간 현재가 REST PR #50(kis_client.py OAuth캐시+FHKST01010100, realtime KIS우선→yfinance) + 모바일 사이드바 드로워 PR #51(ChromeShell, 데이터탭 반응형) + 기술탭 실시간 시세카드 PR #52(/tabs/price, source 배지·장중 30초 폴링). 장중 라이브 검증. 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F-mobile")_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 

@@ -2240,5 +2240,27 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 ---
 
-_Last Updated: 2026-06-12 (Phase F-2 KIS 실시간 현재가 REST PR #50 + 모바일 사이드바 드로워 PR #51. KIS: kis_client.py OAuth 토큰캐시+FHKST01010100, realtime KIS 우선→yfinance fallback, 테스트 22개(671), 장중 라이브. 모바일: 사이드바 lg:block→드로워(ChromeShell), 데이터탭 그리드/줄바꿈 반응형. 다음: WebSocket·호가, Railway KIS env, 푸시, 유료전환)_
+## Phase F-2 프론트 노출: 기술 탭 실시간 시세 카드 (2026-06-12, PR #52)
+
+PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용자 "하나씩" 큐의 첫 작업.
+
+**백엔드 `GET /tabs/price?ticker=`**:
+- 장중: `realtime.get_realtime_price`(KIS 우선→yfinance 15분 지연). 장 외/실시간 실패: 수집 종가 fallback(`source=close`) → **항상 시세 반환**.
+- `PriceResponse`(price/prev_close/change/change_pct/volume/**source**(kis|yfinance|close)/**is_live**/**market_open**/timestamp). `_price_blocking`: `_find_structured_data`로 종목+asset_type 해석 후 분기. realtime 함수는 `_price_blocking` 안에서 로컬 import → 테스트는 `src.data.realtime.*`를 patch.
+- 테스트 4개(KIS 실시간/장외 종가/실시간 실패 fallback/404). **api_tabs 24 pass**(ETF_RAG/.venv에 fastapi 있음 — 로컬 실행 가능).
+
+**프론트 기술 탭 시세 카드**:
+- `getPrice()` + `PriceData` 타입.
+- `PriceCard`(신규): 현재가·등락(상승 빨강/하락 파랑) + **source 배지**(🔴 실시간 KIS / 🟡 15분 지연 yfinance / 종가) + 거래량·시각. **장중 30초 폴링 자동 갱신**, `!market_open` 감지 시 폴링 중단. 종목 헤더 아래 배치.
+
+**검증**: 백엔드 24 pass, 프론트 build 통과. **라이브 양쪽 경로 확인** — 장중(12:38 KST) source=kis 실시간 / 장 마감(19:34 KST) source=close·is_live=false·날짜 포맷 정상. CI green.
+
+**설계 메모**: 사이드바 종목 목록 실시간화는 N콜 부담이라 보류(단일 종목 상세=기술 탭만 실시간). 배포 시 Railway 백엔드 KIS env 등록하면 라이브도 실시간(미등록 시 yfinance/종가).
+
+### 다음
+- (남은 "하나씩" 큐) KIS 호가 10단계 → WebSocket 실시간 → 푸시(VAPID) → 유료 전환. + Railway KIS env 등록(사용자), 블로그 9편.
+
+---
+
+_Last Updated: 2026-06-12 (PR #50 KIS REST 현재가 + #51 모바일 사이드바 드로워 + #52 기술탭 실시간 시세카드. KIS: kis_client.py OAuth캐시+FHKST01010100, realtime KIS우선→yfinance fallback, /tabs/price(source 배지·장중 30초 폴링). 모바일: 사이드바 lg:block→드로워(ChromeShell)+데이터탭 반응형. 테스트 671→api_tabs 24. 다음: KIS 호가→WebSocket→푸시→유료전환, Railway KIS env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
