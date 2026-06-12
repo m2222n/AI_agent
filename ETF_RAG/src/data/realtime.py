@@ -67,7 +67,10 @@ def krx_to_yfinance(ticker: str, asset_type: str = "etf") -> str:
 
 def get_realtime_price(ticker: str, asset_type: str = "etf",
                        cache_ttl: int = 300) -> Optional[dict]:
-    """yfinance에서 현재 가격 조회 (장중만, 5분 캐시)
+    """현재 가격 조회 (장중만, 5분 캐시).
+
+    KIS Open API(실시간)를 우선 사용하고, 비활성/실패 시 yfinance(15분 지연)로
+    fallback 한다. 둘 다 실패하면 None.
 
     Returns:
         성공 시 {"price", "prev_close", "change", "change_pct",
@@ -83,7 +86,19 @@ def get_realtime_price(ticker: str, asset_type: str = "etf",
     if cached and (now - cached["fetched_at"]) < cache_ttl:
         return cached["data"]
 
-    # yfinance 조회
+    # 1) KIS 실시간 시세 우선 (활성화된 경우)
+    try:
+        from src.data import kis_client
+        if kis_client.is_enabled():
+            kis_data = kis_client.get_current_price(ticker, cache_ttl=cache_ttl)
+            if kis_data:
+                _cache[ticker] = {"data": kis_data, "fetched_at": now}
+                return kis_data
+            # KIS 실패 시 yfinance로 fallback (아래로 진행)
+    except Exception as e:
+        logger.warning(f"KIS 조회 실패, yfinance fallback ({ticker}): {e}")
+
+    # 2) yfinance fallback (15분 지연)
     try:
         import yfinance as yf
         yf_ticker = krx_to_yfinance(ticker, asset_type)
