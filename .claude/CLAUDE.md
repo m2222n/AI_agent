@@ -77,10 +77,10 @@
 - [x] 데이터 정합성 검증 로직 — validate_result() 구현 완료
 
 **1-3. 한국투자증권 OpenAPI 연동**
-- [x] 한국투자증권 계좌 개설 (2026-06-10) — KIS Developers API 키 발급은 다음 단계
-- [ ] KIS Developers 앱 등록 + API 키(appkey/appsecret) 발급
-- [ ] 실시간 시세 조회 연동 (REST, 추후 WebSocket)
-- [ ] 에러 핸들링 패턴 적용 (timeout, retry, rate limit)
+- [x] 한국투자증권 계좌 개설 (2026-06-10)
+- [x] KIS Developers 앱 등록 + API 키(appkey/appsecret) 발급
+- [x] 실시간 시세 조회 연동 (REST, PR #50) — `src/data/kis_client.py` 현재가(FHKST01010100), realtime.py가 KIS 우선→yfinance fallback. 추후 WebSocket
+- [x] 에러 핸들링 패턴 적용 (timeout, OAuth 토큰 디스크 캐시/재발급 분당 1회 제한 회피, rt_cd/HTTP 오류 시 None→fallback)
 
 **1-4. 수집 자동화** ✅ 완료
 - [x] 일배치 셸 스크립트 (`scripts/daily_collect.sh`) — 수집 + 로깅 + 정리
@@ -528,7 +528,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-08 (dead code 정리: 깨진 아카이브 스크립트 docs/test_scenarios.py 제거 + calc_ichimoku 중복 라인 정리. bare pytest 수집 복구. 도구 14개, 테스트 649개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854)_
+_Last Updated: 2026-06-12 (Phase F-2 착수 — KIS Open API 실시간 현재가 REST 연동 PR #50: src/data/kis_client.py(OAuth 토큰 디스크 캐시 + FHKST01010100 현재가), realtime.py KIS 우선→yfinance fallback, 테스트 22개(전체 671), 장중 라이브 검증. 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2")_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 

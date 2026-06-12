@@ -2179,5 +2179,46 @@ DEPLOY.md 기반으로 사용자가 직접 Railway에 배포(클로드는 단계
 
 ---
 
-_Last Updated: 2026-06-10 (Streamlit↔SaaS 패리티 완료 PR #42~48: 비교/재무/전망/데이터범위안내/기술10년/방문자카운터(라이브검증 누적148)/업종필터. KIS 계좌 개설 완료→F-2 착수 가능. 라이브 운영 중, Streamlit 병행. 다음: KIS API키 발급→실시간시세, 푸시, 유료전환)_
+## Phase F-2: KIS Open API 실시간 현재가 연동 (REST) (2026-06-12, PR #50)
+
+계좌 개설(6-10)에 이어 사용자가 **KIS Developers 앱 등록 + API 키 발급 완료**(`.env`에 KIS_APP_KEY/SECRET/ACCOUNT_NO/ENV 설정됨). 이번엔 **REST 현재가 + 코드/테스트만** (WebSocket·호가·체결은 후속, 프론트 노출/Railway env 등록도 후속).
+
+### 설계: KIS 우선 → yfinance fallback
+- 기존 `realtime.py`는 yfinance(15분 지연)뿐 → KIS(실시간)를 우선 시도, 비활성/실패 시 yfinance로 자동 fallback. **realtime 표준 스키마**(price/prev_close/change/change_pct/volume/timestamp/source) 그대로 반환해 상위 코드(도구·UI) 변경 최소화.
+- 활성 조건: `KIS_APP_KEY` + `KIS_APP_SECRET` 둘 다 존재(`config.KIS["enabled"]`). 미설정 시 아무 동작 변화 없음(yfinance 그대로).
+
+### 신규/변경
+- **config.py**: `KIS` dict — enabled(키 2종 존재), app_key/secret, env(real|vps), **base_url 자동 선택**(real=openapi:9443 / vps=openapivts:29443), timeout 5s, token_margin 600s. `.env.example`에 KIS 4종 안내.
+- **src/data/kis_client.py**(신규):
+  - `_get_access_token(force)`: OAuth2 `/oauth2/tokenP`(grant_type=client_credentials). **인메모리+디스크 캐시**(`~/.cache/etf_rag/kis_token.json`) + margin 안이면 선제 갱신. **KIS 토큰 재발급 분당 1회 제한**을 디스크 캐시로 회피(프로세스 재시작·멀티프로세스 생존). threading.Lock.
+  - `get_current_price(ticker, cache_ttl)`: `GET /uapi/domestic-stock/v1/quotations/inquire-price`, **tr_id=FHKST01010100**, headers(authorization Bearer/appkey/appsecret/tr_id), params(fid_cond_mrkt_div_code=**J**, fid_input_iscd=티커). rt_cd!="0"이거나 HTTP 오류면 None. 5분 인메모리 캐시.
+  - `_parse_price_output()`: stck_prpr(현재가)/stck_sdpr(전일종가)/prdy_vrss(전일대비)/prdy_ctrt(등락률)/acml_vol(거래량). **prdy_vrss_sign 4(하한)·5(하락)이면 change/change_pct 음수 보정**.
+  - `is_enabled()`, `clear_cache()`.
+- **src/data/realtime.py**: `get_realtime_price`에 KIS 우선 분기 추가(`kis_client.is_enabled()` → `get_current_price()` 성공 시 반환, 실패 시 아래 yfinance로).
+- **src/llm/tools/analysis.py**: 출처 표기 source 분기 — "한국투자증권 실시간 시세" / "yfinance 15분 지연 데이터".
+
+### ⚠️ 함정 (이번에 실제로 부딪힘)
+- **기존 test_realtime.py가 라이브 KIS 호출**: yfinance만 mock하고 KIS는 안 막아서, 실 `.env`에 KIS 키가 있으니 `is_enabled()`=True → 테스트가 진짜 KIS API를 때림(price 134595 같은 실값 반환 → mock 기대값과 불일치로 4개 실패). **수정**: yfinance 전용 테스트 4개에 `patch("src.data.kis_client.is_enabled", return_value=False)` 추가 → 라이브 호출 차단 + 의도(yfinance 경로) 명확화.
+- KIS는 **6자리 종목코드만**(시장구분 J로 ETF/주식/ETN 공통) — yfinance의 .KS/.KQ 변환 불필요.
+
+### 테스트 (tests/test_kis_client.py, 22개)
+- 활성화 2 / 토큰(발급·인메모리캐시·만료재발급·디스크생존·post오류·필드누락) 7 / 파싱(상승·하락부호·0가·누락) 4 / 현재가(비활성·성공+tr_id검증·캐시히트·rt_cd오류·HTTP오류·토큰실패) 7 / realtime 통합(KIS우선·yfinance fallback·KIS비활성) 3.
+- autouse fixture로 디스크 토큰 캐시를 tmp_path로 격리(테스트 간 누수 방지).
+- 전체 **671 pass**(로컬 fastapi 미설치로 test_api/api_tabs/auth/user_data 4파일 제외 — CI는 전체 실행).
+
+### 라이브 검증 (2026-06-12 장중, 실 .env 키)
+- `_get_access_token()` 토큰 발급 OK(디스크 캐시 파일 생성 확인).
+- 삼성전자(005930)·KODEX 200(069500) `get_current_price()` 실시간 현재가 정상(source=kis).
+- LangGraph `get_realtime_price` 도구 end-to-end → "한국투자증권 실시간 시세" 출력.
+
+### 커밋 (브랜치 phase-f2-kis-realtime, main에서 분기, 2개)
+- `feat(kis)`: KIS 현재가 REST 클라이언트 + config / `feat(kis)`: realtime KIS 우선→yfinance fallback + 테스트 22개.
+
+### 다음
+- **배포 시**: Railway 백엔드 env에 KIS_APP_KEY/SECRET/ENV 등록(선택 — 미등록 시 yfinance fallback, 디스크 토큰 캐시는 컨테이너 재시작 시 사라지나 24h 유효라 재발급 부담 적음).
+- **후속 코드**: WebSocket 실시간 스트리밍(체결 구독·토큰 자동 갱신), 호가 10단계, 프론트/사이드바 KIS 시세 노출. **F-3 KoELECTRA 감성**, 푸시(VAPID), 유료 전환.
+
+---
+
+_Last Updated: 2026-06-12 (Phase F-2 KIS 실시간 현재가 REST 연동 PR #50: kis_client.py OAuth 토큰 캐시+FHKST01010100 현재가, realtime KIS 우선→yfinance fallback, 테스트 22개(전체 671), 장중 라이브 검증. 다음: WebSocket·호가, Railway KIS env, 푸시, 유료전환)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
