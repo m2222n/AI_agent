@@ -20,6 +20,7 @@ from api.models import (
     MoverItem,
     MoversResponse,
     OverviewResponse,
+    PriceResponse,
     TickerSearchResponse,
 )
 from src.data.technical import get_technical_summary
@@ -264,6 +265,53 @@ async def resolve(q: str = Query(..., min_length=1)):
     if not data:
         raise HTTPException(404, f"'{q}'을(를) 찾을 수 없습니다.")
     return data
+
+
+# ── 실시간 시세 (KIS 우선 → yfinance, 장 외엔 수집 종가) ──────
+def _price_blocking(q: str) -> Optional[dict]:
+    """종목 해석 → 장중이면 실시간(KIS 우선) 조회, 실패/장외면 수집 종가 fallback."""
+    data = _find_structured_data(q)
+    if not data:
+        return None
+    ticker = data.get("ticker", "")
+    name = data.get("name", "")
+    asset_type = "etf" if "nav" in data else "stock"
+
+    from src.data.realtime import get_realtime_price, is_market_open
+    market_open = is_market_open()
+
+    rt = get_realtime_price(ticker, asset_type) if market_open else None
+    if rt:
+        return {
+            "name": name, "ticker": ticker,
+            "price": rt["price"], "prev_close": rt.get("prev_close"),
+            "change": rt.get("change"), "change_pct": rt.get("change_pct"),
+            "volume": rt.get("volume"), "source": rt.get("source", "yfinance"),
+            "is_live": True, "timestamp": rt.get("timestamp"),
+            "market_open": True,
+        }
+
+    # Fallback: 수집 종가
+    date = data.get("date", "")
+    if len(date) == 8:
+        date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
+    return {
+        "name": name, "ticker": ticker,
+        "price": data.get("close", 0) or 0, "prev_close": None,
+        "change": None, "change_pct": data.get("change_pct"),
+        "volume": data.get("volume"), "source": "close",
+        "is_live": False, "timestamp": date or None,
+        "market_open": market_open,
+    }
+
+
+@router.get("/price", response_model=PriceResponse)
+async def price(ticker: str = Query(..., min_length=1)):
+    """종목 현재가 — 장중엔 실시간(KIS 우선→yfinance), 장 외엔 수집 종가(source=close)."""
+    result = await run_in_threadpool(_price_blocking, ticker)
+    if not result:
+        raise HTTPException(404, f"'{ticker}'을(를) 찾을 수 없습니다.")
+    return PriceResponse(**result)
 
 
 # ── 동적 추천질문용 movers (오늘의 급등/급락/거래대금 TOP) ──────────

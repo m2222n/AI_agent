@@ -97,6 +97,21 @@ class MoversResponse(BaseModel):
     most_traded: List[MoverItem]
 
 
+# ── 실시간 시세 (KIS 우선 → yfinance, 장 외엔 종가) ──────
+class PriceResponse(BaseModel):
+    name: str
+    ticker: str
+    price: float                      # 현재가(장중) 또는 종가(장 외)
+    prev_close: Optional[float] = None
+    change: Optional[float] = None
+    change_pct: Optional[float] = None
+    volume: Optional[int] = None
+    source: str                       # "kis" | "yfinance" | "close"(수집 종가)
+    is_live: bool                     # 장중 실시간 여부
+    timestamp: Optional[str] = None    # 조회 시각(실시간) 또는 기준일(종가)
+    market_open: bool                 # 현재 장 운영 여부
+
+
 class FeedbackRequest(BaseModel):
     question: str
     answer: str

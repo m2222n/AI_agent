@@ -6,6 +6,7 @@ import type { TechnicalResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import WatchlistStar from "@/components/WatchlistStar";
 import DataRangeNote from "@/components/DataRangeNote";
+import PriceCard from "@/components/PriceCard";
 
 const PERIODS: { label: string; days: number }[] = [
   { label: "6개월", days: 120 },
@@ -151,6 +152,9 @@ export default function TechnicalPage() {
             <span className="text-xs text-gray-400">{data.ticker}</span>
             <WatchlistStar ticker={data.ticker} />
           </div>
+
+          {/* 실시간 시세 (KIS 우선 → yfinance, 장 외엔 종가) */}
+          <PriceCard ticker={data.ticker} />
 
           {/* 핵심 지표 */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 max-[380px]:grid-cols-1">

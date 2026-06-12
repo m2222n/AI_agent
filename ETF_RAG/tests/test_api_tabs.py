@@ -268,6 +268,65 @@ def test_overview_sector_filter(client):
     assert set(b["sectors"]) == {"전기·전자", "서비스업"}
 
 
+# ── 실시간 시세 /tabs/price ────────────────────────────────────────
+def test_price_live_kis(client):
+    """장중 + KIS 실시간 → is_live=True, source=kis."""
+    structured = {"ticker": "005930", "name": "삼성전자", "close": 69000,
+                  "date": "20260611"}
+    rt = {"price": 70000, "prev_close": 69000, "change": 1000,
+          "change_pct": 1.45, "volume": 12000000,
+          "timestamp": "2026-06-12 10:00", "source": "kis"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.realtime.get_realtime_price", return_value=rt):
+        r = client.get("/tabs/price", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["price"] == 70000
+    assert b["source"] == "kis"
+    assert b["is_live"] is True
+    assert b["market_open"] is True
+    assert b["change_pct"] == 1.45
+
+
+def test_price_fallback_close_when_market_closed(client):
+    """장 외 → 실시간 미조회, 수집 종가(source=close, is_live=False)."""
+    structured = {"ticker": "069500", "name": "KODEX 200", "close": 80800,
+                  "change_pct": 2.91, "volume": 14000000, "nav": 80647,
+                  "date": "20260611"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.realtime.is_market_open", return_value=False):
+        r = client.get("/tabs/price", params={"ticker": "KODEX 200"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["price"] == 80800
+    assert b["source"] == "close"
+    assert b["is_live"] is False
+    assert b["market_open"] is False
+    assert b["timestamp"] == "2026-06-11"  # YYYYMMDD → YYYY-MM-DD
+
+
+def test_price_fallback_close_when_realtime_fails(client):
+    """장중이나 실시간 실패(None) → 종가 fallback."""
+    structured = {"ticker": "005930", "name": "삼성전자", "close": 69000,
+                  "change_pct": 0.5, "date": "20260611"}
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.realtime.is_market_open", return_value=True), \
+         patch("src.data.realtime.get_realtime_price", return_value=None):
+        r = client.get("/tabs/price", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["source"] == "close"
+    assert b["is_live"] is False
+    assert b["market_open"] is True  # 장중이지만 실시간 실패
+
+
+def test_price_404_when_unresolved(client):
+    with patch("api.tabs._find_structured_data", return_value=None):
+        r = client.get("/tabs/price", params={"ticker": "ZZZ없는종목"})
+    assert r.status_code == 404
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)

@@ -82,6 +82,21 @@ export interface TickerSearchResponse {
   options: string[];
 }
 
+/** 실시간 시세 (/tabs/price). source: kis(실시간) | yfinance(지연) | close(종가) */
+export interface PriceData {
+  name: string;
+  ticker: string;
+  price: number;
+  prev_close: number | null;
+  change: number | null;
+  change_pct: number | null;
+  volume: number | null;
+  source: "kis" | "yfinance" | "close";
+  is_live: boolean;
+  timestamp: string | null;
+  market_open: boolean;
+}
+
 /** /tabs/financial 응답 */
 export interface FinancialRow {
   fiscal_year: number;
