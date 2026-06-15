@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getOverview, getVisitor } from "@/lib/api";
+import PushToggle from "@/components/PushToggle";
 import type {
   InstrumentItem,
   OverviewResponse,
@@ -188,6 +189,9 @@ export default function Sidebar({
           filtered.map((it) => <ItemRow key={it.ticker} it={it} onClick={() => go(it)} />)
         )}
       </div>
+
+      {/* 관심종목 푸시 알림 (로그인 + VAPID 활성 시) */}
+      <PushToggle />
 
       {/* 투자 유의 */}
       <p className="mt-4 border-t border-gray-100 pt-3 text-[11px] leading-relaxed text-gray-400">
