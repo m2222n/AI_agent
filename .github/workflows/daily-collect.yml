@@ -162,6 +162,24 @@ jobs:
           git pull --rebase origin main
           git push
 
+      # ── 관심종목 푸시 알림 트리거 (Railway 백엔드 호출) ──────
+      # 수집 후 백엔드가 관심종목 ±임계% 종목을 구독 유저에게 push.
+      # PUSH_ALERT_URL/CRON_TOKEN secret 미설정 시 스크립트가 자동 skip(무해).
+      - name: Trigger watchlist push alerts
+        continue-on-error: true
+        env:
+          PUSH_ALERT_URL: ${{ secrets.PUSH_ALERT_URL }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          if [ -z "$PUSH_ALERT_URL" ] || [ -z "$CRON_TOKEN" ]; then
+            echo "PUSH_ALERT_URL/CRON_TOKEN 미설정 — 알림 트리거 skip"
+            exit 0
+          fi
+          echo "관심종목 알림 트리거: $PUSH_ALERT_URL"
+          curl -fsS -X POST "$PUSH_ALERT_URL" \
+            -H "X-Cron-Token: $CRON_TOKEN" \
+            --max-time 120 || echo "알림 트리거 실패(무시)"
+
   # ── 실패 시 GitHub Issue 자동 생성 ──────────────────────
   notify-failure:
     runs-on: ubuntu-latest

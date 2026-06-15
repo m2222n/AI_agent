@@ -181,3 +181,10 @@ class VapidPublicKeyResponse(BaseModel):
 class PushStatusResponse(BaseModel):
     ok: bool
     detail: Optional[str] = None
+
+
+class WatchlistAlertResponse(BaseModel):
+    ok: bool
+    users_notified: int
+    pushes_sent: int
+    movers: int
