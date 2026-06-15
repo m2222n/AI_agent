@@ -55,6 +55,22 @@ class Watchlist(Base):
     )
 
 
+class PushSubscription(Base):
+    """웹 푸시 구독 (브라우저 PushSubscription). user_id별, endpoint unique."""
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), index=True, nullable=False
+    )
+    endpoint: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    p256dh: Mapped[str] = mapped_column(String(255), nullable=False)  # 구독 공개키
+    auth: Mapped[str] = mapped_column(String(255), nullable=False)    # 인증 시크릿
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+
+
 class ChatHistory(Base):
     __tablename__ = "chat_histories"
 

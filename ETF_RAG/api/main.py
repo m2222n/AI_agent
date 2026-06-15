@@ -44,6 +44,7 @@ from api.models import (
 from api.tabs import router as tabs_router
 from api.auth import router as auth_router, get_current_user_optional
 from api.user_data import router as user_data_router
+from api.push import router as push_router
 from api.models_db import User
 from src.utils.logging import log_feedback
 
@@ -92,6 +93,8 @@ app.include_router(tabs_router)
 app.include_router(auth_router)
 # 유저별 저장 — 관심종목/대화이력 (/me/*)
 app.include_router(user_data_router)
+# 웹 푸시 알림 — 구독/VAPID (/push/*)
+app.include_router(push_router)
 
 
 def _require_ready() -> None:
