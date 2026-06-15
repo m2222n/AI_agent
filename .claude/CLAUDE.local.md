@@ -2279,5 +2279,33 @@ PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용�
 
 ---
 
-_Last Updated: 2026-06-12 (PR #50 KIS REST 현재가 + #51 모바일 드로워 + #52 기술탭 시세카드 + #53 KIS 호가 10단계. KIS: kis_client.py(현재가 FHKST01010100 + 호가 FHKST01010200), /tabs/price·/tabs/orderbook, 기술탭 PriceCard+OrderbookCard(장중 폴링·source 배지). 모바일: 드로워(ChromeShell)+반응형. 테스트 kis_client 30·api_tabs 28. 다음: KIS WebSocket→푸시→유료전환, Railway KIS env)_
+## Phase F-2: KIS WebSocket 실시간 체결 (2026-06-15, PR #54)
+
+"하나씩" 큐 3번째 — 체결 틱 실시간. REST 폴링(#52, 30초)과 달리 체결 단위 즉시. **온디맨드 구독**(사용자 합의): 종목 볼 때만 KIS WS 연결·구독, 떠나면 해제.
+
+**`src/data/kis_ws.py`(신규) — KisWsManager 싱글턴**:
+- approval_key 발급(`{base_url}/oauth2/Approval`, body `grant_type/appkey/`**`secretkey`** — ⚠️ REST 토큰의 `appsecret`과 필드명 다름! 이거 틀리면 발급 실패). REST 토큰과 별개.
+- WS URL `ws://ops.koreainvestment.com:21000`(real)/`:31000`(vps). **프로세스당 단일 연결** 공유.
+- 종목별 **refcount 구독**(`_subscribers: {ticker: set[Queue]}`) — 같은 종목 N구독 시 KIS 등록 send 1회, 마지막 해제 시 해제 send + 전체 0이면 연결 종료.
+- 수신 프레임: `data[0]`이 '0'/'1'이면 실시간(`0|H0STCNT0|<count>|<46필드^...>`), 아니면 JSON(구독응답/PINGPONG→pong). H0STCNT0 체결 파싱(46필드/레코드: 0=코드 1=시간 2=현재가 3=부호 4=전일대비 5=등락률 13=누적거래량, sign 4·5면 음수보정). H0STCNT0은 **암호화 안 됨**(H0STCNI0 통보만 AES) → 복호화 불필요.
+- 구독자 `asyncio.Queue(maxsize=100)` broadcast(느린 구독자 드롭). 첫 구독 시 최신 틱 즉시 1건.
+
+**백엔드 `GET /tabs/price/stream`(SSE)**: `_find_structured_data`로 코드 해석→`mgr.subscribe`→tick을 SSE `tick` 이벤트로 push, `request.is_disconnected()`로 끊김 감지→`unsubscribe`. subscribe None(KIS 미연동/연결실패)이면 `unavailable` 1건 후 종료. 15초 timeout마다 `ping` keep-alive. (sse-starlette EventSourceResponse, native async source — threadpool 불필요.)
+
+**프론트**: `streamPrice()`(fetchEventSource, tick/unavailable 콜백, AbortController) + PriceCard 개편 — REST 1회로 기준값(prev_close) 확보 → SSE 틱으로 price/change 실시간 갱신(배지 "🔴 실시간 (KIS)" + animate-pulse). `unavailable`/오류 시 기존 **REST 30초 폴링 fallback**. cleanup에서 abort→백엔드 unsubscribe 트리거.
+
+**함정/결정**:
+- **pytest-asyncio 미설치**(repo 전체 미사용) → 새 의존성 추가 대신 테스트에서 `asyncio.run` 대신 **전용 new_event_loop + run_until_complete + 끝나면 set_event_loop(new)**로 구동. Python 3.9의 `asyncio.run`이 현재 루프를 None으로 남겨 다음 테스트 setup이 `get_event_loop()`에서 깨지는 문제 회피.
+- `_connect`에서 `get_event_loop()` 금지 → `get_running_loop()`(3.9 호환).
+- **`websockets`를 requirements에 명시**(기존 yfinance transitive → 직접 의존이므로).
+- 단일 워커 전제 유지(set_retriever 전역과 동일) — WS 매니저도 프로세스 싱글턴.
+
+**검증**: 전체 **741 pass**(kis_ws 9: 파서 4+매니저 5, api_tabs price_stream unavailable 1). 프론트 build 통과. **라이브(월 11:12 KST 장중)**: 005930 체결 틱 실시간 수신(336,500→336,250원 + change/거래량/시각) + 구독 해제 시 WS 연결 정상 종료(`_ws=None`).
+
+### 다음
+- (남은 "하나씩" 큐) 푸시 알림(VAPID, 급등/급락/목표가) → 유료 전환. + Railway 백엔드 KIS env 등록(사용자) 시 라이브 실시간(미등록 시 REST fallback), 블로그 9편.
+
+---
+
+_Last Updated: 2026-06-15 (PR #50 현재가 + #51 모바일드로워 + #52 시세카드 + #53 호가10단계 + #54 KIS WebSocket 실시간체결. KIS: kis_client(REST 현재가/호가) + kis_ws(WS 체결 온디맨드구독, approval_key, refcount, H0STCNT0), /tabs/price·orderbook·price/stream(SSE), 기술탭 PriceCard(WS 우선→REST fallback)+OrderbookCard. 모바일 드로워. 테스트 741. 장중 라이브 검증. 다음: 푸시(VAPID)→유료전환, Railway KIS env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
