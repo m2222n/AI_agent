@@ -157,6 +157,45 @@ export async function getPrice(ticker: string): Promise<PriceData | null> {
   return (await res.json()) as PriceData;
 }
 
+/**
+ * 체결 틱 실시간 SSE (KIS WebSocket). 콜백으로 틱/unavailable 전달.
+ * AbortController 반환 — .abort()로 연결 종료(구독 해제 트리거).
+ * KIS 미연동/장외면 onUnavailable 호출(프론트가 REST 폴링으로 fallback).
+ */
+export function streamPrice(
+  ticker: string,
+  cb: {
+    onTick: (t: PriceData) => void;
+    onUnavailable: () => void;
+    onError?: () => void;
+  },
+): AbortController {
+  const ctrl = new AbortController();
+  const url = new URL(`${API_BASE}/tabs/price/stream`);
+  url.searchParams.set("ticker", ticker);
+  fetchEventSource(url.toString(), {
+    signal: ctrl.signal,
+    openWhenHidden: true,
+    onmessage(ev) {
+      if (ev.event === "tick") {
+        try {
+          cb.onTick(JSON.parse(ev.data) as PriceData);
+        } catch {
+          /* ignore */
+        }
+      } else if (ev.event === "unavailable") {
+        cb.onUnavailable();
+      }
+      // "ping"은 keep-alive — 무시
+    },
+    onerror(err) {
+      cb.onError?.();
+      throw err; // 자동 재연결 중단 (fallback은 PriceCard가 담당)
+    },
+  });
+  return ctrl;
+}
+
 /** 호가 10단계 (KIS 전용). KIS 미연동/장 외/실패 시 null. */
 export async function getOrderbook(ticker: string): Promise<OrderbookData | null> {
   const url = new URL(`${API_BASE}/tabs/orderbook`);

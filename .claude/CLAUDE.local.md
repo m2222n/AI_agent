@@ -2262,5 +2262,22 @@ PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용�
 
 ---
 
-_Last Updated: 2026-06-12 (PR #50 KIS REST 현재가 + #51 모바일 사이드바 드로워 + #52 기술탭 실시간 시세카드. KIS: kis_client.py OAuth캐시+FHKST01010100, realtime KIS우선→yfinance fallback, /tabs/price(source 배지·장중 30초 폴링). 모바일: 사이드바 lg:block→드로워(ChromeShell)+데이터탭 반응형. 테스트 671→api_tabs 24. 다음: KIS 호가→WebSocket→푸시→유료전환, Railway KIS env)_
+## Phase F-2: KIS 호가 10단계 (2026-06-12, PR #53)
+
+"하나씩" 큐 2번째. 현재가(#50/#52)와 동일 패턴 — REST 조회→백엔드→프론트.
+
+**kis_client `get_orderbook(ticker)`**: `FHKST01010200`, `/uapi/.../inquire-asking-price-exp-ccn`, 시장구분 J. **output1**(호가정보; output2는 예상체결)에서 askp/bidp 1~10 가격 + askp_rsqn/bidp_rsqn 잔량 + total_askp_rsqn/total_bidp_rsqn 파싱 → `{asks[10],bids[10],total_ask_qty,total_bid_qty}`. **5초 캐시**(호가는 빨리 변함). 전부 0이면 None. 기존 토큰/캐시/Lock 인프라 재사용(get_current_price와 병렬 구조, _orderbook_cache 별도).
+
+**백엔드 `GET /tabs/orderbook?ticker=`**: `_orderbook_blocking`(종목 해석→KIS 조회). **호가는 KIS만 제공(yfinance 미지원) → fallback 없음** — 미연동/장외/실패 시 404. OrderbookResponse/OrderbookLevel.
+
+**프론트 OrderbookCard**: 매도호가(파랑, 위, API 1단계=최저가라 reverse해서 고가 위로)/매수호가(빨강, 아래) 10단계 + 잔량 비례 막대 + 총잔량. **5초 자동 갱신**, null이면(KIS 미연동/장외) **카드 숨김**. 기술 탭 PriceCard 아래.
+
+**검증**: 백엔드 82 pass(kis_client +8: 파싱 3·조회 5, api_tabs +4). 프론트 build 통과. **라이브**: 005930 asks 322,500(11.3만주)/bids 322,000(5만주)/총잔량 정상. **발견**: KIS는 장 외에도 최근(종가) 호가 스냅샷을 반환 → OrderbookCard가 장외에도 표시됨(의도대로 동작, 무해).
+
+### 다음
+- (남은 "하나씩" 큐) KIS WebSocket 실시간 스트리밍 → 푸시(VAPID) → 유료 전환. + Railway KIS env 등록(사용자), 블로그 9편.
+
+---
+
+_Last Updated: 2026-06-12 (PR #50 KIS REST 현재가 + #51 모바일 드로워 + #52 기술탭 시세카드 + #53 KIS 호가 10단계. KIS: kis_client.py(현재가 FHKST01010100 + 호가 FHKST01010200), /tabs/price·/tabs/orderbook, 기술탭 PriceCard+OrderbookCard(장중 폴링·source 배지). 모바일: 드로워(ChromeShell)+반응형. 테스트 kis_client 30·api_tabs 28. 다음: KIS WebSocket→푸시→유료전환, Railway KIS env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

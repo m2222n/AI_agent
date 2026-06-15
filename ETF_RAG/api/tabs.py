@@ -7,11 +7,14 @@ src/ui/tabs.py는 streamlit 의존이라 import 금지 — _build_sector_stats�
 이벤트 루프 보호, None이면 404. summary는 name을 안 주므로 _find_structured_data로 먼저 해석.
 """
 
+import asyncio
+import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
+from sse_starlette.sse import EventSourceResponse
 
 from api.deps import require_ready
 from api.models import (
@@ -313,6 +316,41 @@ async def price(ticker: str = Query(..., min_length=1)):
     if not result:
         raise HTTPException(404, f"'{ticker}'을(를) 찾을 수 없습니다.")
     return PriceResponse(**result)
+
+
+@router.get("/price/stream")
+async def price_stream(request: Request, ticker: str = Query(..., min_length=1)):
+    """체결 틱 실시간 SSE (KIS WebSocket). KIS 미연동/연결 실패 시 `unavailable`
+    이벤트 1건 후 종료 → 프론트는 REST 폴링으로 fallback.
+
+    이벤트: tick(체결 dict) / unavailable / (자동 close)
+    """
+    # 종목 해석 (이름/티커 → 6자리 티커)
+    data = await run_in_threadpool(_find_structured_data, ticker)
+    code = data.get("ticker") if data else ticker
+
+    from src.data import kis_ws
+    mgr = kis_ws.get_manager()
+
+    async def _source():
+        q = await mgr.subscribe(code)
+        if q is None:
+            yield {"event": "unavailable", "data": "KIS 실시간 미연동"}
+            return
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    tick = await asyncio.wait_for(q.get(), timeout=15)
+                    yield {"event": "tick",
+                           "data": json.dumps(tick, ensure_ascii=False)}
+                except asyncio.TimeoutError:
+                    yield {"event": "ping", "data": ""}  # keep-alive
+        finally:
+            await mgr.unsubscribe(code, q)
+
+    return EventSourceResponse(_source())
 
 
 # ── 호가 10단계 (KIS 전용, 장중) ───────────────────────────
