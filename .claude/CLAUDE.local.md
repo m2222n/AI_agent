@@ -2350,5 +2350,16 @@ PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용�
 
 ---
 
-_Last Updated: 2026-06-15 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55(구독인프라)·#56(관심종목 일일 자동알림 ±5%, /push/run-watchlist-alerts X-Cron-Token, daily-collect 트리거 스텝). 푸시 A+B 완료. 테스트 752. 다음: 유료전환/블로그9편, Railway KIS·VAPID·CRON env)_
+## 코드 점검 라운드 (2026-06-15, PR #57)
+
+PR #50~#56(~972줄, KIS REST/WS + 푸시) 점검. **실버그 1건 발견·수정**, 나머지 pyflakes 클린 + 정독 결과 추가 이슈 없음(2026-06-04 라운드의 "LLM 오판" 교훈대로 실제 코드 읽고 검증한 것만 보고).
+
+**버그(kis_ws 재연결)**: `_recv_loop`가 네트워크 오류로 죽으면 `_ws=None`이나 `_subscribers`(구독자 큐)는 유지 → 이후 새 `subscribe()`가 재연결하는데 기존 종목은 `first=False`라 H0STCNT0 register를 새 소켓에 **재전송 안 함** → 재연결 후 그 종목 **틱 영구 끊김**(큐만 들고 15초 ping만 받으며 무한 대기). **수정**: `_connect()`가 (재)연결 성공 직후 `_subscribers` 전 종목 재등록(신규는 _connect 뒤 추가라 중복 없음). 회귀 테스트(death→새 subscribe→기존 종목 register 검증, 수정 제거 시 fail 확인). 753 pass.
+
+### 다음
+- **유료 전환**(구독 결제) 또는 블로그 9편. KIS/VAPID/CRON Railway env 등록(사용자).
+
+---
+
+_Last Updated: 2026-06-15 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56(A 구독 + B 관심종목 일일 자동알림 ±5%) + 코드점검 #57(kis_ws 재연결 실버그 수정). 푸시 A+B 완료. 테스트 753. 다음: 유료전환/블로그9편, Railway KIS·VAPID·CRON env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
