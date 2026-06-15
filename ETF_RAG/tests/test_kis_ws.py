@@ -171,3 +171,41 @@ def test_refcount_two_subscribers_one_register(mgr):
             assert "005930" not in mgr._subscribers
 
     _run(body())
+
+
+def test_reconnect_resubscribes_existing(mgr):
+    """회귀: WS 수신 루프 death(_ws=None, 구독자 유지) 후 새 subscribe가
+    재연결 시 기존 종목을 재등록해야 한다(이전엔 first=False라 누락 → 틱 끊김)."""
+    fake1 = _fake_ws()
+    fake2 = _fake_ws()
+
+    async def body():
+        with patch("config.KIS", ENABLED), \
+             patch("src.data.kis_ws._get_approval_key", return_value="appr"):
+            with patch("websockets.connect", AsyncMock(return_value=fake1)):
+                q1 = await mgr.subscribe("005930")
+                assert q1 is not None
+
+            # 수신 루프 death 시뮬레이션: _ws만 None, 구독자(_subscribers) 유지
+            if mgr._task:
+                mgr._task.cancel()
+            mgr._ws = None
+            assert "005930" in mgr._subscribers  # 구독자 남아 있음
+
+            # 새 종목 구독 → 재연결 발생 → fake2에 기존 005930 재등록돼야 함
+            with patch("websockets.connect", AsyncMock(return_value=fake2)):
+                q2 = await mgr.subscribe("000660")
+                assert q2 is not None
+
+            # fake2(새 연결)에 005930 register(tr_type=1)가 전송됐는지
+            new_conn_sends = [json.loads(c[0][0]) for c in fake2.send.call_args_list]
+            registered = {
+                m["body"]["input"]["tr_key"]
+                for m in new_conn_sends
+                if m["header"]["tr_type"] == "1"
+            }
+            assert "005930" in registered  # 기존 종목 재등록 ✓ (회귀 방지)
+            assert "000660" in registered  # 신규 종목도 등록
+            await mgr._disconnect()
+
+    _run(body())
