@@ -376,6 +376,23 @@ def test_orderbook_404_when_unresolved(client):
     assert r.status_code == 404
 
 
+# ── 실시간 체결 SSE /tabs/price/stream ─────────────────────────────
+def test_price_stream_unavailable_when_subscribe_none(client):
+    """KIS WS 구독 실패(None) → unavailable 이벤트 1건 후 종료."""
+    structured = {"ticker": "005930", "name": "삼성전자"}
+
+    async def _no_sub(code):
+        return None
+
+    fake_mgr = MagicMock()
+    fake_mgr.subscribe = _no_sub
+    with patch("api.tabs._find_structured_data", return_value=structured), \
+         patch("src.data.kis_ws.get_manager", return_value=fake_mgr):
+        r = client.get("/tabs/price/stream", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    assert "unavailable" in r.text
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)
