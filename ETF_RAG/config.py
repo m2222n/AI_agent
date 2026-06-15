@@ -45,6 +45,11 @@ VAPID = {
     "enabled": bool(os.getenv("VAPID_PUBLIC_KEY") and os.getenv("VAPID_PRIVATE_KEY")),
 }
 
+# 크론/배치 트리거 보호 토큰 (GitHub Actions가 푸시 발송 엔드포인트 호출 시).
+# 미설정 시 해당 엔드포인트 비활성(403). 관심종목 알림 임계값(±%)도 여기서 조정.
+CRON_TOKEN = os.getenv("CRON_TOKEN", "")
+WATCHLIST_ALERT_THRESHOLD = float(os.getenv("WATCHLIST_ALERT_THRESHOLD", "5.0"))
+
 
 def get_latest_collected_path() -> Optional[Path]:
     """수집 디렉토리에서 가장 최근 ETF 데이터 파일 경로를 반환. 없으면 None."""

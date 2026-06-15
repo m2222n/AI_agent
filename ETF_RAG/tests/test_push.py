@@ -153,3 +153,83 @@ def test_send_push_to_user_removes_gone_subscription(client, auth):
         assert s.query(PushSubscription).count() == 0  # 만료 → 삭제
     finally:
         s.close()
+
+
+# ── 관심종목 일일 알림 ────────────────────────────────────
+def _seed_watchlist(uid, *tickers):
+    from api.models_db import Watchlist
+    s = db.SessionLocal()
+    try:
+        for t in tickers:
+            s.add(Watchlist(user_id=uid, ticker=t))
+        s.commit()
+    finally:
+        s.close()
+
+
+def test_run_alerts_403_without_token(client):
+    with patch("config.CRON_TOKEN", "secret"):
+        r = client.post("/push/run-watchlist-alerts")
+    assert r.status_code == 403
+
+
+def test_run_alerts_403_disabled_when_no_cron_token(client):
+    with patch("config.CRON_TOKEN", ""):
+        r = client.post("/push/run-watchlist-alerts",
+                        headers={"X-Cron-Token": "anything"})
+    assert r.status_code == 403
+
+
+def test_run_alerts_sends_for_movers(client, auth):
+    # 구독 + 관심종목 2개 등록
+    client.put("/push/subscribe", json=SUB, headers=auth)
+    from api.models_db import User
+    s = db.SessionLocal()
+    try:
+        uid = s.query(User).first().id
+    finally:
+        s.close()
+    _seed_watchlist(uid, "005930", "000660")
+
+    # 005930 +6.2%(급등), 000660 -1.0%(임계 미만)
+    def _fsd(t):
+        return {
+            "005930": {"name": "삼성전자", "change_pct": 6.2, "close": 70000},
+            "000660": {"name": "SK하이닉스", "change_pct": -1.0, "close": 100000},
+        }.get(t)
+
+    with patch("config.CRON_TOKEN", "secret"), \
+         patch("config.WATCHLIST_ALERT_THRESHOLD", 5.0), \
+         patch("src.llm.tools._find_structured_data", side_effect=_fsd), \
+         patch("api.push.send_push", return_value=True) as sp:
+        r = client.post("/push/run-watchlist-alerts",
+                        headers={"X-Cron-Token": "secret"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["users_notified"] == 1
+    assert b["pushes_sent"] == 1
+    assert b["movers"] == 1  # 005930만 임계 초과
+    # 발송 payload에 삼성전자 포함
+    payload = sp.call_args[0][1]
+    assert "삼성전자" in payload["body"]
+
+
+def test_run_alerts_no_movers_no_send(client, auth):
+    client.put("/push/subscribe", json=SUB, headers=auth)
+    from api.models_db import User
+    s = db.SessionLocal()
+    try:
+        uid = s.query(User).first().id
+    finally:
+        s.close()
+    _seed_watchlist(uid, "005930")
+
+    with patch("config.CRON_TOKEN", "secret"), \
+         patch("config.WATCHLIST_ALERT_THRESHOLD", 5.0), \
+         patch("src.llm.tools._find_structured_data",
+               return_value={"name": "삼성전자", "change_pct": 1.0}), \
+         patch("api.push.send_push", return_value=True) as sp:
+        r = client.post("/push/run-watchlist-alerts",
+                        headers={"X-Cron-Token": "secret"})
+    assert r.json()["users_notified"] == 0
+    sp.assert_not_called()

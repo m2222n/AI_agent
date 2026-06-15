@@ -7,7 +7,7 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -18,8 +18,9 @@ from api.models import (
     PushSubscribeRequest,
     PushUnsubscribeRequest,
     VapidPublicKeyResponse,
+    WatchlistAlertResponse,
 )
-from api.models_db import PushSubscription, User
+from api.models_db import PushSubscription, User, Watchlist
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/push", tags=["push"])
@@ -150,3 +151,78 @@ def send_test(
     })
     return PushStatusResponse(ok=sent > 0,
                               detail=f"{sent}개 기기로 발송")
+
+
+# ── 관심종목 일일 알림 (배치) ─────────────────────────────
+def run_watchlist_alerts(db: Session) -> dict:
+    """구독 유저별 관심종목 중 당일 ±임계% 종목을 묶어 1건씩 push.
+
+    종목 등락률은 _find_structured_data(현재 로드된 deploy/DB 데이터)로 조회.
+    Returns {"users_notified", "pushes_sent", "movers"}.
+    """
+    from config import WATCHLIST_ALERT_THRESHOLD as THR
+    from src.llm.tools import _find_structured_data
+
+    # 구독이 있는 유저만 대상 (구독 없으면 보낼 곳 없음)
+    user_ids = db.execute(
+        select(PushSubscription.user_id).distinct()
+    ).scalars().all()
+
+    users_notified = 0
+    pushes_sent = 0
+    total_movers = 0
+
+    for uid in user_ids:
+        tickers = db.execute(
+            select(Watchlist.ticker).where(Watchlist.user_id == uid)
+        ).scalars().all()
+        if not tickers:
+            continue
+
+        movers = []
+        for t in tickers:
+            data = _find_structured_data(t)
+            if not data:
+                continue
+            pct = data.get("change_pct")
+            if pct is None or abs(pct) < THR:
+                continue
+            movers.append((data.get("name", t), pct))
+
+        if not movers:
+            continue
+        total_movers += len(movers)
+
+        # 알림 본문: "삼성전자 +6.2%, SK하이닉스 -5.4%"
+        movers.sort(key=lambda x: abs(x[1]), reverse=True)
+        parts = [f"{n} {p:+.1f}%" for n, p in movers]
+        title = f"관심종목 {len(movers)}개 급변동"
+        body = ", ".join(parts[:5]) + ("…" if len(parts) > 5 else "")
+        sent = send_push_to_user(db, uid, {
+            "title": title, "body": body, "url": "/technical",
+        })
+        if sent:
+            users_notified += 1
+            pushes_sent += sent
+
+    return {"users_notified": users_notified,
+            "pushes_sent": pushes_sent,
+            "movers": total_movers}
+
+
+@router.post("/run-watchlist-alerts", response_model=WatchlistAlertResponse)
+def run_alerts(
+    x_cron_token: str = Header(None, alias="X-Cron-Token"),
+    db: Session = Depends(get_db),
+) -> WatchlistAlertResponse:
+    """관심종목 일일 알림 발송 (GitHub Actions 수집 후 호출). X-Cron-Token 보호.
+
+    CRON_TOKEN 미설정 시 403(비활성). VAPID 미설정 시 발송은 no-op(0건).
+    """
+    from config import CRON_TOKEN
+    if not CRON_TOKEN:
+        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
+    if x_cron_token != CRON_TOKEN:
+        raise HTTPException(403, "잘못된 토큰")
+    result = run_watchlist_alerts(db)
+    return WatchlistAlertResponse(ok=True, **result)
