@@ -528,7 +528,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-15 (Phase F 진행 — KIS 현재가/호가/WS실시간 #50·#52·#53·#54 + 모바일 드로워 #51 + 웹푸시 구독인프라 #55. KIS: kis_client(REST)+kis_ws(WS 체결 온디맨드구독), /tabs/price·orderbook·price/stream(SSE), PriceCard(WS→REST fallback)+OrderbookCard. 푸시: VAPID + /push/subscribe·test + PushSubscription + SW push핸들러 + PushToggle + send_push_to_user 헬퍼. 장중 라이브 검증. 테스트 748, 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F: 웹 푸시")_
+_Last Updated: 2026-06-15 (Phase F 진행 — KIS 현재가/호가/WS실시간 #50·#52·#53·#54 + 모바일 드로워 #51 + 웹푸시 #55(구독인프라)·#56(관심종목 일일 자동알림 ±5%). KIS: kis_client(REST)+kis_ws(WS 온디맨드), /tabs/price·orderbook·price/stream(SSE), PriceCard(WS→REST fallback)+OrderbookCard. 푸시: VAPID+PushSubscription+SW핸들러+PushToggle / run_watchlist_alerts(/push/run-watchlist-alerts X-Cron-Token, daily-collect 트리거). 장중 라이브 검증. 테스트 752, 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F: 웹 푸시")_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 

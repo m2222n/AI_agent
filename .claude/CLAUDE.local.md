@@ -2329,10 +2329,26 @@ PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용�
 
 **사용자 액션(배포 시)**: `python scripts/gen_vapid_keys.py` → Railway 백엔드 env `VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT`. 미등록 시 토글 숨김(무관).
 
-### 다음 (PR-B)
-관심종목 급등/급락 감지 → `send_push_to_user` 자동 발송(GitHub Actions 일일 수집 후, 장 마감). 그 다음: 유료 전환, 블로그 9편.
+### PR-B 완료 (아래)
+
+## Phase F: 관심종목 일일 자동 푸시 알림 (2026-06-15, PR #56)
+
+푸시 **B(자동 발송)**. A(#55)의 `send_push_to_user` 재사용. 트리거=백엔드 엔드포인트(합의), 임계=**±5%**.
+
+- `config.CRON_TOKEN`(배치 보호) + `WATCHLIST_ALERT_THRESHOLD`(5.0).
+- `push.run_watchlist_alerts(db)`: **구독 있는 유저**(distinct PushSubscription.user_id)별 관심종목 → `_find_structured_data(t)`로 당일 등락률 → `abs(pct) >= THR`만 등락 큰 순 정렬→1건으로 묶어 push("삼성전자 +6.2%, …" 상위 5 + "…"). url=/technical.
+- `POST /push/run-watchlist-alerts`: **X-Cron-Token** 헤더 보호(`CRON_TOKEN` 미설정 시 403, 토큰 불일치 403). `WatchlistAlertResponse{users_notified,pushes_sent,movers}`.
+- `daily-collect.yml`: 커밋·푸시 후 트리거 스텝 — `curl -X POST $PUSH_ALERT_URL -H X-Cron-Token`. **함정**: step `if: env.X` 가 step-level env(secret) 못 읽음 → `if` 빼고 스크립트 안에서 `[ -z "$VAR" ] && skip`. `continue-on-error`(수집 본작업 무관).
+- 테스트 4개(토큰 없음 403, CRON_TOKEN 미설정 403, 급등 종목 발송+payload "삼성전자" 검증, 임계 미만 미발송). 752 pass.
+
+**알려진 한계**: 백엔드는 **부팅 시 로드된 deploy/DB 스냅샷**으로 등락률 판단 → 당일 최신 반영하려면 재배포/데이터 reload 필요(후속). 무료 티어 재시작+keep-alive로 대체로 최근값.
+
+**사용자 액션(배포 시)**: GHA secret `PUSH_ALERT_URL`(=백엔드/push/run-watchlist-alerts) + `CRON_TOKEN`(랜덤) / Railway 백엔드 env `CRON_TOKEN` 동일값(+#55 VAPID).
+
+### 다음
+- **유료 전환**(구독 결제) 또는 블로그 9편. KIS/VAPID/CRON Railway env 등록(사용자). "하나씩" 큐의 푸시까지 완료.
 
 ---
 
-_Last Updated: 2026-06-15 (PR #50~#54 KIS(현재가/호가/WS) + 모바일드로워 + #55 웹푸시 구독인프라(VAPID, /push/subscribe·test, PushSubscription, SW push핸들러, PushToggle, send_push_to_user 헬퍼). 테스트 748. 다음: 푸시 자동발송(PR-B 관심종목 일일알림)→유료전환, Railway KIS/VAPID env)_
+_Last Updated: 2026-06-15 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55(구독인프라)·#56(관심종목 일일 자동알림 ±5%, /push/run-watchlist-alerts X-Cron-Token, daily-collect 트리거 스텝). 푸시 A+B 완료. 테스트 752. 다음: 유료전환/블로그9편, Railway KIS·VAPID·CRON env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
