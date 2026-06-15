@@ -2307,5 +2307,32 @@ PR #50(KIS REST 현재가)을 SaaS 프론트에 실제로 보이게 함. 사용�
 
 ---
 
-_Last Updated: 2026-06-15 (PR #50 현재가 + #51 모바일드로워 + #52 시세카드 + #53 호가10단계 + #54 KIS WebSocket 실시간체결. KIS: kis_client(REST 현재가/호가) + kis_ws(WS 체결 온디맨드구독, approval_key, refcount, H0STCNT0), /tabs/price·orderbook·price/stream(SSE), 기술탭 PriceCard(WS 우선→REST fallback)+OrderbookCard. 모바일 드로워. 테스트 741. 장중 라이브 검증. 다음: 푸시(VAPID)→유료전환, Railway KIS env)_
+## Phase F: 웹 푸시 구독 인프라 (2026-06-15, PR #55)
+
+"하나씩" 큐 4번째 — 푸시 알림. **두 PR로 분할** 중 **A(구독 인프라)**. 범위 합의: 구독+관심종목 일일 알림(자동 발송은 B).
+
+**구조**: 웹 푸시 = ①구독(브라우저→SW PushSubscription→DB 저장) ②발송(트리거→서버 push). 트리거 소스는 **GitHub Actions 일일 수집**(상시 서버 스케줄러 없음 — Railway 단일워커) → 장 마감 후 1회. 구독은 **로그인 유저별**(user_id, 관심종목 알림 대상이라).
+
+**백엔드**:
+- `scripts/gen_vapid_keys.py`: VAPID 키쌍 생성(public = applicationServerKey용 raw uncompressed point b64url, private = raw b64url). 1회 고정 — 키 바꾸면 기존 구독 전부 무효.
+- `config.VAPID`(public/private/subject, 키 2종 있으면 enabled). requirements `pywebpush>=2`(py-vapid/http-ece/cryptography 끌려옴).
+- `models_db.PushSubscription`(user_id FK + endpoint **unique** + p256dh/auth).
+- `api/push.py`: `GET /push/vapid-public-key`(공개, 인증X) + `PUT /push/subscribe`(endpoint 기준 upsert 멱등) + `POST /push/unsubscribe`(유저 본인 endpoint만) + `POST /push/test`(내 구독 발송, VAPID 미설정 시 503). **`send_push`/`send_push_to_user` 헬퍼**(WebPushException 410/404 → `_SubscriptionGone` → DB 삭제) — **PR-B 자동발송에서 재사용**. VAPID 미설정 시 발송 graceful no-op.
+- main.py include_router(push).
+
+**프론트**:
+- `sw.js`: `push` 핸들러(event.data.json()→showNotification{title,body,icon,data.url}) + `notificationclick`(기존 창 focus+navigate / 없으면 openWindow).
+- `lib/push.ts`: getVapidInfo + pushSupported + subscribePush(Notification.requestPermission→pushManager.subscribe(applicationServerKey=urlBase64ToUint8Array)→백엔드 PUT) + unsubscribePush + sendTestPush. **함정**: TS strict에서 `applicationServerKey: Uint8Array`가 BufferSource와 충돌 → `as BufferSource` 캐스팅.
+- `PushToggle`: 로그인 + VAPID enabled + pushSupported 셋 다일 때만 표시(아니면 null). 구독 토글 + 테스트 알림 버튼. Sidebar에 배치.
+
+**검증**: 전체 **748 pass**(push 7: 공개키 enabled/disabled, 구독 멱등(중복행 0), 해제, test 503/발송 mock, 만료 구독 자동삭제). 프론트 build 통과. (실제 브라우저 푸시 수신은 VAPID env+HTTPS+실기기 필요 — 코드 경로는 mock+빌드로 검증.)
+
+**사용자 액션(배포 시)**: `python scripts/gen_vapid_keys.py` → Railway 백엔드 env `VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT`. 미등록 시 토글 숨김(무관).
+
+### 다음 (PR-B)
+관심종목 급등/급락 감지 → `send_push_to_user` 자동 발송(GitHub Actions 일일 수집 후, 장 마감). 그 다음: 유료 전환, 블로그 9편.
+
+---
+
+_Last Updated: 2026-06-15 (PR #50~#54 KIS(현재가/호가/WS) + 모바일드로워 + #55 웹푸시 구독인프라(VAPID, /push/subscribe·test, PushSubscription, SW push핸들러, PushToggle, send_push_to_user 헬퍼). 테스트 748. 다음: 푸시 자동발송(PR-B 관심종목 일일알림)→유료전환, Railway KIS/VAPID env)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
