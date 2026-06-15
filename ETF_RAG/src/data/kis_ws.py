@@ -136,6 +136,14 @@ class KisWsManager:
             return False
         self._task = asyncio.ensure_future(self._recv_loop())
         logger.info("KIS WS 연결됨")
+
+        # 재연결인 경우: 수신 루프 death로 _ws만 None이 됐고 구독자(_subscribers)는
+        # 남아 있다 → 새 연결에 기존 구독 종목을 전부 재등록(없으면 틱이 안 옴).
+        for ticker in list(self._subscribers):
+            try:
+                await self._ws.send(self._sub_msg(ticker, True))
+            except Exception as e:
+                logger.warning(f"KIS WS 재구독 실패 ({ticker}): {e}")
         return True
 
     async def _disconnect(self):
