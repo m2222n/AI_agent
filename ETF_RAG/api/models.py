@@ -155,3 +155,29 @@ class OverviewResponse(BaseModel):
     top_etfs: List[InstrumentItem]
     top_stocks: List[InstrumentItem]
     sectors: List[str]  # 주식 섹터 목록
+
+
+# ── 웹 푸시 (VAPID) ─────────────────────────────────────
+class PushKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscribeRequest(BaseModel):
+    """브라우저 PushSubscription.toJSON() 형태."""
+    endpoint: str
+    keys: PushKeys
+
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str
+
+
+class VapidPublicKeyResponse(BaseModel):
+    public_key: str        # applicationServerKey (URL-safe base64). 미설정 시 ""
+    enabled: bool
+
+
+class PushStatusResponse(BaseModel):
+    ok: bool
+    detail: Optional[str] = None

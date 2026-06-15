@@ -36,6 +36,15 @@ if JWT_SECRET == "dev-insecure-change-me":
         "JWT_SECRET 미설정 — dev 기본값 사용 중. 프로덕션에서는 반드시 환경변수로 설정하세요."
     )
 
+# 웹 푸시 알림 (VAPID) — scripts/gen_vapid_keys.py 로 1회 생성해 고정.
+# 키 3종 모두 설정돼야 활성화. 미설정 시 푸시 비활성(구독/발송 비활성, 다른 기능 무관).
+VAPID = {
+    "public_key": os.getenv("VAPID_PUBLIC_KEY", ""),
+    "private_key": os.getenv("VAPID_PRIVATE_KEY", ""),
+    "subject": os.getenv("VAPID_SUBJECT", "mailto:admin@example.com"),
+    "enabled": bool(os.getenv("VAPID_PUBLIC_KEY") and os.getenv("VAPID_PRIVATE_KEY")),
+}
+
 
 def get_latest_collected_path() -> Optional[Path]:
     """수집 디렉토리에서 가장 최근 ETF 데이터 파일 경로를 반환. 없으면 None."""
