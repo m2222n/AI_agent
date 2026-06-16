@@ -270,7 +270,8 @@ def get_stock_news(name_or_ticker: str, max_articles: int = 8) -> str:
         "긍정": "🟢", "부정": "🔴", "중립": "⚪", "혼재": "🟡",
     }
     emoji = sentiment_emoji.get(result["overall_sentiment"], "⚪")
-    lines.append(f"**전체 감성:** {emoji} {result['overall_sentiment']}")
+    src_tag = " (로컬 모델)" if result.get("sentiment_source") == "local" else ""
+    lines.append(f"**전체 감성:** {emoji} {result['overall_sentiment']}{src_tag}")
     lines.append(
         f"  긍정 {result['positive_count']}건 / "
         f"부정 {result['negative_count']}건 / "

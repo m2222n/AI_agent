@@ -50,6 +50,13 @@ VAPID = {
 CRON_TOKEN = os.getenv("CRON_TOKEN", "")
 WATCHLIST_ALERT_THRESHOLD = float(os.getenv("WATCHLIST_ALERT_THRESHOLD", "5.0"))
 
+# 로컬 금융 감성 분류 (F-3) — KR-FinBert-SC. transformers/torch 설치 시 사용,
+# 미설치 시 자동으로 GPT-4o-mini fallback(news.py). 비용 0 + 데이터 외부 미전송.
+SENTIMENT = {
+    "enabled": os.getenv("LOCAL_SENTIMENT", "1") != "0",  # 0이면 강제 비활성(GPT)
+    "model": os.getenv("SENTIMENT_MODEL", "snunlp/KR-FinBert-SC"),
+}
+
 
 def get_latest_collected_path() -> Optional[Path]:
     """수집 디렉토리에서 가장 최근 ETF 데이터 파일 경로를 반환. 없으면 None."""

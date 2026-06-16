@@ -1,8 +1,9 @@
 """
-뉴스 수집 + LLM 감성 분석 모듈
+뉴스 수집 + 감성 분석 모듈
 
 - Google News RSS로 종목 관련 뉴스 수집 (최근 7일)
-- GPT-4o-mini로 감성 분석 (긍정/부정/중립 + 요약)
+- 감성 분류: 로컬 KR-FinBert-SC(설치 시) → GPT-4o-mini fallback (src/data/sentiment.py)
+- 요약/키워드: GPT-4o-mini (로컬 분류 모델은 라벨만 → 요약은 생성 모델 필요)
 - 네이버 크롤링 금지 (ToS 위반) → RSS/API만 사용
 """
 
@@ -81,10 +82,41 @@ def fetch_google_news(
     return articles
 
 
+def _overall(pos: int, neg: int, neu: int) -> str:
+    """긍/부/중 카운트 → 전체 감성."""
+    if pos > neg and pos > neu:
+        return "긍정"
+    if neg > pos and neg > neu:
+        return "부정"
+    if pos == neg and pos > 0:
+        return "혼재"
+    return "중립"
+
+
+def _local_classify(articles: list[dict]) -> Optional[list]:
+    """로컬 모델(KR-FinBert-SC)로 기사 감성 분류. 미설치/실패 시 None.
+
+    제목 + 요약 앞부분을 입력으로 사용. 반환 길이는 articles와 일치.
+    """
+    try:
+        from src.data import sentiment
+    except Exception:
+        return None
+    texts = []
+    for a in articles:
+        t = a.get("title", "")
+        s = a.get("summary", "")
+        texts.append(f"{t} {s[:100]}".strip() if s else t)
+    labels = sentiment.classify_sentiments(texts)
+    if labels is None or len(labels) != len(articles):
+        return None
+    return labels
+
+
 def analyze_sentiment_batch(
     articles: list[dict], stock_name: str
 ) -> dict:
-    """LLM으로 뉴스 감성 분석 (배치).
+    """뉴스 감성 분석 (배치). 감성 분류는 로컬 모델 우선→GPT fallback, 요약은 GPT.
 
     Returns:
         {
@@ -108,7 +140,10 @@ def analyze_sentiment_batch(
             "articles": [],
         }
 
-    # LLM 호출로 감성 분석
+    # 1) 감성 분류: 로컬 모델(KR-FinBert-SC) 우선, 미설치 시 None → GPT가 담당
+    local_sents = _local_classify(articles)
+
+    # LLM 호출로 (요약/키워드 + 필요 시 감성 분류)
     try:
         from src.llm.client import create_client, get_api_key
         import json
@@ -124,7 +159,19 @@ def analyze_sentiment_batch(
             if a["summary"]:
                 articles_text += f"\n    {a['summary'][:100]}"
 
-        prompt = f"""다음은 '{stock_name}' 관련 최근 뉴스 헤드라인입니다.
+        if local_sents is not None:
+            # 감성은 로컬이 결정 → GPT는 요약/키워드만
+            prompt = f"""다음은 '{stock_name}' 관련 최근 뉴스 헤드라인입니다.
+{articles_text}
+
+아래 JSON 형식으로 분석해주세요 (한국어로):
+{{
+  "key_topics": ["주요 키워드 3-5개"],
+  "summary": "전체 뉴스 흐름을 2-3문장으로 요약"
+}}
+JSON만 출력하세요"""
+        else:
+            prompt = f"""다음은 '{stock_name}' 관련 최근 뉴스 헤드라인입니다.
 {articles_text}
 
 아래 JSON 형식으로 분석해주세요 (한국어로):
@@ -155,8 +202,14 @@ def analyze_sentiment_batch(
         else:
             raise ValueError("JSON 파싱 실패")
 
+        # 감성 소스 결정: 로컬 우선, 없으면 GPT 응답
+        if local_sents is not None:
+            sentiments = {i + 1: s for i, s in enumerate(local_sents)}
+        else:
+            sentiments = {s["index"]: s["sentiment"]
+                          for s in analysis.get("sentiments", [])}
+
         # 각 기사에 감성 태깅
-        sentiments = {s["index"]: s["sentiment"] for s in analysis.get("sentiments", [])}
         pos = neg = neu = 0
         for i, a in enumerate(articles, 1):
             sent = sentiments.get(i, "중립")
@@ -168,28 +221,41 @@ def analyze_sentiment_batch(
             else:
                 neu += 1
 
-        # 전체 감성 판정
-        if pos > neg and pos > neu:
-            overall = "긍정"
-        elif neg > pos and neg > neu:
-            overall = "부정"
-        elif pos == neg and pos > 0:
-            overall = "혼재"
-        else:
-            overall = "중립"
-
         return {
-            "overall_sentiment": overall,
+            "overall_sentiment": _overall(pos, neg, neu),
             "positive_count": pos,
             "negative_count": neg,
             "neutral_count": neu,
             "key_topics": analysis.get("key_topics", []),
             "summary": analysis.get("summary", ""),
+            "sentiment_source": "local" if local_sents is not None else "gpt",
             "articles": articles,
         }
 
     except Exception as e:
         logger.warning(f"감성 분석 LLM 호출 실패: {e}")
+
+        # GPT 실패해도 로컬 분류가 있으면 감성은 살린다(요약만 누락)
+        if local_sents is not None:
+            pos = neg = neu = 0
+            for a, sent in zip(articles, local_sents):
+                a["sentiment"] = sent
+                if sent == "긍정":
+                    pos += 1
+                elif sent == "부정":
+                    neg += 1
+                else:
+                    neu += 1
+            return {
+                "overall_sentiment": _overall(pos, neg, neu),
+                "positive_count": pos,
+                "negative_count": neg,
+                "neutral_count": neu,
+                "key_topics": [],
+                "summary": f"로컬 감성 분석 완료 (요약 생성 실패, 뉴스 {len(articles)}건)",
+                "sentiment_source": "local",
+                "articles": articles,
+            }
         # Fallback: 감성 분석 없이 기사만 반환
         for a in articles:
             a["sentiment"] = "분석 불가"
