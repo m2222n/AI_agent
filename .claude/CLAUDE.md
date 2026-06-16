@@ -24,7 +24,7 @@
 |------|----------------|--------------|
 | LLM | GPT-4o only | GPT-4o-mini (기본) + GPT-4o (복잡 질문) — 라우팅 |
 | Vector DB | **FAISS** (인메모리) | **Pinecone** (free tier, 서버리스) |
-| 데이터 | **pykrx** (ETF ~1,088 + 주식 ~3,100 전종목, 12년 보존) + **yfinance** (장중 15분 지연) | + **한국투자증권 OpenAPI** (실시간) |
+| 데이터 | **pykrx** (ETF ~1,088 + 주식 ~3,100 전종목, 12년 보존) + **yfinance** (장중 15분 지연) + **한국투자증권 OpenAPI** (REST 현재가/호가 + WebSocket 실시간 체결, PR #50~#54) | ✅ 완료 |
 | 검색 | **Hybrid Search** (FAISS + Kiwi BM25, RRF + **Cohere Rerank v3.5** + MMR) | ✅ 완료 |
 | 임베딩 | **OpenAI text-embedding-3-small** | (→ 추후 BGE-M3 비교) |
 | 문서 | 없음 | ETF 투자설명서 PDF 파싱 (PyPDFLoader + RecursiveCharacterTextSplitter) |
@@ -247,7 +247,7 @@
 **4-3. 데이터/분석 확장**
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
 - [x] 종목→ETF 역인덱스 + 섹터 분석 (analyze_sector 도구, 보유종목 cross-reference)
-- [ ] KIS OpenAPI 실시간 시세 연동 (장중 실시간 데이터, 계좌 개설 필요, 추후)
+- [x] KIS OpenAPI 실시간 시세 연동 (PR #50·#52·#53·#54) — REST 현재가(FHKST01010100)/호가(FHKST01010200) + WebSocket 체결(H0STCNT0 온디맨드 구독). 기술탭 PriceCard(WS→REST fallback)+OrderbookCard. 상세: CLAUDE.local.md "Phase F-2"
 - [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
 
 **4-4. 아키텍처 고도화 (→ Phase F/G로 통합)**
@@ -272,6 +272,11 @@
   - [x] **사이드바 신설** (2026-06-10): `/tabs/overview`(데이터현황+ETF/주식 거래대금TOP+섹터) + Sidebar(데스크톱 좌측, 종목검색, 클릭→기술분석).
   - [x] **기술 분석 탭 보강** (2026-06-10): `/tabs/intraday`(장중 15분봉) + 11개 지표 전부(스토캐스틱/일목/CCI/ADX/OBV/ATR) + 골든/데드크로스.
   - [x] **🎯 Streamlit ↔ SaaS 기능 패리티 완료** (2026-06-10): PR #42~#48 (7개). 비교탭(returns 버그수정/5기간 수익률/분기실적/기간선택) + 재무탭(1~5년 기간) + 전망탭(Prophet·통계 축 렌더 버그수정) + 5탭 데이터범위 안내문 + 기술탭 10년 + **방문자 카운터**(`/stats/visit` Supabase, Railway 백엔드 env 등록·라이브 검증 완료 누적 148) + 사이드바 업종 필터. 2회 Explore 대조로 누락분 색출. **상세는 CLAUDE.local.md "SaaS ↔ Streamlit 격차 체크리스트".**
+  - [x] **F-2 KIS 실시간 시세** (2026-06-12~15, PR #50·#52·#53·#54): `kis_client`(REST 현재가 FHKST01010100/호가 FHKST01010200, OAuth 토큰 디스크캐시) + `kis_ws`(WebSocket 체결 H0STCNT0 온디맨드 구독/refcount). `/tabs/price`·`/tabs/orderbook`·`/tabs/price/stream`(SSE). 기술탭 PriceCard(WS 우선→REST 폴링 fallback)+OrderbookCard. 장중 라이브 검증. yfinance/종가 fallback 유지. 상세: CLAUDE.local.md "Phase F-2".
+  - [x] **모바일 사이드바 드로워 + 반응형** (2026-06-12, PR #51): 사이드바가 lg:block이라 모바일에서 통째로 숨겨지던 격차 → ☰ 드로워(ChromeShell) + 데이터탭 그리드/줄바꿈 반응형. 상세: "Phase F-mobile".
+  - [x] **웹 푸시 알림** (2026-06-15, PR #55·#56): VAPID + `PushSubscription` + SW push 핸들러 + PushToggle(구독) / `run_watchlist_alerts`(관심종목 ±5% 일일 자동발송, `/push/run-watchlist-alerts` X-Cron-Token, daily-collect 트리거). transformers 불필요. 상세: "Phase F: 웹 푸시".
+  - [x] **코드 점검 라운드** (2026-06-15, PR #57): PR #50~#56 점검 → kis_ws 재연결 실버그 1건 수정(+회귀테스트). 나머지 클린.
+  - [x] **F-3 로컬 감성 분석** (2026-06-16, PR #58): 뉴스 감성 분류를 로컬 `snunlp/KR-FinBert-SC`(사전학습, 선택적 설치)로 — 분류 로컬→GPT fallback, 요약은 GPT 하이브리드. torch 미설치 시 기존 GPT. 상세: "Phase F-3".
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
