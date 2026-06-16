@@ -34,3 +34,10 @@ PyJWT>=2.8,<3
 bcrypt>=4.0,<6
 email-validator>=2,<3
 pytest>=7.0.0,<9.0
+
+# --- F-3 로컬 감성 분석 (선택) ---
+# 아래 2개를 설치하면 뉴스 감성 분류를 로컬 KR-FinBert-SC로 수행(비용 0).
+# 미설치 시 자동으로 GPT-4o-mini fallback(src/data/news.py). 배포 이미지 경량
+# 유지를 위해 기본 미포함 — 쓰려면 주석 해제(transformers+torch ~수백MB).
+# transformers>=4.30,<5
+# torch>=2.0,<3
