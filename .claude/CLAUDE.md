@@ -248,7 +248,7 @@
 - [x] yfinance 장중 시세 연동 (15분 지연, 계좌 불필요, get_realtime_price 도구)
 - [x] 종목→ETF 역인덱스 + 섹터 분석 (analyze_sector 도구, 보유종목 cross-reference)
 - [x] KIS OpenAPI 실시간 시세 연동 (PR #50·#52·#53·#54) — REST 현재가(FHKST01010100)/호가(FHKST01010200) + WebSocket 체결(H0STCNT0 온디맨드 구독). 기술탭 PriceCard(WS→REST fallback)+OrderbookCard. 상세: CLAUDE.local.md "Phase F-2"
-- [ ] 포트폴리오 시뮬레이션 (과거 3년 데이터 기반 백테스트)
+- [x] 포트폴리오 시뮬레이션 (Phase C-5 `simulate_portfolio` 도구 — 12년 데이터 백테스트, 수익률/MDD/샤프 + KODEX 200 벤치마크)
 
 **4-4. 아키텍처 고도화 (→ Phase F/G로 통합)**
 - [x] Pinecone 듀얼 백엔드 (FAISS+Pinecone, 자동 fallback)
