@@ -404,7 +404,8 @@ ETF_RAG/
 │   │   ├── stock_collector.py # pykrx 기반 주식 일배치 수집 (KOSPI+KOSDAQ, 시세+시총+펀더멘털)
 │   │   ├── dart_collector.py  # OpenDart 분기 재무제표 수집 (dart-fss, CFS→OFS fallback, CLI)
 │   │   ├── predictor.py    # 4축 가격 전망 모델 (기술적+펀더멘털+Ridge회귀+Prophet+EMA피처+Bootstrap CI+6m/1y)
-│   │   ├── news.py         # Google News RSS + GPT-4o-mini 감성 분석 (fetch_google_news, analyze_sentiment_batch)
+│   │   ├── news.py         # Google News RSS + 감성 분석 (로컬 KR-FinBert-SC→GPT fallback, 요약은 GPT)
+│   │   ├── sentiment.py    # 로컬 금융 감성 분류 (KR-FinBert-SC 선택적, transformers 미설치 시 None→GPT)
 │   │   ├── etf_data.json   # 하드코딩 샘플 (8개 ETF, fallback용)
 │   │   ├── etf_rag.db      # SQLite DB (WAL 모드, .gitignore)
 │   │   ├── collected/      # 수집 결과 JSON (.gitignore, 로컬 전용)
@@ -528,7 +529,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-15 (Phase F 진행 — KIS 현재가/호가/WS실시간 #50·#52·#53·#54 + 모바일 드로워 #51 + 웹푸시 #55(구독인프라)·#56(관심종목 일일 자동알림 ±5%) + 코드점검 #57(kis_ws 재연결 실버그). KIS: kis_client(REST)+kis_ws(WS 온디맨드), /tabs/price·orderbook·price/stream(SSE), PriceCard(WS→REST fallback)+OrderbookCard. 푸시: VAPID+PushSubscription+SW핸들러+PushToggle / run_watchlist_alerts(/push/run-watchlist-alerts X-Cron-Token, daily-collect 트리거). 장중 라이브 검증. 테스트 753, 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F: 웹 푸시")_
+_Last Updated: 2026-06-16 (Phase F 진행 — KIS #50·#52·#53·#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57(kis_ws 재연결) + F-3 로컬감성 #58(KR-FinBert-SC 선택적, 분류 로컬→GPT fallback·요약 GPT). 장중 라이브 검증. 테스트 766, 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F-3"/"Phase F: 웹 푸시")_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 

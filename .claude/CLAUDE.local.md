@@ -2361,5 +2361,25 @@ PR #50~#56(~972줄, KIS REST/WS + 푸시) 점검. **실버그 1건 발견·수�
 
 ---
 
-_Last Updated: 2026-06-15 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56(A 구독 + B 관심종목 일일 자동알림 ±5%) + 코드점검 #57(kis_ws 재연결 실버그 수정). 푸시 A+B 완료. 테스트 753. 다음: 유료전환/블로그9편, Railway KIS·VAPID·CRON env)_
+## Phase F-3: 로컬 금융 감성 분석 (2026-06-16, PR #58)
+
+뉴스 감성 분석을 로컬 모델로 — GPT 비용 0 + 데이터 외부 미전송. **결정**: 파인튜닝 대신 **사전학습 금융 모델**(`snunlp/KR-FinBert-SC`, 3-class neg/neu/pos) 즉시 사용 + **선택적 설치(torch 기본 미포함) + GPT fallback**(배포 경량).
+
+**핵심 설계(하이브리드)**: GPT-4o-mini가 기존에 **감성 분류 + 요약**을 함께 함. 로컬 분류 모델은 라벨만 줌(생성 불가) → 분류는 로컬(있으면), **요약/키워드는 GPT 유지**.
+
+- `src/data/sentiment.py`(신규): transformers `pipeline("text-classification")` lazy 싱글턴. **transformers/torch 미설치·로드 실패 시 `classify_sentiments`→None**(`_pipeline=False` 캐시) → 호출자 GPT fallback. 영문/`LABEL_n`(0=neg/1=neu/2=pos) → 긍정/부정/중립 매핑. top_k=1, truncation max_length=256.
+- `news.analyze_sentiment_batch`: `_local_classify`(제목+요약100자) 우선 → 있으면 GPT 프롬프트는 요약/키워드만(sentiments 제외), 없으면 기존 GPT 분류 프롬프트. **GPT 실패해도 로컬 감성은 보존**(요약만 누락 메시지). `sentiment_source`("local"/"gpt") 필드 추가. `_overall()` 헬퍼로 긍/부/중→전체 판정 추출.
+- `financial.py`: 뉴스 도구 출력 전체 감성에 `(로컬 모델)` 표기.
+- `config.SENTIMENT`(enabled=`LOCAL_SENTIMENT!=0`, model). requirements/.env.example 선택 설치 안내(transformers/torch 주석).
+
+**검증**: 전체 **766 pass**(sentiment 13: 라벨매핑 3 + 미설치/비활성 None 3 + pipeline mock 분류/dict형/길이불일치/추론오류 4 + news 하이브리드 3경로(로컬사용·GPT실패시 로컬보존·로컬없으면 GPT)). 기존 news 17 무회귀(테스트 환경 transformers 없음 → None → GPT 경로 유지). pyflakes 클린.
+
+**사용자 액션(로컬 모델 켜기)**: requirements의 transformers/torch 주석 해제·설치 → 자동 로컬 분류(첫 호출 ~400MB 다운로드). 안 하면 기존 GPT. (Railway 배포 시 메모리·이미지 부담 고려 — 무료 티어는 GPT 유지 권장.)
+
+### 다음
+- **유료 전환**(구독 결제) 또는 블로그 9편. Railway env 등록(KIS/VAPID/CRON, 사용자). 로컬 감성 쓰려면 torch 설치.
+
+---
+
+_Last Updated: 2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58(KR-FinBert-SC 선택적, 분류 로컬→GPT fallback, 요약 GPT 하이브리드). 테스트 766. 다음: 유료전환/블로그9편, Railway env, 로컬감성 torch 설치)_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
