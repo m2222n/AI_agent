@@ -1254,5 +1254,145 @@
     "question_type": "technical",
     "expected_ticker": "005490",
     "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 1개월 가격 전망 알려줘",
+    "ground_truth": "삼성전자(005930)의 4축 종합 전망(기술적+펀더멘털+Ridge회귀+Prophet)으로 1개월 가격 방향, 시나리오 확률, Bootstrap 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 3개월 뒤 주가 어떻게 될까?",
+    "ground_truth": "SK하이닉스(000660)의 4축 종합 전망으로 3개월 가격 방향, 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 향후 6개월 전망 분석해줘",
+    "ground_truth": "현대차(005380)의 4축 종합 전망으로 6개월 가격 방향, 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER 주가 1년 전망 예측",
+    "ground_truth": "NAVER(035420)의 4축 종합 전망으로 1년 가격 방향, 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "035420",
+    "asset_type": "stock"
+  },
+  {
+    "question": "기아 목표가 전망 알려줘",
+    "ground_truth": "기아(000270)의 4축 종합 전망(기술적+펀더멘털+Ridge회귀+Prophet)으로 가격 방향과 시나리오 확률을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "000270",
+    "asset_type": "stock"
+  },
+  {
+    "question": "LG화학 앞으로 오를까 내릴까?",
+    "ground_truth": "LG화학(051910)의 4축 종합 전망으로 가격 상승/하락 방향과 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "051910",
+    "asset_type": "stock"
+  },
+  {
+    "question": "카카오 단기 가격 전망 분석",
+    "ground_truth": "카카오(035720)의 4축 종합 전망으로 단기 가격 방향, 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "035720",
+    "asset_type": "stock"
+  },
+  {
+    "question": "POSCO홀딩스 3개월 가격 예측해줘",
+    "ground_truth": "POSCO홀딩스(005490)의 4축 종합 전망으로 3개월 가격 방향, 시나리오 확률, 신뢰구간을 제공합니다.",
+    "question_type": "forecast",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자 최근 뉴스 분위기 어때?",
+    "ground_truth": "삼성전자(005930) 관련 최근 뉴스를 수집하고 전체 감성(긍정/부정/중립/혼재), 긍·부·중 건수, 주요 키워드, 뉴스 흐름 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스 뉴스 여론 분석해줘",
+    "ground_truth": "SK하이닉스(000660) 관련 최근 뉴스의 전체 감성, 긍·부·중 건수, 주요 키워드, 뉴스 흐름 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 관련 최근 뉴스 감성 어때?",
+    "ground_truth": "현대차(005380) 관련 최근 뉴스의 전체 감성(긍정/부정/중립/혼재), 건수, 키워드, 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER 뉴스 흐름 요약해줘",
+    "ground_truth": "NAVER(035420) 관련 최근 뉴스를 수집해 전체 감성, 긍·부·중 건수, 주요 키워드, 뉴스 흐름 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "035420",
+    "asset_type": "stock"
+  },
+  {
+    "question": "카카오 요즘 뉴스 분위기 긍정적이야?",
+    "ground_truth": "카카오(035720) 관련 최근 뉴스의 전체 감성과 긍·부·중 건수, 주요 키워드, 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "035720",
+    "asset_type": "stock"
+  },
+  {
+    "question": "LG에너지솔루션 뉴스 감성 분석",
+    "ground_truth": "LG에너지솔루션(373220) 관련 최근 뉴스의 전체 감성, 긍·부·중 건수, 주요 키워드, 뉴스 흐름 요약을 제공합니다.",
+    "question_type": "news",
+    "expected_ticker": "373220",
+    "asset_type": "stock"
+  },
+  {
+    "question": "삼성전자는 어떤 ETF에 많이 담겨 있어?",
+    "ground_truth": "삼성전자(005930)를 보유한 ETF 목록과 비중, 소속 업종/섹터, 업종 내 밸류에이션 상대 위치(PER/PBR 백분위)를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "005930",
+    "asset_type": "stock"
+  },
+  {
+    "question": "SK하이닉스가 편입된 ETF랑 섹터 분석해줘",
+    "ground_truth": "SK하이닉스(000660)를 편입한 ETF 목록과 비중, 소속 섹터, 업종 내 밸류에이션 상대 위치를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "000660",
+    "asset_type": "stock"
+  },
+  {
+    "question": "현대차 섹터 내 밸류에이션 위치 알려줘",
+    "ground_truth": "현대차(005380)의 소속 업종 내 밸류에이션 상대 위치(PER/PBR 백분위)와 보유 ETF, 섹터 분포를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "005380",
+    "asset_type": "stock"
+  },
+  {
+    "question": "KB금융 업종 분석과 보유 ETF 알려줘",
+    "ground_truth": "KB금융(105560)을 보유한 ETF 목록과 비중, 소속 금융 업종, 업종 내 밸류에이션 상대 위치를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "105560",
+    "asset_type": "stock"
+  },
+  {
+    "question": "POSCO홀딩스 섹터 분석",
+    "ground_truth": "POSCO홀딩스(005490)의 소속 업종, 보유 ETF 목록과 비중, 업종 내 밸류에이션 상대 위치를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "005490",
+    "asset_type": "stock"
+  },
+  {
+    "question": "NAVER가 들어있는 ETF와 업종 위치 분석해줘",
+    "ground_truth": "NAVER(035420)를 보유한 ETF 목록과 비중, 소속 업종, 업종 내 밸류에이션 상대 위치를 분석합니다.",
+    "question_type": "sector",
+    "expected_ticker": "035420",
+    "asset_type": "stock"
   }
 ]

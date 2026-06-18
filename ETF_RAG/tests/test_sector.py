@@ -281,3 +281,36 @@ def test_analyze_sector_stock_with_sector_info():
     result = analyze_sector.invoke({"query": "삼성전자"})
     assert "전기·전자" in result
     assert "동일 업종" in result
+
+
+# ── 통속 업종명 별칭 매핑 (자동차 → 운송장비·부품 등) ──────────
+
+def test_analyze_sector_alias_automobile():
+    """통속명 '자동차' → KRX 공식명 '운송장비·부품' 매핑.
+
+    이전엔 KRX 분류에 '자동차' 섹터가 없어 빈 응답이 나오던 사각지대.
+    RAGAS 평가(2026-06-17)에서 '현대차 섹터 내 밸류에이션' 질문이
+    이 경로로 빠져 AR=0.0이 나온 것이 계기.
+    """
+    set_retriever(None, [], etf_data=SAMPLE_ETF_DATA, stock_data=SAMPLE_STOCK_DATA)
+    result = analyze_sector.invoke({"query": "자동차"})
+    assert "운송장비·부품" in result
+    assert "업종 분석" in result
+    assert "현대차" in result
+
+
+def test_analyze_sector_alias_semiconductor():
+    """통속명 '반도체' → '전기·전자' 매핑."""
+    set_retriever(None, [], etf_data=SAMPLE_ETF_DATA, stock_data=SAMPLE_STOCK_DATA)
+    result = analyze_sector.invoke({"query": "반도체"})
+    assert "전기·전자" in result
+    assert "업종 분석" in result
+
+
+def test_analyze_sector_alias_does_not_hijack_stock_name():
+    """종목명('현대차')이 별칭('차')에 끌려가면 안 됨 — 종목 역인덱스 경로 유지."""
+    set_retriever(None, [], etf_data=SAMPLE_ETF_DATA, stock_data=SAMPLE_STOCK_DATA)
+    result = analyze_sector.invoke({"query": "현대차"})
+    # 종목 분석(보유 ETF) 경로여야지 업종 분석이 아니어야 한다
+    assert "보유한 ETF" in result
+    assert "운송장비·부품 업종 분석" not in result

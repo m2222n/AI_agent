@@ -9,6 +9,8 @@
 
 import logging
 import re
+import ssl
+import urllib.request
 from datetime import datetime, timedelta
 from typing import Optional
 from urllib.parse import quote
@@ -19,6 +21,21 @@ logger = logging.getLogger(__name__)
 
 # Google News RSS 엔드포인트
 GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=ko&gl=KR&ceid=KR:ko"
+
+
+def _fetch_feed(url: str):
+    """RSS URL을 파싱. feedparser 기본 경로가 SSL 인증서를 못 찾는 환경
+    (시스템 CA 미설치 macOS Python 등)을 대비해 certifi CA 번들로 직접
+    fetch한 bytes를 넘긴다. 직접 fetch 실패 시 feedparser 기본 경로로 fallback."""
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            return feedparser.parse(resp.read())
+    except Exception as e:
+        logger.info(f"certifi fetch 실패, feedparser 기본 경로 사용: {e}")
+        return feedparser.parse(url)
 
 
 def fetch_google_news(
@@ -36,7 +53,7 @@ def fetch_google_news(
     """
     url = GOOGLE_NEWS_RSS_URL.format(query=quote(query))
     try:
-        feed = feedparser.parse(url)
+        feed = _fetch_feed(url)
     except Exception as e:
         logger.warning(f"Google News RSS 파싱 실패: {e}")
         return []

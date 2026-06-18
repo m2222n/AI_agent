@@ -2381,5 +2381,23 @@ PR #50~#56(~972줄, KIS REST/WS + 푸시) 점검. **실버그 1건 발견·수�
 
 ---
 
-_Last Updated: 2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58(KR-FinBert-SC 선택적, 분류 로컬→GPT fallback, 요약 GPT 하이브리드). 테스트 766. 다음: 유료전환/블로그9편, Railway env, 로컬감성 torch 설치)_
+## RAG 품질: 신규 도구 평가 커버리지 + 실버그 2건 (2026-06-18)
+
+"Hit Rate 100%가 진짜 천장인가, 측정 안 된 영역인가" 검증. 최근 3개월 추가한 도구(predict_price_outlook/get_stock_news/analyze_sector)가 eval 172개에 한 번도 안 들어가 응답 품질 사각지대였음.
+
+- **eval 커버리지**: forecast 8 + news 6 + sector 6 = 20개 추가(172→192). forecast가 기존 `technical`로 라벨돼 stratified 샘플링에서 신규 도구 누락되던 것도 별도 유형으로 분리. `run_eval.py --types a,b,c` 필터 옵션 신설.
+- **retrieval은 천장 맞음**: 192개 + 신규 20개 모두 Hit Rate 100%, 신규 유형도 **rank-1 정확**. 검색은 문제 없었음.
+- **진짜 사각지대 = 신규 도구 응답 품질(RAGAS)**. 신규 20개 RAGAS에서 AR 0.501(전체 0.709 대비 낮음) → **실버그 2건 발견**:
+  1. **analyze_sector 통속 업종명**: "자동차"는 KRX 분류에 없음(공식명 "운송장비·부품") → "현대차 섹터 밸류에이션" 질문이 빈 응답(AR=0.0). `_SECTOR_ALIASES`(자동차/반도체/바이오/2차전지/철강 등 → KRX 29개 공식명) 추가. 종목명("현대차")이 별칭("차")에 안 끌려가게 역인덱스 종목 가드.
+  2. **news RSS SSL**: feedparser 기본 경로가 시스템 CA 미설치 환경(macOS Python)에서 `CERTIFICATE_VERIFY_FAILED` → 뉴스 **0건** → 감성 분석 전체 무력화(삼성전자도 0건). `_fetch_feed`가 certifi CA 번들로 직접 fetch 후 bytes 전달, 실패 시 기존 경로 fallback. requirements certifi 명시. **Railway(Linux)는 정상이었을 수 있으나 환경 무관 견고화.**
+- **효과(RAGAS news+sector 재측정)**: **AR 0.501→0.747(+0.246, +49%)**, F 0.874→0.895. 테스트 766→**771**(sector 별칭 3 + news SSL 2). 잔존: "NAVER 뉴스 요약" AR=0.0이나 F=1.0(RAGAS 요약형 역질문 측정 한계, 도구 정상) / "현대차 섹터" AR=0.28(빈 응답은 해소, 프롬프트 개선 여지).
+- 커밋(브랜치 rag-eval-newtools-coverage, 2개): fix(tools) 실버그2 + test(eval) 커버리지. **교훈: Hit Rate 100%는 retrieval만 봄 — 도구 응답 품질은 RAGAS로만 잡힘. 신규 도구 추가 시 eval 유형도 함께 추가할 것.**
+
+### 다음
+- 유료 전환 / 블로그 9편 / 현대차 섹터 AR 프롬프트 개선(선택). 위 브랜치 PR→merge.
+
+---
+
+_Last Updated: 2026-06-18 (RAG 품질: 신규 도구 eval 커버리지 20개 추가(192) + 실버그 2건 수정(sector 통속명 별칭·news certifi SSL) → RAGAS AR 0.501→0.747. 테스트 771. 브랜치 rag-eval-newtools-coverage. 다음: 유료전환/블로그9편)_
+_2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

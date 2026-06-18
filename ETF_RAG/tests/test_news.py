@@ -41,7 +41,7 @@ def _make_entry(title, days_ago=0, source="한경", summary=""):
     return entry
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_basic(mock_parse):
     """기본 뉴스 수집"""
     entries = [
@@ -56,7 +56,7 @@ def test_fetch_google_news_basic(mock_parse):
     assert articles[0]["source"] == "한경"
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_date_filter(mock_parse):
     """오래된 기사 필터링"""
     entries = [
@@ -70,7 +70,7 @@ def test_fetch_google_news_date_filter(mock_parse):
     assert "최신" in articles[0]["title"]
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_max_articles(mock_parse):
     """최대 기사 수 제한"""
     entries = [_make_entry(f"뉴스 {i}", days_ago=i) for i in range(5)]
@@ -80,7 +80,7 @@ def test_fetch_google_news_max_articles(mock_parse):
     assert len(articles) == 3
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_empty(mock_parse):
     """뉴스 없음"""
     mock_parse.return_value = _make_mock_feed([])
@@ -89,7 +89,7 @@ def test_fetch_google_news_empty(mock_parse):
     assert articles == []
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_parse_error(mock_parse):
     """RSS 파싱 에러 처리"""
     mock_parse.side_effect = Exception("Network error")
@@ -98,7 +98,7 @@ def test_fetch_google_news_parse_error(mock_parse):
     assert articles == []
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_html_summary(mock_parse):
     """HTML 태그가 포함된 요약 정리"""
     entries = [
@@ -213,7 +213,7 @@ def test_get_stock_news_summary_retry(mock_fetch, mock_analyze):
 
 # ── 엣지 케이스 테스트 ────────────────────────────────────────
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_missing_published(mock_parse):
     """published_parsed 없는 엔트리 처리"""
     entry = MagicMock()
@@ -234,7 +234,7 @@ def test_fetch_google_news_missing_published(mock_parse):
     assert isinstance(articles, list)
 
 
-@patch("src.data.news.feedparser.parse")
+@patch("src.data.news._fetch_feed")
 def test_fetch_google_news_source_extraction(mock_parse):
     """다양한 제목 형식에서 출처 추출"""
     entries = [
@@ -283,3 +283,41 @@ def test_get_stock_news_summary_no_articles(mock_fetch, mock_analyze):
 
     result = get_stock_news_summary("존재하지않는종목")
     assert result["overall_sentiment"] == "데이터 없음"
+
+
+# ── _fetch_feed: certifi 우선 + fallback (RSS SSL 검증 방어) ─────
+
+@patch("src.data.news.urllib.request.urlopen")
+def test_fetch_feed_uses_certifi_path(mock_urlopen):
+    """certifi 컨텍스트로 직접 fetch 성공 시 그 bytes를 feedparser에 넘긴다.
+
+    macOS Python 등 시스템 CA 미설치 환경에서 feedparser 기본 경로가
+    SSL CERTIFICATE_VERIFY_FAILED로 0건 반환하던 문제(2026-06-17 RAGAS
+    평가에서 뉴스 0건 → AR=0.0으로 발견)를 보완한 경로.
+    """
+    from src.data.news import _fetch_feed
+
+    resp_cm = MagicMock()
+    resp_cm.__enter__.return_value.read.return_value = b"<rss></rss>"
+    mock_urlopen.return_value = resp_cm
+
+    with patch("src.data.news.feedparser.parse") as mock_parse:
+        mock_parse.return_value = _make_mock_feed([])
+        _fetch_feed("https://news.google.com/rss/search?q=x")
+
+    # urlopen이 호출되고(=certifi 경로), feedparser.parse는 bytes로 호출됨
+    assert mock_urlopen.called
+    mock_parse.assert_called_once_with(b"<rss></rss>")
+
+
+@patch("src.data.news.urllib.request.urlopen", side_effect=Exception("SSL fail"))
+def test_fetch_feed_fallback_on_certifi_failure(mock_urlopen):
+    """certifi 직접 fetch 실패 시 feedparser 기본 경로(URL)로 fallback."""
+    from src.data.news import _fetch_feed
+
+    with patch("src.data.news.feedparser.parse") as mock_parse:
+        mock_parse.return_value = _make_mock_feed([])
+        _fetch_feed("https://news.google.com/rss/search?q=x")
+
+    # fallback은 URL 문자열로 feedparser.parse 호출
+    mock_parse.assert_called_once_with("https://news.google.com/rss/search?q=x")
