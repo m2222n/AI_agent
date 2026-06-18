@@ -441,14 +441,14 @@ ETF_RAG/
 │   │   ├── styles.py       # 커스텀 CSS (반응형, 테이블 스타일, 모바일 대응: 768px 태블릿 + 480px 소형 폰)
 │   │   └── components.py   # render_example_questions(동적+기본), generate_dynamic_examples(급등/급락/거래대금), render_feedback_buttons(부정사유 수집)
 ├── eval/
-│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (172개 질문, 8개 유형)
+│   ├── eval_dataset.json          # RAGAS 평가 데이터셋 (192개 질문, 11개 유형 — forecast/news/sector 포함)
 │   ├── run_eval.py                # 평가 실행 스크립트 (--no-llm / full RAGAS)
 │   └── results/                   # 평가 결과 JSON (eval_YYYYMMDD_HHMMSS.json)
 │   └── utils/
 │       ├── formatters.py   # 공통 포맷터 (format_market_cap, format_trade_value, format_number)
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── .gitignore              # Python/SQLite/IDE/OS 파일 제외 (.env, *.db, collected/, logs/ 등)
-├── tests/                  # pytest 584개
+├── tests/                  # pytest 771개
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -534,7 +534,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-16 (Phase F 진행 — KIS #50·#52·#53·#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57(kis_ws 재연결) + F-3 로컬감성 #58(KR-FinBert-SC 선택적, 분류 로컬→GPT fallback·요약 GPT). 장중 라이브 검증. 테스트 766, 도구 14개, eval 172개, Hit Rate 100%, F=0.688, AR=0.709, CR=0.854. 상세: CLAUDE.local.md "Phase F-2"/"Phase F-3"/"Phase F: 웹 푸시")_
+_Last Updated: 2026-06-18 (RAG 품질 — 신규 도구(forecast/news/sector) eval 커버리지 20개 추가(eval 172→192) + 실버그 2건 수정(analyze_sector 통속 업종명 별칭·news RSS certifi SSL) → RAGAS news/sector AR 0.501→0.747. 테스트 766→771. 상세: CLAUDE.local.md "RAG 품질: 신규 도구 평가 커버리지". 이전: 2026-06-16 Phase F KIS #50~#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
