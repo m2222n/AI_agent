@@ -16,13 +16,15 @@ function pct(v: number | null | undefined): string {
   return typeof v === "number" ? `${v.toFixed(1)}%` : "-";
 }
 
-// 조회 기간 옵션 (분기 수 ↔ 라벨)
+// 조회 기간 옵션 (분기 수 ↔ 라벨). 1년=4분기.
 const RANGES = [
   { quarters: 4, label: "1년" },
   { quarters: 8, label: "2년" },
   { quarters: 12, label: "3년" },
   { quarters: 20, label: "5년" },
+  { quarters: 40, label: "10년" },
 ];
+const MAX_YEARS = 12; // 데이터 보존 한계(2015~)에 맞춘 상한
 
 export default function FinancialPage() {
   const [data, setData] = useState<FinancialResponse | null>(null);
@@ -30,6 +32,7 @@ export default function FinancialPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticker, setTicker] = useState<string | null>(null);
   const [quarters, setQuarters] = useState(12);
+  const [customYears, setCustomYears] = useState(""); // 직접설정(년) 입력값
 
   const fetchFin = async (tk: string, q: number) => {
     setLoading(true);
@@ -52,6 +55,18 @@ export default function FinancialPage() {
 
   const onRange = (q: number) => {
     setQuarters(q);
+    setCustomYears("");
+    if (ticker) fetchFin(ticker, q);
+  };
+
+  // 직접설정: 연 수 입력 → 분기(년×4)로 환산. 1~MAX_YEARS로 clamp.
+  const applyCustom = () => {
+    const years = Math.round(Number(customYears));
+    if (!years || years < 1) return;
+    const clamped = Math.min(years, MAX_YEARS);
+    if (clamped !== years) setCustomYears(String(clamped));
+    const q = clamped * 4;
+    setQuarters(q);
     if (ticker) fetchFin(ticker, q);
   };
 
@@ -60,23 +75,53 @@ export default function FinancialPage() {
       <h1 className="mb-1 text-lg font-bold text-gray-900">📑 재무제표</h1>
       <p className="mb-4 text-xs text-gray-500">분기별 매출·영업이익·순이익·마진</p>
 
-      <TickerSearch onSelect={onSelect} placeholder="종목명 또는 종목코드 (주식만)" />
+      <TickerSearch
+        onSelect={onSelect}
+        assetType="stock"
+        placeholder="종목명 또는 종목코드 (주식만)"
+      />
 
       {/* 조회 기간 선택 */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {RANGES.map((r) => (
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {RANGES.map((r) => {
+          const active = quarters === r.quarters && customYears === "";
+          return (
+            <button
+              key={r.quarters}
+              onClick={() => onRange(r.quarters)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                active
+                  ? "bg-gray-900 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {r.label}
+            </button>
+          );
+        })}
+        {/* 직접 설정 (년) */}
+        <span className="ml-1 flex items-center gap-1">
+          <input
+            type="number"
+            min={1}
+            max={MAX_YEARS}
+            value={customYears}
+            onChange={(e) => setCustomYears(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyCustom();
+            }}
+            placeholder="직접"
+            className="w-16 rounded-full border border-gray-300 px-2.5 py-1 text-xs focus:border-blue-500 focus:outline-none"
+          />
+          <span className="text-xs text-gray-500">년</span>
           <button
-            key={r.quarters}
-            onClick={() => onRange(r.quarters)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              quarters === r.quarters
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+            onClick={applyCustom}
+            disabled={!customYears}
+            className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
           >
-            {r.label}
+            적용
           </button>
-        ))}
+        </span>
       </div>
 
       {loading && <p className="mt-6 text-center text-sm text-gray-400">조회 중…</p>}

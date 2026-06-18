@@ -6,6 +6,7 @@ app.py에서 set_retriever()로 초기화한 뒤,
 """
 
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -114,11 +115,21 @@ def set_retriever(retriever, documents=None, stock_retriever=None,
         _data_initialized = True
 
 
-def get_available_tickers() -> list[str]:
-    """자동완성용 종목 옵션 리스트 반환 — 'name (ticker)' 형식, 정렬됨"""
+def get_available_tickers(asset_type: Optional[str] = None) -> list[str]:
+    """자동완성용 종목 옵션 리스트 반환 — 'name (ticker)' 형식, 정렬됨.
+
+    asset_type: "stock"이면 주식만, "etf"면 ETF만, None이면 전체.
+    (재무제표 탭처럼 주식만 의미 있는 화면에서 ETF를 자동완성에서 빼기 위함)
+    """
+    if asset_type == "stock":
+        indices = (_stock_data_index,)
+    elif asset_type == "etf":
+        indices = (_etf_data_index,)
+    else:
+        indices = (_etf_data_index, _stock_data_index)
     seen = set()
     options = []
-    for index in (_etf_data_index, _stock_data_index):
+    for index in indices:
         for _key, data in index.items():
             ticker = data.get("ticker", "")
             name = data.get("name", "")

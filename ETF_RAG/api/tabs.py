@@ -255,8 +255,9 @@ async def sector(sector: Optional[str] = Query(None)):
 async def tickers(
     q: Optional[str] = Query(None),
     limit: int = Query(30, ge=1, le=200),
+    asset_type: Optional[str] = Query(None, pattern="^(stock|etf)$"),
 ):
-    options = await run_in_threadpool(get_available_tickers)
+    options = await run_in_threadpool(get_available_tickers, asset_type)
     if q:
         ql = q.lower()
         options = [o for o in options if ql in o.lower()]

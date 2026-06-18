@@ -119,14 +119,17 @@ export function streamChat(
 
 // ── 탭 API ──────────────────────────────────────────────
 
-/** 종목 자동완성 ("이름 (티커)" 옵션 리스트) */
+/** 종목 자동완성 ("이름 (종목코드)" 옵션 리스트).
+ * assetType="stock"이면 주식만, "etf"면 ETF만 (재무제표 탭처럼 주식 전용 화면용). */
 export async function searchTickers(
   q: string,
   limit = 20,
+  assetType?: "stock" | "etf",
 ): Promise<string[]> {
   const url = new URL(`${API_BASE}/tabs/tickers`);
   if (q) url.searchParams.set("q", q);
   url.searchParams.set("limit", String(limit));
+  if (assetType) url.searchParams.set("asset_type", assetType);
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
   const body = (await res.json()) as TickerSearchResponse;
