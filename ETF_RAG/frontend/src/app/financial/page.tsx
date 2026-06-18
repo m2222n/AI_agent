@@ -60,7 +60,7 @@ export default function FinancialPage() {
       <h1 className="mb-1 text-lg font-bold text-gray-900">📑 재무제표</h1>
       <p className="mb-4 text-xs text-gray-500">분기별 매출·영업이익·순이익·마진</p>
 
-      <TickerSearch onSelect={onSelect} placeholder="종목명 또는 티커 (주식만)" />
+      <TickerSearch onSelect={onSelect} placeholder="종목명 또는 종목코드 (주식만)" />
 
       {/* 조회 기간 선택 */}
       <div className="mt-3 flex flex-wrap gap-1.5">
