@@ -80,6 +80,8 @@ def test_signup_login_me_happy_path(client):
     body = r3.json()
     assert body["email"] == "a@b.com"
     assert isinstance(body["id"], int)
+    # 닉네임 미설정 → 이메일 local-part로 fallback
+    assert body["nickname"] == "a"
 
 
 def test_signup_duplicate_email_400(client):
@@ -117,3 +119,133 @@ def test_signup_short_password_422(client):
 def test_signup_invalid_email_422(client):
     r = client.post("/auth/signup", json={"email": "notanemail", "password": "pw123456"})
     assert r.status_code == 422
+
+
+# ── 계정 관리: 비밀번호 변경 / 닉네임 / 탈퇴 (2026-06-18) ──
+
+def _token(client, email="a@b.com", pw="pw123456"):
+    _signup(client, email=email, pw=pw)
+    r = client.post("/auth/login", json={"email": email, "password": pw})
+    return r.json()["access_token"]
+
+
+def _auth(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_change_password_happy(client):
+    token = _token(client)
+    r = client.put(
+        "/auth/password",
+        json={"current_password": "pw123456", "new_password": "newpw7890"},
+        headers=_auth(token),
+    )
+    assert r.status_code == 204
+    # 기존 비번 로그인 실패, 새 비번 로그인 성공
+    assert client.post("/auth/login",
+                       json={"email": "a@b.com", "password": "pw123456"}).status_code == 401
+    assert client.post("/auth/login",
+                       json={"email": "a@b.com", "password": "newpw7890"}).status_code == 200
+
+
+def test_change_password_wrong_current_400(client):
+    token = _token(client)
+    r = client.put(
+        "/auth/password",
+        json={"current_password": "WRONGpw1", "new_password": "newpw7890"},
+        headers=_auth(token),
+    )
+    assert r.status_code == 400
+
+
+def test_change_password_same_as_current_400(client):
+    token = _token(client)
+    r = client.put(
+        "/auth/password",
+        json={"current_password": "pw123456", "new_password": "pw123456"},
+        headers=_auth(token),
+    )
+    assert r.status_code == 400
+
+
+def test_change_password_requires_auth_401(client):
+    r = client.put(
+        "/auth/password",
+        json={"current_password": "pw123456", "new_password": "newpw7890"},
+    )
+    assert r.status_code == 401
+
+
+def test_change_password_short_new_422(client):
+    token = _token(client)
+    r = client.put(
+        "/auth/password",
+        json={"current_password": "pw123456", "new_password": "short"},
+        headers=_auth(token),
+    )
+    assert r.status_code == 422  # min_length=8
+
+
+def test_update_nickname_happy(client):
+    token = _token(client)
+    r = client.put("/auth/profile", json={"nickname": "투자왕"}, headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["nickname"] == "투자왕"
+    # me에도 반영
+    assert client.get("/auth/me", headers=_auth(token)).json()["nickname"] == "투자왕"
+
+
+def test_update_nickname_strips_whitespace(client):
+    token = _token(client)
+    r = client.put("/auth/profile", json={"nickname": "  태민  "}, headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["nickname"] == "태민"
+
+
+def test_update_nickname_blank_400(client):
+    token = _token(client)
+    r = client.put("/auth/profile", json={"nickname": "   "}, headers=_auth(token))
+    assert r.status_code == 400
+
+
+def test_update_nickname_too_long_422(client):
+    token = _token(client)
+    r = client.put("/auth/profile", json={"nickname": "가" * 41}, headers=_auth(token))
+    assert r.status_code == 422  # max_length=40
+
+
+def test_delete_account_happy(client):
+    token = _token(client)
+    r = client.request(
+        "DELETE", "/auth/me", json={"password": "pw123456"}, headers=_auth(token)
+    )
+    assert r.status_code == 204
+    # 토큰 무효(유저 없음) + 같은 이메일 재가입 가능
+    assert client.get("/auth/me", headers=_auth(token)).status_code == 401
+    assert _signup(client).status_code == 201
+
+
+def test_delete_account_wrong_password_400(client):
+    token = _token(client)
+    r = client.request(
+        "DELETE", "/auth/me", json={"password": "WRONGpw1"}, headers=_auth(token)
+    )
+    assert r.status_code == 400
+    # 여전히 살아있음
+    assert client.get("/auth/me", headers=_auth(token)).status_code == 200
+
+
+def test_delete_account_purges_watchlist(client):
+    token = _token(client)
+    client.put("/me/watchlist/005930", headers=_auth(token))
+    assert "005930" in client.get("/me/watchlist", headers=_auth(token)).json()["tickers"]
+    # 탈퇴
+    client.request("DELETE", "/auth/me", json={"password": "pw123456"}, headers=_auth(token))
+    # 같은 이메일 재가입 → 관심종목이 비어 있어야(이전 유저 데이터 소거 확인)
+    token2 = _token(client)
+    assert client.get("/me/watchlist", headers=_auth(token2)).json()["tickers"] == []
+
+
+def test_delete_account_requires_auth_401(client):
+    r = client.request("DELETE", "/auth/me", json={"password": "pw123456"})
+    assert r.status_code == 401

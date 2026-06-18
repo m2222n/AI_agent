@@ -24,6 +24,7 @@ export function authHeader(): Record<string, string> {
 export interface AuthUser {
   id: number;
   email: string;
+  nickname: string; // 미설정 시 백엔드가 이메일 앞부분으로 채워 보냄
 }
 
 async function postAuth(
@@ -61,6 +62,46 @@ export async function fetchMe(): Promise<AuthUser | null> {
   });
   if (!res.ok) return null;
   return (await res.json()) as AuthUser;
+}
+
+// ── 계정 관리 (비번 변경 / 닉네임 / 탈퇴) ────────────────
+async function readDetail(res: Response): Promise<string> {
+  const d = await res.json().catch(() => ({}));
+  return d.detail || `요청 실패 (${res.status})`;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+  if (!res.ok) throw new Error(await readDetail(res));
+}
+
+export async function updateNickname(nickname: string): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/auth/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({ nickname }),
+  });
+  if (!res.ok) throw new Error(await readDetail(res));
+  return (await res.json()) as AuthUser;
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error(await readDetail(res));
 }
 
 // ── 유저별 저장 (로그인 시) ──────────────────────────────
