@@ -31,7 +31,25 @@ def init_models() -> None:
     """테이블이 없으면 생성. 멱등 — API_SKIP_INIT과 무관하게 매 부팅 호출(테이블만, 싸다)."""
     from api import models_db  # noqa: F401 — 모델 등록(임포트 부수효과)
     Base.metadata.create_all(engine)
+    _migrate_add_columns()
     logger.info("사용자 DB 테이블 준비 완료 (%s)", engine.url.drivername)
+
+
+def _migrate_add_columns() -> None:
+    """create_all은 기존 테이블에 신규 컬럼을 추가하지 못함(Alembic 미도입).
+    이미 users 테이블이 있는 환경(기존 가입자 보유 DB)을 위한 경량 멱등 마이그레이션.
+    sqlite/postgres 모두 ADD COLUMN IF NOT EXISTS를 지원하지 않는 경우가 있어
+    inspector로 존재 여부를 먼저 확인한다."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        return  # create_all이 방금 최신 스키마로 생성 → 보정 불필요
+    cols = {c["name"] for c in insp.get_columns("users")}
+    if "nickname" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN nickname VARCHAR(40)"))
+        logger.info("마이그레이션: users.nickname 컬럼 추가")
 
 
 def get_db() -> Iterator[Session]:

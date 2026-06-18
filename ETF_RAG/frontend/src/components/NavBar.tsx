@@ -53,9 +53,18 @@ export default function NavBar({ onMenuClick }: { onMenuClick?: () => void } = {
         <div className="ml-auto flex shrink-0 items-center gap-2 pl-2">
           {loading ? null : user ? (
             <>
-              <span className="hidden text-xs text-gray-500 sm:inline">
-                {user.email}
-              </span>
+              <Link
+                href="/account"
+                title="계정 설정"
+                className={[
+                  "shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium",
+                  pathname === "/account"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 hover:bg-gray-100",
+                ].join(" ")}
+              >
+                ⚙️ {user.nickname}
+              </Link>
               <button
                 type="button"
                 onClick={logout}

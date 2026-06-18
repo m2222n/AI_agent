@@ -62,6 +62,22 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    nickname: str  # 미설정 시 이메일 local-part로 fallback (auth.py에서 채움)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ProfileUpdateRequest(BaseModel):
+    # 1~40자. 공백만 입력 방지는 라우터에서 strip 후 검증.
+    nickname: str = Field(..., min_length=1, max_length=40)
+
+
+class AccountDeleteRequest(BaseModel):
+    # 탈퇴는 되돌릴 수 없으므로 비밀번호 재확인.
+    password: str = Field(..., min_length=1)
 
 
 # ── 유저별 저장 (관심종목 / 대화이력) ──────────────────────

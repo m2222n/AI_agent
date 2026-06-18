@@ -534,7 +534,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-18 (sector 후속 #62 — analyze_sector 종목 경로에서 [업종]/밸류에이션 백분위를 보유 ETF 목록보다 앞으로 재배치(현대차 섹터 AR=0.28 답변구조 보완) + docstring 호출 인자 안내 + 회귀테스트 1개. 직전: RAG 품질 — 신규 도구 eval 커버리지 20개(172→192) + 실버그 2건(sector 별칭·news SSL) → RAGAS AR 0.501→0.747 #61. 그 이전: 2026-06-16 Phase F KIS #50~#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58)_
+_Last Updated: 2026-06-18 (Railway 유저DB 영구화 — Postgres 플러그인 추가 + DATABASE_URL 연결로 재배포 시 회원/관심종목 소실 해결(사용자 Railway 작업, 재배포 로그 검증 남음). 로그인 보강 착수예정(비번변경+탈퇴, 비번찾기는 메일인프라 후속). 후원=BMC+토스 안내 결정만 보류. 직전: sector 후속 #62 답변구조 재배치 AR 0.845 + 코드점검 라운드 실버그0 / RAG 품질 eval 커버리지 #61. 상세: CLAUDE.local.md)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 

@@ -12,13 +12,21 @@ import bcrypt
 import jwt  # PyJWT
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from api.db import get_db
-from api.models import LoginRequest, SignupRequest, TokenResponse, UserResponse
-from api.models_db import User
+from api.models import (
+    AccountDeleteRequest,
+    LoginRequest,
+    PasswordChangeRequest,
+    ProfileUpdateRequest,
+    SignupRequest,
+    TokenResponse,
+    UserResponse,
+)
+from api.models_db import ChatHistory, PushSubscription, User, Watchlist
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -93,9 +101,72 @@ def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     return TokenResponse(access_token=create_access_token(user.id))
 
 
+def _display_nickname(user: User) -> str:
+    """닉네임 미설정 시 이메일 local-part(앞부분)로 fallback."""
+    if user.nickname and user.nickname.strip():
+        return user.nickname
+    return user.email.split("@", 1)[0]
+
+
+def _user_response(user: User) -> UserResponse:
+    return UserResponse(
+        id=user.id, email=user.email, nickname=_display_nickname(user)
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)) -> UserResponse:
-    return UserResponse(id=user.id, email=user.email)
+    return _user_response(user)
+
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    req: PasswordChangeRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """현재 비밀번호 확인 후 새 비밀번호로 변경."""
+    if not verify_password(req.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 올바르지 않습니다.")
+    if req.new_password == req.current_password:
+        raise HTTPException(status_code=400, detail="기존과 다른 비밀번호를 사용하세요.")
+    user.password_hash = hash_password(req.new_password)
+    db.commit()
+
+
+@router.put("/profile", response_model=UserResponse)
+def update_profile(
+    req: ProfileUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserResponse:
+    """닉네임 변경. 공백만 입력은 거부."""
+    nickname = req.nickname.strip()
+    if not nickname:
+        raise HTTPException(status_code=400, detail="닉네임을 입력하세요.")
+    user.nickname = nickname
+    db.commit()
+    db.refresh(user)
+    return _user_response(user)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    req: AccountDeleteRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """회원 탈퇴 — 비밀번호 재확인 후 계정 + 연관 데이터(관심종목/대화이력/푸시구독) 삭제.
+
+    FK relationship/cascade를 모델에 안 걸었으므로 명시적으로 자식 행을 먼저 지운다."""
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="비밀번호가 올바르지 않습니다.")
+    uid = user.id
+    db.execute(delete(Watchlist).where(Watchlist.user_id == uid))
+    db.execute(delete(ChatHistory).where(ChatHistory.user_id == uid))
+    db.execute(delete(PushSubscription).where(PushSubscription.user_id == uid))
+    db.delete(user)
+    db.commit()
 
 
 # Phase C용 — 로그인 시 서버 영속, 비로그인 시 localStorage fallback.

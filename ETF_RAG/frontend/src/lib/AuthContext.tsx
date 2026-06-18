@@ -22,6 +22,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refresh: () => Promise<void>; // 닉네임 변경 등 후 user 재동기화
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -62,8 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refresh = async () => {
+    setUser(await fetchMe());
+  };
+
   return (
-    <AuthCtx.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthCtx.Provider value={{ user, loading, login, signup, logout, refresh }}>
       {children}
     </AuthCtx.Provider>
   );

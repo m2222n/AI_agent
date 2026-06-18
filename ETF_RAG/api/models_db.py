@@ -34,6 +34,9 @@ class User(Base):
         String(320), unique=True, index=True, nullable=False
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 표시용 닉네임(선택). 로그인은 이메일로, 이건 화면 표시·가상투자 랭킹 등에 사용.
+    # 기존 유저/미입력은 NULL → 응답 시 이메일 local-part로 fallback.
+    nickname: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )
