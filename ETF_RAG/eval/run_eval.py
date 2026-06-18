@@ -6,6 +6,7 @@ RAGAS 평가 파이프라인
     .venv/bin/python eval/run_eval.py              # 전체 평가 (검색 + RAGAS)
     .venv/bin/python eval/run_eval.py --no-llm     # 검색만 평가 (API 비용 없음)
     .venv/bin/python eval/run_eval.py --sample 10  # 샘플 N개만 RAGAS 평가 (비용 절감)
+    .venv/bin/python eval/run_eval.py --types forecast,news,sector  # 특정 유형만 평가
 
 평가 지표:
     - Hit Rate / Precision / Recall: 검색 품질 (API 비용 없음)
@@ -38,9 +39,14 @@ DATASET_PATH = EVAL_DIR / "eval_dataset.json"
 RESULTS_DIR = EVAL_DIR / "results"
 
 
-def load_eval_dataset():
+def load_eval_dataset(types=None):
+    """평가 데이터셋 로드. types가 주어지면 해당 question_type만 필터링."""
     with open(DATASET_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    if types:
+        type_set = set(types)
+        data = [it for it in data if it.get("question_type") in type_set]
+    return data
 
 
 def init_retriever():
@@ -572,13 +578,19 @@ def main():
     no_llm = "--no-llm" in sys.argv
 
     # --sample N 옵션: RAGAS 평가 시 샘플 수 제한 (비용 절감)
+    # --types a,b,c 옵션: 특정 question_type만 평가 (신규 도구 집중 평가용)
     sample_size = None
+    types = None
     for i, arg in enumerate(sys.argv):
         if arg == "--sample" and i + 1 < len(sys.argv):
             sample_size = int(sys.argv[i + 1])
+        if arg == "--types" and i + 1 < len(sys.argv):
+            types = [t.strip() for t in sys.argv[i + 1].split(",") if t.strip()]
 
     logger.info("평가 데이터셋 로드...")
-    dataset = load_eval_dataset()
+    dataset = load_eval_dataset(types=types)
+    if types:
+        logger.info(f"  유형 필터: {types}")
     logger.info(f"  {len(dataset)}개 질문")
 
     logger.info("Retriever 초기화...")
