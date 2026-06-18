@@ -204,6 +204,20 @@ def test_tickers_filters_and_caps(client):
     assert all("삼성" in o for o in body["options"])
 
 
+def test_tickers_asset_type_passed_through(client):
+    """asset_type 쿼리가 get_available_tickers에 그대로 전달돼야 한다(재무제표=주식)."""
+    with patch("api.tabs.get_available_tickers", return_value=["삼성전자 (005930)"]) as m:
+        r = client.get("/tabs/tickers", params={"asset_type": "stock"})
+    assert r.status_code == 200
+    # run_in_threadpool(get_available_tickers, asset_type) → 첫 위치인자로 전달
+    assert m.call_args.args[0] == "stock"
+
+
+def test_tickers_asset_type_invalid_422(client):
+    r = client.get("/tabs/tickers", params={"asset_type": "bond"})
+    assert r.status_code == 422  # pattern ^(stock|etf)$
+
+
 def test_tickers_resolve_404(client):
     with patch("api.tabs._find_structured_data", return_value=None):
         r = client.get("/tabs/tickers/resolve", params={"q": "ZZZ"})
