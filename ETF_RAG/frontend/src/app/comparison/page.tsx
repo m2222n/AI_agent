@@ -21,11 +21,14 @@ const PERIODS: { label: string; days: number }[] = [
   { label: "5년", days: 1250 },
   { label: "10년", days: 2500 },
 ];
+const TRADING_DAYS_PER_YEAR = 250; // 직접설정(년) → 영업일 근사
+const MAX_YEARS = 10; // 백엔드 days 상한 2500(≈10년)에 맞춤
 
 export default function ComparisonPage() {
   const [t1, setT1] = useState<{ name: string; ticker: string } | null>(null);
   const [t2, setT2] = useState<{ name: string; ticker: string } | null>(null);
   const [days, setDays] = useState(120);
+  const [customYears, setCustomYears] = useState(""); // 직접설정(년)
   const [data, setData] = useState<ComparisonResponse | null>(null);
   const [fin, setFin] = useState<(FinancialResponse | null)[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,6 +73,17 @@ export default function ComparisonPage() {
   };
   const onPeriod = (d: number) => {
     setDays(d);
+    setCustomYears("");
+    if (t1 && t2) run(t1, t2, d);
+  };
+  // 직접설정: 연 수 → 영업일(년×250)로 환산, 1~MAX_YEARS clamp
+  const applyCustom = () => {
+    const years = Math.round(Number(customYears));
+    if (!years || years < 1) return;
+    const clamped = Math.min(years, MAX_YEARS);
+    if (clamped !== years) setCustomYears(String(clamped));
+    const d = clamped * TRADING_DAYS_PER_YEAR;
+    setDays(d);
     if (t1 && t2) run(t1, t2, d);
   };
 
@@ -90,21 +104,48 @@ export default function ComparisonPage() {
       </div>
 
       {/* 상대 수익률 차트 기간 선택 */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {PERIODS.map((p) => (
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {PERIODS.map((p) => {
+          const active = days === p.days && customYears === "";
+          return (
+            <button
+              key={p.days}
+              type="button"
+              onClick={() => onPeriod(p.days)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                active
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+        {/* 직접 설정 (년) */}
+        <span className="ml-1 flex items-center gap-1">
+          <input
+            type="number"
+            min={1}
+            max={MAX_YEARS}
+            value={customYears}
+            onChange={(e) => setCustomYears(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyCustom();
+            }}
+            placeholder="직접"
+            className="w-16 rounded-full border border-gray-300 px-2.5 py-1 text-xs focus:border-blue-500 focus:outline-none"
+          />
+          <span className="text-xs text-gray-500">년</span>
           <button
-            key={p.days}
             type="button"
-            onClick={() => onPeriod(p.days)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              days === p.days
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+            onClick={applyCustom}
+            disabled={!customYears}
+            className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
           >
-            {p.label}
+            적용
           </button>
-        ))}
+        </span>
       </div>
 
       {loading && <p className="mt-6 text-center text-sm text-gray-400">비교 중…</p>}
