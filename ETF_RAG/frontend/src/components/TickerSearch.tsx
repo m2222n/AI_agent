@@ -12,7 +12,7 @@ function parseOption(opt: string): { name: string; ticker: string } {
 
 export default function TickerSearch({
   onSelect,
-  placeholder = "종목명 또는 티커 검색…",
+  placeholder = "종목명 또는 종목코드 검색…",
 }: {
   onSelect: (sel: { name: string; ticker: string; raw: string }) => void;
   placeholder?: string;

@@ -95,7 +95,7 @@ def _resolve_ticker(name_or_ticker: str) -> Optional[dict]:
     return None
 
 
-def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티커 입력") -> str:
+def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 종목코드 입력") -> str:
     """종목 입력 위젯 — text_input + selectbox 자동완성."""
     # 다른 탭에서 종목명을 넘겨받은 경우 prefill
     prefill = st.session_state.pop("_prefill_ticker", None)
@@ -169,7 +169,7 @@ def _ticker_input(label: str, key: str, placeholder: str = "종목명 또는 티
 def render_technical_tab():
     """기술적 분석 탭: 종목 입력 → 11개 지표 + 차트"""
     st.markdown("##### 📊 기술적 분석")
-    st.caption("종목명 또는 티커를 입력하면 11개 기술적 지표와 차트를 바로 확인합니다.")
+    st.caption("종목명 또는 종목코드를 입력하면 11개 기술적 지표와 차트를 바로 확인합니다.")
 
     col1, col2, col3 = st.columns([3, 1.5, 1])
     with col1:
