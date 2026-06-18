@@ -19,6 +19,7 @@ python-dotenv>=1.0.0,<2.0
 zstandard>=0.20.0,<1.0
 dart-fss>=0.4.0,<1.0
 feedparser>=6.0.0,<7.0
+certifi>=2023.0.0  # 뉴스 RSS SSL 검증 CA 번들 (news.py _fetch_feed)
 prophet>=1.1.0,<2.0
 pinecone-client>=3.0.0,<6.0
 langchain-pinecone>=0.1.0,<0.4

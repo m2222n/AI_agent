@@ -13,6 +13,50 @@ from src.utils.formatters import format_market_cap
 
 logger = logging.getLogger(__name__)
 
+# 통속 업종명 → KRX 공식 업종명 별칭.
+# 사용자/LLM이 "자동차", "반도체" 같은 일반 명칭을 쓰면 KRX 공식 분류명
+# ("운송장비·부품", "전기·전자")과 달라 섹터 매칭이 실패하던 문제를 보완.
+# 값은 _sector_index 키(위 KRX 29개 업종)와 일치해야 한다.
+_SECTOR_ALIASES = {
+    "자동차": "운송장비·부품",
+    "차": "운송장비·부품",
+    "운송장비": "운송장비·부품",
+    "부품": "운송장비·부품",
+    "반도체": "전기·전자",
+    "전자": "전기·전자",
+    "it": "IT 서비스",
+    "아이티": "IT 서비스",
+    "소프트웨어": "IT 서비스",
+    "바이오": "제약",
+    "제약·바이오": "제약",
+    "헬스케어": "제약",
+    "2차전지": "전기·전자",
+    "배터리": "전기·전자",
+    "에너지": "전기·가스",
+    "전력": "전기·가스",
+    "유틸리티": "전기·가스",
+    "철강": "금속",
+    "조선": "운송장비·부품",
+    "항공": "운송·창고",
+    "물류": "운송·창고",
+    "해운": "운송·창고",
+    "엔터": "오락·문화",
+    "엔터테인먼트": "오락·문화",
+    "게임": "오락·문화",
+    "미디어": "출판·매체복제",
+    "식품": "음식료·담배",
+    "음식료": "음식료·담배",
+    "섬유": "섬유·의류",
+    "의류": "섬유·의류",
+    "패션": "섬유·의류",
+    "기계": "기계·장비",
+    "장비": "기계·장비",
+    "의료기기": "의료·정밀기기",
+    "정밀기기": "의료·정밀기기",
+    "건설사": "건설",
+    "통신사": "통신",
+}
+
 
 def _format_cap(value: int) -> str:
     """시가총액을 조/억 단위 문자열로 (접미사 '원' 없음)"""
@@ -235,6 +279,21 @@ def analyze_sector(query: str) -> str:
                 matched_sector = sector_name
                 matched_stocks = stocks
                 break
+
+        # 별칭 매칭 — 통속 업종명("자동차")을 KRX 공식명("운송장비·부품")으로 변환.
+        # 단, 종목명("현대차")이 별칭("차")에 끌려가지 않도록 역인덱스에
+        # 종목으로 존재하는 query는 별칭 매칭에서 제외한다.
+        if not matched_sector:
+            is_known_stock = bool(
+                _state._holdings_reverse_index
+                and (_state._holdings_reverse_index.get(query_lower)
+                     or _state._holdings_reverse_index.get(query))
+            )
+            if not is_known_stock:
+                alias = _SECTOR_ALIASES.get(query_lower) or _SECTOR_ALIASES.get(query)
+                if alias and alias in _state._sector_index:
+                    matched_sector = alias
+                    matched_stocks = _state._sector_index[alias]
 
         # 부분 매칭
         if not matched_sector:
