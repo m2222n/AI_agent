@@ -2413,11 +2413,44 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
 - **`_SECTOR_ALIASES` 값 36개 ↔ 실제 KRX DB 업종명 29개 대조: 전부 정확 일치(오타 0)** + `alias in _sector_index` 이중 가드 ✓
 - 관련 테스트(news+sentiment+sector) 60개 통과. 기능 추가 아님, 점검만.
 
+### Railway 유저 DB 영구화 (Postgres 연결) — 2026-06-18 (사용자 작업, 진행 중)
+
+"유료 전환" 의미 정리 중 발견: Railway 백엔드(서비스명 `AI_agent`, URL `aiagent-production-75ca.up.railway.app`)에 **`DATABASE_URL` 환경변수가 없었음** → 유저 DB가 컨테이너 내부 SQLite(`etf_rag_users.db`)로 저장돼 **재배포마다 회원/관심종목/대화이력 소실** 상태였음(DEPLOY.md:33에 경고 기록돼 있던 미완 항목 "영구볼륨").
+
+- **조치(사용자가 Railway 대시보드에서 직접):** 프로젝트 `skillful-presence`에 **PostgreSQL 플러그인 추가**(postgres-volume 영구 디스크 자동 포함) → `AI_agent` 서비스 Variables에 `DATABASE_URL = ${{Postgres.DATABASE_URL}}`(자동 참조) 추가 → 변수 추가 시 Railway가 자동 재배포 시작.
+- 코드는 이미 Postgres 지원(`config.py:28` DATABASE_URL 미설정 시 sqlite, 설정 시 postgresql / `api/db.py` 동일 Engine API / `init_models()`가 부팅 시 `create_all` 자동 — Alembic 마이그레이션은 후속). **코드 변경 0, Railway 설정만.**
+- **검증 남음:** 재배포 로그에서 `사용자 DB 테이블 준비 완료 (postgresql)`(db.py:34) 확인 + 회원가입→관심종목 추가→재배포→데이터 유지 확인.
+- JWT_SECRET은 이미 설정돼 있었음(👍). 프론트 서비스명 `radiant-abundance`.
+- **Railway 상태:** trial 크레딧 **$2.42 / 22일 남음**. 소진되면 서비스 정지 → Hobby($5/월) 전환 필요. Postgres 추가로 크레딧 소모 약간 가속.
+
+### 후원(기부) 기능 — 결정만, 보류 (2026-06-18)
+
+프리미엄 구독(유료화)은 **접음**(틈틈이 만든 개인 앱, 결제 연동 ROI 안 맞음). 대신 **후원 버튼**으로 — 단 "전환" 아니라 "있어도 그만" 톤. **타깃=친구+포트폴리오 방문자**. **결정: BMC 버튼 공개로 두되 클릭 시 Buy Me a Coffee(해외카드)+토스 송금(국내) 둘 다 안내**(친구는 토스, 채용자/방문자는 BMC). 계좌번호 직접 노출은 금지(포트폴리오·불특정 공개라 부적합+프라이버시). **위치=사이드바 하단 구석**(Sidebar.tsx 투자유의 문구 위/아래). 링크는 `NEXT_PUBLIC_DONATE_URL` env placeholder로 빼두고 비어있으면 자동 숨김. **BMC는 후원자 가입 불필요(받는 사람만 1회 가입), 정산은 페이팔 경유**. **사용자가 "해줘" 할 때 구현**(우선 본인 검증 먼저).
+
+### 로그인 기능 보강 — 비번변경 + 탈퇴 + 닉네임 (2026-06-18, 브랜치 phase-f-account-management)
+
+회원가입 후 계정 관리 기능. **범위 합의:** 비번변경/탈퇴/표시용 닉네임 구현, ID찾기는 "이메일=ID" 안내로 대체, 비번찾기(이메일 재설정)는 메일 인프라 필요 → 후속 보류(보안질문 방식은 보안저하라 안 함).
+
+- **백엔드** (`api/`):
+  - `models_db.User`에 `nickname`(VARCHAR40, nullable) 추가. `db.py` `init_models`에 `_migrate_add_columns()`(inspector로 컬럼 존재 확인 후 `ALTER TABLE ADD COLUMN` — create_all이 기존 테이블에 컬럼 추가 못 하는 것 보완, Alembic 미도입 환경용 멱등 마이그레이션).
+  - `auth.py`: `PUT /auth/password`(현재 비번 검증+기존과 동일 거부→204), `PUT /auth/profile`(닉네임 strip+공백거부→UserResponse), `DELETE /auth/me`(비번 재확인 후 Watchlist/ChatHistory/PushSubscription 명시 삭제→계정 삭제, FK cascade 미설정이라 자식 먼저). `/auth/me`·UserResponse에 `nickname` 추가(`_display_nickname`: 미설정 시 이메일 local-part fallback).
+  - models.py: PasswordChangeRequest/ProfileUpdateRequest/AccountDeleteRequest. **테스트 13개 추가(test_auth 8→21, 전체 통과 — 로컬 fastapi/bcrypt/PyJWT 설치 후 검증).**
+- **프론트** (`frontend/`):
+  - lib/auth.ts: AuthUser에 nickname + changePassword/updateNickname/deleteAccount. AuthContext에 `refresh()`(닉네임 변경 후 user 재동기화).
+  - **`/account` 페이지 신설**(닉네임/비번변경/탈퇴 3섹션, 비로그인 시 로그인 안내). NavBar 우측이 이메일→**⚙️ {nickname}** 클릭 시 /account. tsc 통과.
+- **함정:** `init_models` 마이그레이션은 inspector 기반(sqlite/pg `ADD COLUMN IF NOT EXISTS` 미지원 회피). 방금 만든 Postgres는 create_all로 nickname 포함 생성되나, 기존 sqlite/가입자 DB는 이 마이그레이션이 보정.
+
 ### 다음
-- 유료 전환 / 블로그 9편.
+- 계정기능 PR→머지 → (사용자) Railway 재배포 로그 검증 → **UI 개선 4건**(아래) → 가상투자 탭 → 후원("해줘" 시) → 블로그 9편 / 메일 인프라(비번찾기)
+
+### UI 개선 요청 4건 (2026-06-18, 사용자 — TODO)
+1. **'티커' 용어 교체**: 너무 전문적 → 쉬운 말("종목코드" 또는 "종목"). 프론트/백엔드 사용자 노출 문구 전수.
+2. **재무제표 탭**: ETF는 재무제표 없음 → **주식만 검색 허용(ETF 제외)** + 기간 **10년 추가** + **직접설정**(현재 1/2/3/5년).
+3. **비교분석 탭**: 기간 **직접설정** 추가.
+4. **섹터분석 탭**: 현재 **하루치만** 표시 → 기간 선택(1일/1주/1달/3달/6달/1년/2년/3년/5년/10년 + 직접설정). ⚠️ 섹터 등락률 시계열은 데이터/계산 방식 확인 필요(현재 단일일 등락률만 쓰는지).
 
 ---
 
-_Last Updated: 2026-06-18 (코드 점검 라운드 — PR #58/#61/#62(559줄) 정독+별칭값↔DB업종명 대조, 실버그 0건. + sector RAGAS 재측정 AR 0.845 확인. 직전: sector 답변구조 재배치 #62 / 신규 도구 eval 커버리지 20개+실버그 2건 #61. 다음: 유료전환/블로그9편)_
+_Last Updated: 2026-06-18 (Railway 유저DB 영구화 — Postgres 플러그인 추가 + DATABASE_URL=${{Postgres.DATABASE_URL}} 연결로 재배포 시 회원/관심종목 소실 문제 해결(사용자 작업, 재배포 로그 검증 남음). 후원기능=BMC+토스 안내 결정만(보류). 로그인 보강 착수예정: 비번변경+탈퇴(비번찾기는 메일인프라 필요→후속). 직전: 코드점검 라운드 실버그0 + sector RAGAS AR 0.845. 다음: 비번변경/탈퇴 구현)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
