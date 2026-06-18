@@ -534,7 +534,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-18 (RAG 품질 — 신규 도구(forecast/news/sector) eval 커버리지 20개 추가(eval 172→192) + 실버그 2건 수정(analyze_sector 통속 업종명 별칭·news RSS certifi SSL) → RAGAS news/sector AR 0.501→0.747. 테스트 766→771. 상세: CLAUDE.local.md "RAG 품질: 신규 도구 평가 커버리지". 이전: 2026-06-16 Phase F KIS #50~#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58)_
+_Last Updated: 2026-06-18 (sector 후속 #62 — analyze_sector 종목 경로에서 [업종]/밸류에이션 백분위를 보유 ETF 목록보다 앞으로 재배치(현대차 섹터 AR=0.28 답변구조 보완) + docstring 호출 인자 안내 + 회귀테스트 1개. 직전: RAG 품질 — 신규 도구 eval 커버리지 20개(172→192) + 실버그 2건(sector 별칭·news SSL) → RAGAS AR 0.501→0.747 #61. 그 이전: 2026-06-16 Phase F KIS #50~#54 + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
