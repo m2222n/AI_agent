@@ -263,6 +263,11 @@ def analyze_sector(query: str) -> str:
     """특정 종목이 포함된 ETF를 찾거나, 업종별 종목 분석(PER/PBR 비교, 시가총액 상위)을 수행합니다.
     "삼성전자 담고 있는 ETF", "전기전자 업종 분석", "은행 업종 PER 비교", "반도체 관련 ETF" 등의 질문에 사용합니다.
 
+    중요: "현대차 섹터 내 밸류에이션 위치"처럼 **특정 종목의 업종 내 상대 위치**를
+    묻는 질문은 종목명(예: "현대차")으로 호출하세요. 그러면 그 종목의 업종, 업종 내
+    PER/PBR/배당/시총 백분위 위치를 반환합니다. 섹터명("자동차")으로 호출하면 업종
+    전체 종목 목록만 나와 특정 종목의 상대 위치가 강조되지 않습니다.
+
     Args:
         query: 종목명/티커, 업종명, 또는 섹터 키워드 (예: "삼성전자", "전기·전자", "반도체", "은행")
     """
@@ -322,24 +327,14 @@ def analyze_sector(query: str) -> str:
                 seen.add(m["etf_ticker"])
                 unique.append(m)
 
-        lines = [f"[{stock_name}]을(를) 보유한 ETF ({len(unique)}개):\n"]
-        for m in unique[:15]:
-            lines.append(
-                f"- [{m['etf_ticker']}] {m['etf_name']} (비중: {m['weight']:.2f}%)"
-            )
-        if len(unique) > 15:
-            lines.append(f"  ... 외 {len(unique) - 15}개")
+        lines = []
 
-        avg_weight = sum(m["weight"] for m in unique) / len(unique)
-        max_m = unique[0]
-        lines.append(f"\n[통계] 평균 비중: {avg_weight:.2f}%, "
-                      f"최대 비중: {max_m['etf_name']} ({max_m['weight']:.2f}%)")
-
-        # 해당 종목의 업종 정보 + 밸류에이션 위치
+        # 업종 정보 + 밸류에이션 위치를 먼저 — "섹터 내 밸류에이션 위치" 질문이
+        # ETF 목록에 묻히지 않도록 답변 상단에 배치.
         stock_data = _state._stock_data_index.get(query_lower) or _state._stock_data_index.get(query)
         if stock_data and stock_data.get("sector"):
             sector = stock_data["sector"]
-            lines.append(f"\n[업종] {stock_name}: {sector}")
+            lines.append(f"[업종] {stock_name}: {sector}")
 
             if sector in _state._sector_index:
                 sector_stocks = _state._sector_index[sector]
@@ -354,6 +349,20 @@ def analyze_sector(query: str) -> str:
                 if peers:
                     peer_names = ", ".join(p["name"] for p in peers)
                     lines.append(f"[동일 업종] {peer_names}")
+            lines.append("")  # 구분
+
+        lines.append(f"[{stock_name}]을(를) 보유한 ETF ({len(unique)}개):\n")
+        for m in unique[:15]:
+            lines.append(
+                f"- [{m['etf_ticker']}] {m['etf_name']} (비중: {m['weight']:.2f}%)"
+            )
+        if len(unique) > 15:
+            lines.append(f"  ... 외 {len(unique) - 15}개")
+
+        avg_weight = sum(m["weight"] for m in unique) / len(unique)
+        max_m = unique[0]
+        lines.append(f"\n[통계] 평균 비중: {avg_weight:.2f}%, "
+                      f"최대 비중: {max_m['etf_name']} ({max_m['weight']:.2f}%)")
 
         return "\n".join(lines)
 

@@ -314,3 +314,18 @@ def test_analyze_sector_alias_does_not_hijack_stock_name():
     # 종목 분석(보유 ETF) 경로여야지 업종 분석이 아니어야 한다
     assert "보유한 ETF" in result
     assert "운송장비·부품 업종 분석" not in result
+
+
+def test_analyze_sector_valuation_before_etf_list():
+    """종목 경로에서 업종/밸류에이션 위치가 ETF 목록보다 먼저 나와야 한다.
+
+    "현대차 섹터 내 밸류에이션 위치" 질문이 긴 ETF 목록에 묻히던 문제
+    (2026-06-18 RAGAS sector AR=0.28) 보완. 밸류에이션 정보를 답변 상단에 배치.
+    """
+    set_retriever(None, [], etf_data=SAMPLE_ETF_DATA, stock_data=SAMPLE_STOCK_DATA)
+    result = analyze_sector.invoke({"query": "삼성전자"})
+    # [업종] 헤더와 보유 ETF 목록 둘 다 존재
+    assert "[업종]" in result
+    assert "보유한 ETF" in result
+    # 업종/밸류에이션 위치가 ETF 목록보다 앞서야 한다
+    assert result.index("[업종]") < result.index("보유한 ETF")
