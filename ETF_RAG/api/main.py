@@ -45,6 +45,7 @@ from api.tabs import router as tabs_router
 from api.auth import router as auth_router, get_current_user_optional
 from api.user_data import router as user_data_router
 from api.push import router as push_router
+from api.paper import router as paper_router
 from api.models_db import User
 from src.utils.logging import log_feedback
 
@@ -95,6 +96,8 @@ app.include_router(auth_router)
 app.include_router(user_data_router)
 # 웹 푸시 알림 — 구독/VAPID (/push/*)
 app.include_router(push_router)
+# 가상투자(모의투자) — 매수/매도/포트폴리오/랭킹 (/me/paper/*)
+app.include_router(paper_router)
 
 
 def _require_ready() -> None:

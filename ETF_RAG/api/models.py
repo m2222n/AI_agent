@@ -80,6 +80,77 @@ class AccountDeleteRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 
+# ── 가상투자(모의투자) ─────────────────────────────────────
+class TradeRequest(BaseModel):
+    ticker: str = Field(..., min_length=1)  # 종목코드 또는 종목명(서버에서 해석)
+    qty: int = Field(..., ge=1)
+
+
+class HoldingItem(BaseModel):
+    ticker: str
+    name: str
+    qty: int
+    avg_price: float          # 평단가
+    current_price: float      # 현재가
+    eval_value: int           # 평가금액 = current_price·qty
+    cost_value: int           # 매입금액 = avg_price·qty
+    pnl: int                  # 평가손익 = eval - cost
+    pnl_pct: float            # 평가수익률 %
+    price_source: str         # "kis"|"yfinance"|"close"
+
+
+class PortfolioResponse(BaseModel):
+    cash: int                 # 현금 잔고
+    holdings: List[HoldingItem]
+    holdings_value: int       # 보유 종목 평가액 합
+    total_value: int          # 총 자산 = cash + holdings_value
+    initial_cash: int         # 기준 자본(1억)
+    total_pnl: int            # 총 손익 = total_value - initial_cash
+    total_pnl_pct: float      # 총 수익률 %
+
+
+class TradeResult(BaseModel):
+    ok: bool
+    side: Literal["buy", "sell"]
+    ticker: str
+    name: str
+    qty: int
+    price: float
+    amount: int
+    cash: int                 # 체결 후 잔고
+    realized_pnl: Optional[int] = None  # 매도 시 실현손익
+    price_source: str
+
+
+class TradeHistoryItem(BaseModel):
+    ticker: str
+    name: Optional[str]
+    side: Literal["buy", "sell"]
+    qty: int
+    price: float
+    amount: int
+    realized_pnl: Optional[int]
+    created_at: str
+
+
+class TradeHistoryResponse(BaseModel):
+    trades: List[TradeHistoryItem]
+
+
+class RankingItem(BaseModel):
+    rank: int
+    nickname: str
+    total_value: int
+    total_pnl_pct: float
+    is_me: bool = False
+
+
+class RankingResponse(BaseModel):
+    rankings: List[RankingItem]
+    my_rank: Optional[int] = None
+    total_players: int
+
+
 # ── 유저별 저장 (관심종목 / 대화이력) ──────────────────────
 class WatchlistResponse(BaseModel):
     tickers: List[str]

@@ -237,3 +237,60 @@ export interface UiMessage {
   status?: string; // 스트리밍 중 상태줄 텍스트
   followups?: string[]; // 4d: 후속 질문 제안 (assistant 완료 시)
 }
+
+// ── 가상투자(모의투자) ─────────────────────────────────
+export interface PaperHolding {
+  ticker: string;
+  name: string;
+  qty: number;
+  avg_price: number;
+  current_price: number;
+  eval_value: number;
+  cost_value: number;
+  pnl: number;
+  pnl_pct: number;
+  price_source: string;
+}
+export interface PaperPortfolio {
+  cash: number;
+  holdings: PaperHolding[];
+  holdings_value: number;
+  total_value: number;
+  initial_cash: number;
+  total_pnl: number;
+  total_pnl_pct: number;
+}
+export interface PaperTradeResult {
+  ok: boolean;
+  side: "buy" | "sell";
+  ticker: string;
+  name: string;
+  qty: number;
+  price: number;
+  amount: number;
+  cash: number;
+  realized_pnl?: number | null;
+  price_source: string;
+}
+export interface PaperTradeHistoryItem {
+  ticker: string;
+  name: string | null;
+  side: "buy" | "sell";
+  qty: number;
+  price: number;
+  amount: number;
+  realized_pnl: number | null;
+  created_at: string;
+}
+export interface PaperRankingItem {
+  rank: number;
+  nickname: string;
+  total_value: number;
+  total_pnl_pct: number;
+  is_me: boolean;
+}
+export interface PaperRanking {
+  rankings: PaperRankingItem[];
+  my_rank: number | null;
+  total_players: number;
+}
