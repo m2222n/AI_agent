@@ -277,6 +277,10 @@
   - [x] **웹 푸시 알림** (2026-06-15, PR #55·#56): VAPID + `PushSubscription` + SW push 핸들러 + PushToggle(구독) / `run_watchlist_alerts`(관심종목 ±5% 일일 자동발송, `/push/run-watchlist-alerts` X-Cron-Token, daily-collect 트리거). transformers 불필요. 상세: "Phase F: 웹 푸시".
   - [x] **코드 점검 라운드** (2026-06-15, PR #57): PR #50~#56 점검 → kis_ws 재연결 실버그 1건 수정(+회귀테스트). 나머지 클린.
   - [x] **F-3 로컬 감성 분석** (2026-06-16, PR #58): 뉴스 감성 분류를 로컬 `snunlp/KR-FinBert-SC`(사전학습, 선택적 설치)로 — 분류 로컬→GPT fallback, 요약은 GPT 하이브리드. torch 미설치 시 기존 GPT. 상세: "Phase F-3".
+  - [x] **유저 DB 영구화 (Postgres)** (2026-06-18): Railway에 PostgreSQL 플러그인 + `DATABASE_URL=${{Postgres.DATABASE_URL}}` 연결 → 재배포해도 회원/관심종목 보존(이전엔 컨테이너 SQLite라 소실). 코드는 이미 지원, 설정만. curl 라이브 검증(가입201→탈퇴204→재로그인401).
+  - [x] **계정 관리** (2026-06-18, PR #63): 비밀번호 변경(`PUT /auth/password`) + 닉네임(표시용, `PUT /auth/profile` + User.nickname) + 회원 탈퇴(`DELETE /auth/me`, 연관 watchlist/chat/push 정리). 프론트 `/account` 페이지 + NavBar ⚙️닉네임. ID찾기=이메일이 곧 ID, 비번찾기=메일인프라 후속. 테스트 +13.
+  - [x] **UI 개선 4건** (2026-06-18~23): ①'티커'→'종목코드' 화면 문구(#64) ②재무제표 주식만 검색(ETF 제외)+10년+직접설정(#65) ③비교분석 기간 직접설정(#66) ④섹터 기간 추이 차트(업종 선택 후 1주~10년, 시총 상위20 가중지수, `/tabs/sector?period=`, #68). 상세: CLAUDE.local.md "UI 개선 요청 4건".
+  - [x] **주가 DB malformed 자동복구** (2026-06-19, PR #67): Railway에서 `database disk image is malformed`로 주가 SQLite 로드 실패 → `ensure_db`가 `exists()`만 보고 손상 파일 재사용한 게 원인(Release 파일 자체는 정상 확인). `_is_valid_sqlite`(PRAGMA quick_check) + 손상 시 삭제·재다운로드 + 다운로드 크기 검증. 재배포로 복구 확인. 테스트 +8.
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
@@ -534,7 +538,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-18 (Railway 유저DB 영구화 — Postgres 플러그인 추가 + DATABASE_URL 연결로 재배포 시 회원/관심종목 소실 해결(사용자 Railway 작업, 재배포 로그 검증 남음). 로그인 보강 착수예정(비번변경+탈퇴, 비번찾기는 메일인프라 후속). 후원=BMC+토스 안내 결정만 보류. 직전: sector 후속 #62 답변구조 재배치 AR 0.845 + 코드점검 라운드 실버그0 / RAG 품질 eval 커버리지 #61. 상세: CLAUDE.local.md)_
+_Last Updated: 2026-06-23 (유저DB Postgres 영구화(라이브검증) + 계정관리 #63(비번변경/닉네임/탈퇴) + UI개선 4건 #64~66·#68(종목코드/재무제표주식만+10년/비교분석기간/섹터 기간추이 차트) + 주가DB malformed 자동복구 #67. 후원=BMC+토스 결정만 보류. git push HTTP/1.1 우회 필요했음. 다음: 가상투자 탭. 상세: CLAUDE.local.md)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
