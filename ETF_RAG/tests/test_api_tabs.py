@@ -194,6 +194,39 @@ def test_sector_404_unknown(client):
     assert r.status_code == 404
 
 
+def test_sector_period_invalid_422(client):
+    r = client.get("/tabs/sector", params={"sector": "전기·전자", "period": "7d"})
+    assert r.status_code == 422  # pattern ^(1d|1w|...|10y)$
+
+
+def test_sector_1d_has_no_trend(client):
+    """기본 1d는 스냅샷 — trend 차트를 만들지 않는다."""
+    sector_index = {"전기·전자": [{"name": "삼성전자", "ticker": "005930", "market_cap": 5e14, "change_pct": 1.0, "per": 12.0}]}
+    with patch("api.tabs.get_sector_index", return_value=sector_index), patch(
+        "api.tabs.generate_sector_overview_chart", return_value="OVR"
+    ), patch("api.tabs.generate_sector_detail_chart", return_value="DET"):
+        r = client.get("/tabs/sector", params={"sector": "전기·전자", "period": "1d"})
+    assert r.status_code == 200
+    assert "trend_chart_b64" not in r.json()
+
+
+def test_sector_period_includes_trend(client):
+    """period!=1d면 _sector_trend 결과로 trend 차트/수익률을 포함한다."""
+    sector_index = {"전기·전자": [{"name": "삼성전자", "ticker": "005930", "market_cap": 5e14, "change_pct": 1.0, "per": 12.0}]}
+    trend = {"dates": ["20250101", "20260101"], "index_values": [100.0, 130.0],
+             "return_pct": 30.0, "constituents": 1}
+    with patch("api.tabs.get_sector_index", return_value=sector_index), patch(
+        "api.tabs.generate_sector_overview_chart", return_value="OVR"
+    ), patch("api.tabs.generate_sector_detail_chart", return_value="DET"), patch(
+        "api.tabs._sector_trend", return_value=trend
+    ), patch("api.tabs.generate_sector_trend_chart", return_value="TREND"):
+        r = client.get("/tabs/sector", params={"sector": "전기·전자", "period": "1y"})
+    body = r.json()
+    assert body["trend_chart_b64"] == "TREND"
+    assert body["trend_return_pct"] == 30.0
+    assert body["trend_constituents"] == 1
+
+
 # ── Tickers ────────────────────────────────────────────────────────
 def test_tickers_filters_and_caps(client):
     opts = [f"삼성전자{i} (0059{i:02d})" for i in range(40)] + ["LG (003550)"]

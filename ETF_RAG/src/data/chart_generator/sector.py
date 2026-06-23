@@ -137,3 +137,62 @@ def generate_sector_detail_chart(
     except Exception as e:
         logger.error(f"섹터 상세 차트 생성 실패: {e}")
         return None
+
+
+def generate_sector_trend_chart(
+    sector: str,
+    dates: list,
+    index_values: list,
+    period_label: str,
+) -> Optional[str]:
+    """섹터 지수 시계열(기준일=100) 라인 차트 → base64 PNG.
+
+    dates: ["YYYYMMDD", ...] 오름차순, index_values: 동일 길이 지수값(시작=100).
+    시총 상위 종목 가중 수익률 지수(api/tabs.py에서 계산해 전달).
+    """
+    if not dates or len(dates) < 2 or len(dates) != len(index_values):
+        return None
+
+    setup_font()
+
+    try:
+        x = list(range(len(dates)))
+        end_val = index_values[-1]
+        ret_pct = end_val - 100.0  # 기준일=100 → 구간 수익률
+        line_color = "#E8453C" if ret_pct >= 0 else "#1A73E8"
+
+        fig, ax = plt.subplots(figsize=(11, 4.5), facecolor=BG_COLOR)
+        ax.set_facecolor(BG_COLOR)
+        ax.plot(x, index_values, color=line_color, linewidth=1.8, zorder=3)
+        ax.fill_between(x, 100.0, index_values, color=line_color, alpha=0.08, zorder=2)
+        ax.axhline(100.0, color=TEXT_COLOR, linewidth=0.6, alpha=0.4, zorder=1)
+
+        # X축: 연/월 라벨 (최대 ~8개 눈금)
+        fp = font_kw()
+        n = len(dates)
+        step = max(1, n // 8)
+        ticks = list(range(0, n, step))
+        if ticks and ticks[-1] != n - 1:
+            ticks.append(n - 1)
+
+        def _fmt(d: str) -> str:
+            return f"{d[:4]}.{d[4:6]}" if len(d) == 8 else d
+
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([_fmt(dates[i]) for i in ticks],
+                           fontsize=7, color=TEXT_COLOR, rotation=0, **fp)
+        ax.set_ylabel("지수 (시작=100)", fontsize=8, color=TEXT_COLOR, **fp)
+        ax.grid(True, alpha=0.3, color=GRID_COLOR, zorder=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        ax.set_title(
+            f"{sector} 업종 추이 ({period_label}) — 구간 수익률 {ret_pct:+.2f}%",
+            fontsize=12, fontweight="bold", color=TEXT_COLOR, **fp,
+        )
+        fig.subplots_adjust(left=0.08, right=0.97, top=0.90, bottom=0.12)
+        return to_base64_tight(fig)
+
+    except Exception as e:
+        logger.error(f"섹터 추이 차트 생성 실패: {e}")
+        return None

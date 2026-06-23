@@ -12,11 +12,26 @@ function jo(v: number): string {
   return `${Math.round(v / 1_0000_0000).toLocaleString("ko-KR")}억`;
 }
 
+// 기간 옵션 (백엔드 /tabs/sector period 패턴과 일치)
+const PERIODS: { value: string; label: string }[] = [
+  { value: "1d", label: "1일" },
+  { value: "1w", label: "1주" },
+  { value: "1m", label: "1달" },
+  { value: "3m", label: "3달" },
+  { value: "6m", label: "6달" },
+  { value: "1y", label: "1년" },
+  { value: "2y", label: "2년" },
+  { value: "3y", label: "3년" },
+  { value: "5y", label: "5년" },
+  { value: "10y", label: "10년" },
+];
+
 export default function SectorPage() {
   const [data, setData] = useState<SectorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<string>("");
+  const [period, setPeriod] = useState<string>("1d");
 
   // mount 시 전체 개요 로드
   useEffect(() => {
@@ -33,16 +48,24 @@ export default function SectorPage() {
     })();
   }, []);
 
-  const loadDetail = async (sector: string) => {
-    setPicked(sector);
-    if (!sector) return;
+  // 섹터/기간 변경 시 재조회 (섹터 미선택이면 전체 개요)
+  const load = async (sector: string, p: string) => {
     setLoading(true);
     try {
-      const res = await getSector(sector);
+      const res = sector ? await getSector(sector, p) : await getSector();
       if (res) setData(res);
     } finally {
       setLoading(false);
     }
+  };
+
+  const onSector = (sector: string) => {
+    setPicked(sector);
+    load(sector, period);
+  };
+  const onPeriod = (p: string) => {
+    setPeriod(p);
+    if (picked) load(picked, p);
   };
 
   const stats = data?.stats ?? [];
@@ -65,7 +88,7 @@ export default function SectorPage() {
           {stats.length > 0 && (
             <select
               value={picked}
-              onChange={(e) => loadDetail(e.target.value)}
+              onChange={(e) => onSector(e.target.value)}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
             >
               <option value="">— 업종 상세 보기 —</option>
@@ -77,6 +100,47 @@ export default function SectorPage() {
             </select>
           )}
 
+          {/* 기간 선택 (업종 선택 시에만) */}
+          {picked && (
+            <div className="flex flex-wrap gap-1.5">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => onPeriod(p.value)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    period === p.value
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 기간 추이 차트 (1일 외 + 데이터 있을 때) */}
+          {picked && period !== "1d" && data.trend_chart_b64 && (
+            <div>
+              <ChartImage
+                b64={data.trend_chart_b64}
+                alt={`${data.sector} 기간 추이`}
+              />
+              {typeof data.trend_return_pct === "number" && (
+                <p className="mt-1 text-center text-xs text-gray-500">
+                  시총 상위 {data.trend_constituents}종목 시총가중 지수 (기준일=100)
+                </p>
+              )}
+            </div>
+          )}
+          {picked && period !== "1d" && !data.trend_chart_b64 && !loading && (
+            <p className="text-center text-xs text-gray-400">
+              이 기간의 추이 데이터가 충분하지 않아요.
+            </p>
+          )}
+
+          {/* 업종 내 종목 상세 (1일 스냅샷) */}
           {data.detail_chart_b64 && (
             <ChartImage b64={data.detail_chart_b64} alt={`${data.sector} 상세`} />
           )}
