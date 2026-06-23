@@ -8,8 +8,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.concurrency import run_in_threadpool
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,18 +16,23 @@ from api.auth import get_current_user, _display_nickname
 from api.db import get_db
 from api.models import (
     HoldingItem,
+    PaperHistoryPoint,
+    PaperHistoryResponse,
     PortfolioResponse,
     RankingItem,
     RankingResponse,
+    SnapshotAllResponse,
     TradeHistoryItem,
     TradeHistoryResponse,
     TradeRequest,
     TradeResult,
 )
+from src.data.chart_generator import generate_paper_trend_chart
 from api.models_db import (
     INITIAL_CASH,
     PaperAccount,
     PaperHolding,
+    PaperSnapshot,
     PaperTrade,
     User,
 )
@@ -98,8 +102,51 @@ def _build_portfolio(db: Session, user_id: int) -> PortfolioResponse:
     )
 
 
-def _today() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d")
+def _today_kst() -> str:
+    """KST 기준 YYYYMMDD (수집/거래일 기준 통일)."""
+    from datetime import timedelta
+    return (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%Y%m%d")
+
+
+def _user_total_value(db: Session, user_id: int, price_fn) -> int:
+    """유저의 현재 총자산(현금+보유 평가액). price_fn(ticker)->float|None로 현재가 조회."""
+    acc = _get_or_create_account(db, user_id)
+    value = acc.cash
+    for h in _holdings(db, user_id):
+        cur = price_fn(h.ticker)
+        if cur:
+            value += int(round(cur * h.qty))
+    return value
+
+
+def _record_snapshot(db: Session, user_id: int, total_value: int) -> None:
+    """오늘(KST) 스냅샷 upsert — 같은 날 여러 번이면 최신값으로 갱신. commit 안 함."""
+    today = _today_kst()
+    snap = db.scalar(select(PaperSnapshot).where(
+        PaperSnapshot.user_id == user_id, PaperSnapshot.date == today))
+    if snap is None:
+        db.add(PaperSnapshot(user_id=user_id, date=today, total_value=total_value))
+    else:
+        snap.total_value = total_value
+
+
+def _price_simple(ticker: str):
+    """현재가만 (실패 시 None) — 스냅샷/랭킹용 경량 조회."""
+    try:
+        return float(_resolve_price(ticker)["price"])
+    except HTTPException:
+        return None
+
+
+def _snapshot_after_trade(db: Session, user_id: int) -> None:
+    """거래 직후 당일 스냅샷 갱신 — 실패해도 거래 자체는 영향 없게 예외 삼킴."""
+    try:
+        value = _user_total_value(db, user_id, _price_simple)
+        _record_snapshot(db, user_id, value)
+        db.commit()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"거래 후 스냅샷 기록 실패(무시): {e}")
+        db.rollback()
 
 
 # ── 엔드포인트 ──────────────────────────────────────────
@@ -142,6 +189,7 @@ def buy(
     db.add(PaperTrade(user_id=user.id, ticker=ticker, name=name,
                       side="buy", qty=req.qty, price=price, amount=amount))
     db.commit()
+    _snapshot_after_trade(db, user.id)  # 당일 평가액 스냅샷 갱신
     return TradeResult(
         ok=True, side="buy", ticker=ticker, name=name, qty=req.qty,
         price=price, amount=amount, cash=acc.cash,
@@ -176,6 +224,7 @@ def sell(
                       side="sell", qty=req.qty, price=price, amount=amount,
                       realized_pnl=realized))
     db.commit()
+    _snapshot_after_trade(db, user.id)  # 당일 평가액 스냅샷 갱신
     return TradeResult(
         ok=True, side="sell", ticker=ticker, name=name, qty=req.qty,
         price=price, amount=amount, cash=acc.cash, realized_pnl=realized,
@@ -205,12 +254,15 @@ def trades(
 def reset(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> PortfolioResponse:
-    """계좌 초기화 — 보유/내역 삭제 + 현금 1억으로 복구."""
+    """계좌 초기화 — 보유/내역/스냅샷 삭제 + 현금 1억으로 복구."""
     from sqlalchemy import delete
     db.execute(delete(PaperHolding).where(PaperHolding.user_id == user.id))
     db.execute(delete(PaperTrade).where(PaperTrade.user_id == user.id))
+    db.execute(delete(PaperSnapshot).where(PaperSnapshot.user_id == user.id))
     acc = _get_or_create_account(db, user.id)
     acc.cash = INITIAL_CASH
+    db.commit()
+    _record_snapshot(db, user.id, INITIAL_CASH)  # 초기화 시점 스냅샷(1억)
     db.commit()
     return _build_portfolio(db, user.id)
 
@@ -261,4 +313,59 @@ def ranking(
             ))
     return RankingResponse(
         rankings=items, my_rank=my_rank, total_players=len(rows),
+    )
+
+
+@router.get("/history", response_model=PaperHistoryResponse)
+def history(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> PaperHistoryResponse:
+    """일별 평가액 스냅샷 → 수익률 추이. 스냅샷 2개 미만이면 차트 없음."""
+    snaps = list(db.scalars(
+        select(PaperSnapshot).where(PaperSnapshot.user_id == user.id)
+        .order_by(PaperSnapshot.date)
+    ))
+    points = [
+        PaperHistoryPoint(
+            date=s.date, total_value=s.total_value,
+            pnl_pct=round((s.total_value - INITIAL_CASH) / INITIAL_CASH * 100.0, 2),
+        ) for s in snaps
+    ]
+    chart = None
+    if len(points) >= 2:
+        chart = generate_paper_trend_chart(
+            [p.date for p in points], [p.pnl_pct for p in points],
+        )
+    return PaperHistoryResponse(points=points, chart_b64=chart)
+
+
+@router.post("/snapshot-all", response_model=SnapshotAllResponse)
+def snapshot_all(
+    x_cron_token: str = Header(None, alias="X-Cron-Token"),
+    db: Session = Depends(get_db),
+) -> SnapshotAllResponse:
+    """전 유저 당일 평가액 스냅샷 기록 (GitHub Actions 수집 후 호출). X-Cron-Token 보호.
+
+    거래 안 한 날도 시세 변동을 추이에 반영하기 위함. 종목별 현재가는 1회만 조회(캐시).
+    """
+    from config import CRON_TOKEN
+    if not CRON_TOKEN:
+        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
+    if x_cron_token != CRON_TOKEN:
+        raise HTTPException(403, "잘못된 토큰")
+
+    price_cache: dict = {}
+
+    def _cached(tk: str):
+        if tk not in price_cache:
+            price_cache[tk] = _price_simple(tk)
+        return price_cache[tk]
+
+    accounts = list(db.scalars(select(PaperAccount)))
+    for acc in accounts:
+        value = _user_total_value(db, acc.user_id, _cached)
+        _record_snapshot(db, acc.user_id, value)
+    db.commit()
+    return SnapshotAllResponse(
+        ok=True, users_snapshotted=len(accounts), date=_today_kst(),
     )

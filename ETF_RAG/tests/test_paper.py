@@ -216,3 +216,62 @@ def test_ranking_excludes_users_without_account(client):
     client.get("/me/paper/portfolio", headers=a)  # a만 계좌 생성
     rk = client.get("/me/paper/ranking", headers=a).json()
     assert rk["total_players"] == 1
+
+
+# ── 수익률 추이 스냅샷 ──────────────────────────────────
+def test_history_empty_no_chart(client):
+    auth = _auth(client)
+    client.get("/me/paper/portfolio", headers=auth)  # 계좌 생성(스냅샷 없음)
+    h = client.get("/me/paper/history", headers=auth).json()
+    assert h["points"] == []
+    assert h["chart_b64"] is None
+
+
+def test_buy_records_snapshot(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10}, headers=auth)
+        h = client.get("/me/paper/history", headers=auth).json()
+    # 거래로 당일 스냅샷 1개 생성 — 총자산은 1억 그대로(현금-1000 + 평가1000)
+    assert len(h["points"]) == 1
+    assert h["points"][0]["total_value"] == INITIAL_CASH
+    assert h["points"][0]["pnl_pct"] == 0.0
+
+
+def test_reset_clears_snapshots(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10}, headers=auth)
+    client.post("/me/paper/reset", headers=auth)
+    h = client.get("/me/paper/history", headers=auth).json()
+    # 리셋 후 1억 스냅샷 1개만(초기화 시점)
+    assert len(h["points"]) == 1
+    assert h["points"][0]["total_value"] == INITIAL_CASH
+
+
+def test_snapshot_all_requires_cron_token(client):
+    from unittest.mock import patch
+    # 토큰 미설정 → 403
+    with patch("config.CRON_TOKEN", ""):
+        assert client.post("/me/paper/snapshot-all").status_code == 403
+    # 잘못된 토큰 → 403
+    with patch("config.CRON_TOKEN", "secret"):
+        r = client.post("/me/paper/snapshot-all", headers={"X-Cron-Token": "wrong"})
+        assert r.status_code == 403
+
+
+def test_snapshot_all_records_all_accounts(client):
+    from unittest.mock import patch
+    a = _auth(client, "a@b.com")
+    b = _auth(client, "b@b.com")
+    client.get("/me/paper/portfolio", headers=a)  # 계좌 생성
+    client.get("/me/paper/portfolio", headers=b)
+    with patch("config.CRON_TOKEN", "secret"):
+        r = client.post("/me/paper/snapshot-all", headers={"X-Cron-Token": "secret"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["users_snapshotted"] == 2
+    # 각 유저 history에 스냅샷 1개(현금만이라 1억)
+    h = client.get("/me/paper/history", headers=a).json()
+    assert len(h["points"]) == 1 and h["points"][0]["total_value"] == INITIAL_CASH

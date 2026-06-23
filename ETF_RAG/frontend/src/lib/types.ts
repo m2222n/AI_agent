@@ -294,3 +294,13 @@ export interface PaperRanking {
   my_rank: number | null;
   total_players: number;
 }
+
+export interface PaperHistoryPoint {
+  date: string;
+  total_value: number;
+  pnl_pct: number;
+}
+export interface PaperHistory {
+  points: PaperHistoryPoint[];
+  chart_b64: string | null;
+}

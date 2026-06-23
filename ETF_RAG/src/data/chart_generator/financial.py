@@ -233,3 +233,52 @@ def generate_portfolio_chart(
     except Exception as e:
         logger.error(f"포트폴리오 차트 생성 실패: {e}")
         return None
+
+
+def generate_paper_trend_chart(
+    dates: list,
+    pnl_pcts: list,
+) -> Optional[str]:
+    """가상투자 수익률 추이 라인 차트(0%=원금) → base64 PNG.
+
+    dates: ["YYYYMMDD", ...] 오름차순, pnl_pcts: 동일 길이 수익률(%) 시계열.
+    """
+    if not dates or len(dates) < 2 or len(dates) != len(pnl_pcts):
+        return None
+
+    setup_font()
+    try:
+        x = list(range(len(dates)))
+        last = pnl_pcts[-1]
+        color = "#E8453C" if last >= 0 else "#1A73E8"
+
+        fig, ax = plt.subplots(figsize=(11, 4), facecolor=BG_COLOR)
+        ax.set_facecolor(BG_COLOR)
+        ax.plot(x, pnl_pcts, color=color, linewidth=1.8, zorder=3)
+        ax.fill_between(x, 0.0, pnl_pcts, color=color, alpha=0.08, zorder=2)
+        ax.axhline(0.0, color=TEXT_COLOR, linewidth=0.6, alpha=0.4, zorder=1)
+
+        fp = font_kw()
+        n = len(dates)
+        step = max(1, n // 8)
+        ticks = list(range(0, n, step))
+        if ticks and ticks[-1] != n - 1:
+            ticks.append(n - 1)
+
+        def _fmt(d: str) -> str:
+            return f"{d[4:6]}.{d[6:8]}" if len(d) == 8 else d
+
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([_fmt(dates[i]) for i in ticks],
+                           fontsize=7, color=TEXT_COLOR, **fp)
+        ax.set_ylabel("수익률 (%)", fontsize=8, color=TEXT_COLOR, **fp)
+        ax.grid(True, alpha=0.3, color=GRID_COLOR, zorder=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.set_title(f"가상투자 수익률 추이 (현재 {last:+.2f}%)",
+                     fontsize=12, fontweight="bold", color=TEXT_COLOR, **fp)
+        fig.subplots_adjust(left=0.08, right=0.97, top=0.90, bottom=0.12)
+        return to_base64_tight(fig)
+    except Exception as e:
+        logger.error(f"가상투자 추이 차트 생성 실패: {e}")
+        return None
