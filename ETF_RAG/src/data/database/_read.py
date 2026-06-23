@@ -202,6 +202,34 @@ def get_historical_prices(conn: sqlite3.Connection,
     return [dict(r) for r in rows]
 
 
+def get_closes_batch(conn: sqlite3.Connection,
+                     tickers: List[str],
+                     start_date: str,
+                     end_date: str) -> dict:
+    """여러 종목의 기간 종가를 한 번의 IN절 쿼리로 조회 (섹터 지수용).
+
+    종목 수×기간이 많아 개별 쿼리(get_historical_prices N회)는 느리므로 배치.
+    Returns: {date: {ticker: close, ...}, ...} (날짜 오름차순 dict, close>0만)
+    """
+    if not tickers:
+        return {}
+    placeholders = ",".join("?" * len(tickers))
+    rows = conn.execute(
+        f"""
+        SELECT date, ticker, close
+        FROM daily_prices
+        WHERE ticker IN ({placeholders}) AND date >= ? AND date <= ?
+              AND close > 0
+        ORDER BY date ASC
+        """,
+        (*tickers, start_date, end_date),
+    ).fetchall()
+    out: dict = {}
+    for r in rows:
+        out.setdefault(r["date"], {})[r["ticker"]] = r["close"]
+    return out
+
+
 def search_instruments(conn: sqlite3.Connection,
                        keyword: str = "",
                        inst_type: str = "") -> List[dict]:

@@ -10,6 +10,7 @@ src/ui/tabs.py는 streamlit 의존이라 import 금지 — _build_sector_stats�
 import asyncio
 import json
 import logging
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -37,8 +38,14 @@ from src.data.chart_generator import (
     generate_financial_chart,
     generate_sector_overview_chart,
     generate_sector_detail_chart,
+    generate_sector_trend_chart,
 )
-from src.data.database import get_connection, get_financial_data, DB_PATH
+from src.data.database import (
+    get_connection,
+    get_financial_data,
+    get_closes_batch,
+    DB_PATH,
+)
 from src.llm.tools import (
     get_available_tickers,
     get_data_indices,
@@ -223,7 +230,81 @@ async def outlook(
 
 
 # ── Sector ─────────────────────────────────────────────────────────
-def _sector_blocking(sector: Optional[str]) -> Optional[dict]:
+# 기간 라벨 → 캘린더 일수 (영업일 아님, 시작일 역산용 여유 포함)
+_SECTOR_PERIOD_DAYS = {
+    "1d": 1, "1w": 7, "1m": 31, "3m": 93, "6m": 186,
+    "1y": 366, "2y": 731, "3y": 1096, "5y": 1827, "10y": 3653,
+}
+_SECTOR_TREND_TOP_N = 20  # 섹터 지수 구성 종목 수(시총 상위). 큰 섹터 성능 위해 제한.
+
+
+def _sector_trend(sector: str, stocks: list, days: int) -> Optional[dict]:
+    """섹터 시총가중 지수 시계열(기준일=100) 계산.
+
+    시총 상위 N종목의 '기준일 대비 수익률'을 현재 시총 비중으로 가중 평균.
+    과거 시총이 매일 있지 않아도 견고하도록 가중치는 현재 시총 고정(표준 가중수익률 지수).
+    stocks는 시총 내림차순 정렬된 섹터 종목 리스트(get_sector_index 보장).
+    """
+    top = [s for s in stocks if s.get("market_cap", 0) > 0][:_SECTOR_TREND_TOP_N]
+    if len(top) < 1:
+        return None
+    weights = {s["ticker"]: s["market_cap"] for s in top}
+    total_w = sum(weights.values())
+    if total_w <= 0:
+        return None
+
+    conn = get_connection(DB_PATH)
+    try:
+        latest = conn.execute("SELECT MAX(date) FROM daily_prices").fetchone()[0]
+        if not latest:
+            return None
+        start = (datetime.strptime(latest, "%Y%m%d")
+                 - timedelta(days=days)).strftime("%Y%m%d")
+        by_date = get_closes_batch(conn, list(weights.keys()), start, latest)
+    finally:
+        conn.close()
+
+    if len(by_date) < 2:
+        return None
+
+    dates = sorted(by_date.keys())
+    # 기준일 = 첫 거래일. 그날 종가가 있는 종목만으로 지수를 고정 구성한다.
+    # (중간 상장 종목을 도중에 끼우면 base가 뒤섞여 지수가 왜곡되므로 제외)
+    base_day = by_date[dates[0]]
+    members = {tk: w for tk, w in weights.items()
+               if base_day.get(tk, 0) and base_day[tk] > 0}
+    if not members:
+        return None
+    base_px = {tk: base_day[tk] for tk in members}
+
+    out_dates = []
+    index_values = []
+    for d in dates:
+        day = by_date[d]
+        num = 0.0  # Σ(weight · 종목 정규화수익)
+        den = 0.0  # Σ(weight)  — 그날 값이 있는 구성종목만
+        for tk, w in members.items():
+            px = day.get(tk)
+            if not px or px <= 0:
+                continue
+            num += w * (px / base_px[tk])
+            den += w
+        if den <= 0:
+            continue
+        out_dates.append(d)
+        index_values.append(round(num / den * 100.0, 2))
+
+    if len(index_values) < 2:
+        return None
+    return {
+        "dates": out_dates,
+        "index_values": index_values,
+        "return_pct": round(index_values[-1] - 100.0, 2),
+        "constituents": len(members),
+    }
+
+
+def _sector_blocking(sector: Optional[str], period: str = "1d") -> Optional[dict]:
     sector_index = get_sector_index()
     if not sector_index:
         return None
@@ -231,6 +312,7 @@ def _sector_blocking(sector: Optional[str]) -> Optional[dict]:
     out = {
         "stats": stats,
         "overview_chart_b64": generate_sector_overview_chart(stats),
+        "period": period,
     }
     if sector:
         stocks = sector_index.get(sector)
@@ -239,12 +321,28 @@ def _sector_blocking(sector: Optional[str]) -> Optional[dict]:
         out["sector"] = sector
         out["detail_chart_b64"] = generate_sector_detail_chart(sector, stocks)
         out["stocks"] = stocks
+        # 기간 추이 차트 (1d는 스냅샷이므로 생략 — 기존 상세 차트로 충분)
+        if period != "1d":
+            days = _SECTOR_PERIOD_DAYS.get(period, 93)
+            trend = _sector_trend(sector, stocks, days)
+            if trend:
+                out["trend_return_pct"] = trend["return_pct"]
+                out["trend_constituents"] = trend["constituents"]
+                out["trend_chart_b64"] = generate_sector_trend_chart(
+                    sector, trend["dates"], trend["index_values"], period,
+                )
     return out
 
 
 @router.get("/sector", response_model=None)
-async def sector(sector: Optional[str] = Query(None)):
-    result = await run_in_threadpool(_sector_blocking, sector)
+async def sector(
+    sector: Optional[str] = Query(None),
+    period: str = Query(
+        "1d",
+        pattern="^(1d|1w|1m|3m|6m|1y|2y|3y|5y|10y)$",
+    ),
+):
+    result = await run_in_threadpool(_sector_blocking, sector, period)
     if result is None:
         raise HTTPException(404, "섹터 데이터를 찾을 수 없습니다.")
     return result

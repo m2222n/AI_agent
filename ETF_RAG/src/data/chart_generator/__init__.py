@@ -22,6 +22,7 @@ from src.data.chart_generator.financial import (
 from src.data.chart_generator.sector import (
     generate_sector_overview_chart,
     generate_sector_detail_chart,
+    generate_sector_trend_chart,
 )
 
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     "generate_portfolio_chart",
     "generate_sector_overview_chart",
     "generate_sector_detail_chart",
+    "generate_sector_trend_chart",
 ]

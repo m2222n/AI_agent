@@ -264,12 +264,14 @@ export async function getOutlook(
   return (await res.json()) as OutlookResponse;
 }
 
-/** 섹터 분석 — 전체 또는 특정 섹터. 404면 null. */
+/** 섹터 분석 — 전체 또는 특정 섹터. period 지정 시 그 섹터의 기간 추이 차트 포함. 404면 null. */
 export async function getSector(
   sector?: string,
+  period?: string,
 ): Promise<SectorResponse | null> {
   const url = new URL(`${API_BASE}/tabs/sector`);
   if (sector) url.searchParams.set("sector", sector);
+  if (period) url.searchParams.set("period", period);
   const res = await fetch(url, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`sector ${res.status}`);

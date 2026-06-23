@@ -169,9 +169,14 @@ export interface SectorStat {
 export interface SectorResponse {
   stats: SectorStat[];
   overview_chart_b64: string | null;
+  period?: string;
   sector?: string;
   detail_chart_b64?: string | null;
   stocks?: Record<string, unknown>[];
+  // 기간 추이 (period !== "1d" + 섹터 선택 시)
+  trend_chart_b64?: string | null;
+  trend_return_pct?: number;
+  trend_constituents?: number;
 }
 
 // ── SSE structured_data 변형 (data를 JSON.parse한 결과) ──

@@ -28,6 +28,7 @@ from src.data.database._read import (
     get_latest_data,
     get_latest_stock_data,
     get_historical_prices,
+    get_closes_batch,
     search_instruments,
 )
 
@@ -52,7 +53,7 @@ __all__ = [
     "DB_PATH", "get_connection", "init_db",
     "upsert_daily_data", "upsert_stock_data",
     "get_latest_date", "get_latest_data", "get_latest_stock_data",
-    "get_historical_prices", "search_instruments",
+    "get_historical_prices", "get_closes_batch", "search_instruments",
     "upsert_corp_codes", "get_corp_code", "get_all_corp_codes",
     "upsert_financial_data", "get_financial_data", "get_latest_financial_summary",
     "prune_old_data", "import_json_file", "get_db_stats",
