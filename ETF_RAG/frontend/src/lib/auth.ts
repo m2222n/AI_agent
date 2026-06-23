@@ -177,3 +177,65 @@ export async function removeWatchlist(ticker: string): Promise<string[]> {
   const data = await res.json();
   return (data.tickers ?? []) as string[];
 }
+
+// ── 가상투자(모의투자) — 전부 로그인 필요 ─────────────────
+import type {
+  PaperPortfolio,
+  PaperTradeResult,
+  PaperTradeHistoryItem,
+  PaperRanking,
+} from "./types";
+
+async function paperGet<T>(path: string): Promise<T | null> {
+  const res = await fetch(`${API_BASE}/me/paper${path}`, {
+    headers: authHeader(),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as T;
+}
+
+export function getPortfolio(): Promise<PaperPortfolio | null> {
+  return paperGet<PaperPortfolio>("/portfolio");
+}
+
+export async function getTradeHistory(): Promise<PaperTradeHistoryItem[]> {
+  const r = await paperGet<{ trades: PaperTradeHistoryItem[] }>("/trades");
+  return r?.trades ?? [];
+}
+
+export function getRanking(): Promise<PaperRanking | null> {
+  return paperGet<PaperRanking>("/ranking");
+}
+
+/** 매수/매도 — 실패 시 detail 메시지로 throw(잔고부족 등 사용자에게 표시). */
+async function paperTrade(
+  side: "buy" | "sell",
+  ticker: string,
+  qty: number,
+): Promise<PaperTradeResult> {
+  const res = await fetch(`${API_BASE}/me/paper/${side}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({ ticker, qty }),
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.detail || `${side} 실패 (${res.status})`);
+  }
+  return (await res.json()) as PaperTradeResult;
+}
+
+export const buyStock = (ticker: string, qty: number) =>
+  paperTrade("buy", ticker, qty);
+export const sellStock = (ticker: string, qty: number) =>
+  paperTrade("sell", ticker, qty);
+
+export async function resetPaper(): Promise<PaperPortfolio | null> {
+  const res = await fetch(`${API_BASE}/me/paper/reset`, {
+    method: "POST",
+    headers: authHeader(),
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as PaperPortfolio;
+}
