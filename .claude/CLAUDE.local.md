@@ -2451,11 +2451,22 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
 - **주가DB malformed (PR #67)**: Release 파일 자체는 정상, Railway 다운로드/해제 중단+무결성 미검사가 원인 → ensure_db 무결성검사 추가. 재배포 후 복구 확인(기술분석 250일 정상).
 - **git push 함정**: HTTP/2로 HTTP400/disconnect 반복 → `git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push`로 우회(와이파이 불안정 시 재현).
 
+### 가상투자(모의투자) 탭 (2026-06-23, PR #69)
+로그인 유저가 **가상 현금 1억**으로 실제 시세 기반 모의투자. **결정: 체결가=현재가 / 초기 1억 고정 / 범위=MVP+랭킹 다.**
+- **백엔드** `api/paper.py`(`/me/paper/*`, get_current_user 뒤 동기 def):
+  - DB 4모델(`models_db.py`): `PaperAccount`(user_id unique, cash BigInteger, 1억 자동생성) + `PaperHolding`(ticker, qty, avg_price Float, user+ticker unique) + `PaperTrade`(side buy/sell, qty, price, amount, realized_pnl) + `PaperSnapshot`(date, total_value — 일별 차트/랭킹용, **일별기록 cron 미구현**). 금액 정수 원(KRW). 새 테이블이라 create_all 자동, _migrate 불필요.
+  - 매수: 잔고 확인→평단가 가중평균(`(평가+신규)/총수량`) / 매도: 보유 확인→실현손익 `(price-avg)*qty`, 전량매도 시 holding 삭제.
+  - **체결가 = `api.tabs._price_blocking(q)` 재사용**(종목명/코드 해석 + 장중 KIS/yfinance, 장외 수집종가). 수수료/세금 미반영, 공매도·미수 불가.
+  - `GET /portfolio`(평가손익) · `POST /buy` · `POST /sell` · `GET /trades`(최근200) · `POST /reset`(보유·내역 삭제+현금 1억) · `GET /ranking`(전 유저 total_value 정렬, 상위50+본인, 종목별 현재가 캐시). **계좌 미생성 유저(가상투자 한 번도 안 함)는 랭킹 제외.**
+  - 테스트 `test_paper.py` 15개(매수/매도/평단가 가중/잔고부족/전량매도/실현손익/리셋/랭킹/인증). **전체 816 통과**(로컬에 fastapi/bcrypt/PyJWT 설치돼 API 테스트도 로컬 실행됨).
+- **프론트** `/invest`: 자산요약(총자산/수익률/평가손익/현금) + 주문(TickerSearch+수량+매수/매도) + 보유현황 표 + 수익률 랭킹(본인 하이라이트) + 거래내역 + 계좌 초기화. NavBar "💰 가상투자" 탭. 비로그인은 로그인 안내. lib/auth.ts에 paper API(getPortfolio/buyStock/sellStock/getTradeHistory/getRanking/resetPaper).
+- **후속(미구현)**: `PaperSnapshot` 일별 기록(daily-collect.yml 연동) → 수익률 추이 차트. KIS env가 Railway 백엔드에 없으면 장중에도 yfinance/종가로 체결(기능 정상).
+
 ### 다음
-- **가상투자 탭**(로그인 유저 가상현금 매수/매도→포트폴리오·평가손익, Postgres 테이블 신설, 별도 세션) → 후원("해줘" 시, BMC+토스) → 블로그 9편 / 메일 인프라(비번찾기)
+- 가상투자 일별 스냅샷 cron → 수익률 추이 차트(후속) → 후원("해줘" 시, BMC+토스) → 블로그 9편 / 메일 인프라(비번찾기) / Railway 유료전환(trial 소진 전)
 
 ---
 
-_Last Updated: 2026-06-23 (UI 개선 4건 전부 완료 — #1 종목코드 #64 / #2 재무제표 #65 / #3 비교분석 #66 / #4 섹터 기간추이 차트(상위20 가중지수) #68. + 유저DB 영구화 라이브검증 + 주가DB malformed 수정 #67 재배포 복구확인. git push는 HTTP/1.1 우회 필요했음. 다음: 가상투자 탭)_
+_Last Updated: 2026-06-23 (가상투자 탭 #69 — 1억 가상자금 매수/매도/평가손익/거래내역/유저간 랭킹, 체결가=현재가(_price_blocking 재사용), DB 4모델, 테스트 15개·전체 816. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 가상투자 일별스냅샷 추이차트(후속)/후원/블로그)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
