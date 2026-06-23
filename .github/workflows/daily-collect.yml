@@ -180,6 +180,23 @@ jobs:
             -H "X-Cron-Token: $CRON_TOKEN" \
             --max-time 120 || echo "알림 트리거 실패(무시)"
 
+      # ── 가상투자 일별 평가액 스냅샷 트리거 (Railway 백엔드 호출) ──
+      # 거래 안 한 날도 시세 변동을 수익률 추이에 반영. 미설정 시 자동 skip(무해).
+      - name: Trigger paper-trading daily snapshot
+        continue-on-error: true
+        env:
+          PAPER_SNAPSHOT_URL: ${{ secrets.PAPER_SNAPSHOT_URL }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          if [ -z "$PAPER_SNAPSHOT_URL" ] || [ -z "$CRON_TOKEN" ]; then
+            echo "PAPER_SNAPSHOT_URL/CRON_TOKEN 미설정 — 스냅샷 트리거 skip"
+            exit 0
+          fi
+          echo "가상투자 스냅샷 트리거: $PAPER_SNAPSHOT_URL"
+          curl -fsS -X POST "$PAPER_SNAPSHOT_URL" \
+            -H "X-Cron-Token: $CRON_TOKEN" \
+            --max-time 120 || echo "스냅샷 트리거 실패(무시)"
+
   # ── 실패 시 GitHub Issue 자동 생성 ──────────────────────
   notify-failure:
     runs-on: ubuntu-latest

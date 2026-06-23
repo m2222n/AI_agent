@@ -184,6 +184,7 @@ import type {
   PaperTradeResult,
   PaperTradeHistoryItem,
   PaperRanking,
+  PaperHistory,
 } from "./types";
 
 async function paperGet<T>(path: string): Promise<T | null> {
@@ -206,6 +207,10 @@ export async function getTradeHistory(): Promise<PaperTradeHistoryItem[]> {
 
 export function getRanking(): Promise<PaperRanking | null> {
   return paperGet<PaperRanking>("/ranking");
+}
+
+export function getPaperHistory(): Promise<PaperHistory | null> {
+  return paperGet<PaperHistory>("/history");
 }
 
 /** 매수/매도 — 실패 시 detail 메시지로 throw(잔고부족 등 사용자에게 표시). */

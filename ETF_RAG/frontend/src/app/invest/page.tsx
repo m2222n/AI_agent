@@ -7,6 +7,7 @@ import {
   getPortfolio,
   getTradeHistory,
   getRanking,
+  getPaperHistory,
   buyStock,
   sellStock,
   resetPaper,
@@ -15,8 +16,10 @@ import type {
   PaperPortfolio,
   PaperTradeHistoryItem,
   PaperRanking,
+  PaperHistory,
 } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
+import ChartImage from "@/components/ChartImage";
 
 const won = (v: number) => `${Math.round(v).toLocaleString("ko-KR")}원`;
 function signColor(v: number): string {
@@ -31,6 +34,7 @@ export default function InvestPage() {
   const [pf, setPf] = useState<PaperPortfolio | null>(null);
   const [trades, setTrades] = useState<PaperTradeHistoryItem[]>([]);
   const [ranking, setRanking] = useState<PaperRanking | null>(null);
+  const [hist, setHist] = useState<PaperHistory | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ k: "ok" | "err"; t: string } | null>(null);
 
@@ -40,14 +44,16 @@ export default function InvestPage() {
   const [qty, setQty] = useState("");
 
   const refresh = useCallback(async () => {
-    const [p, t, r] = await Promise.all([
+    const [p, t, r, hh] = await Promise.all([
       getPortfolio(),
       getTradeHistory(),
       getRanking(),
+      getPaperHistory(),
     ]);
     setPf(p);
     setTrades(t);
     setRanking(r);
+    setHist(hh);
   }, []);
 
   useEffect(() => {
@@ -133,6 +139,13 @@ export default function InvestPage() {
             color={signColor(pf.total_pnl)}
           />
           <Stat label="현금" value={won(pf.cash)} />
+        </div>
+      )}
+
+      {/* 수익률 추이 차트 (스냅샷 2일+ 누적 시) */}
+      {hist?.chart_b64 && (
+        <div className="mb-4">
+          <ChartImage b64={hist.chart_b64} alt="가상투자 수익률 추이" />
         </div>
       )}
 

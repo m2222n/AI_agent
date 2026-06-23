@@ -151,6 +151,23 @@ class RankingResponse(BaseModel):
     total_players: int
 
 
+class PaperHistoryPoint(BaseModel):
+    date: str          # YYYYMMDD
+    total_value: int
+    pnl_pct: float     # 초기자본 대비 수익률 %
+
+
+class PaperHistoryResponse(BaseModel):
+    points: List[PaperHistoryPoint]
+    chart_b64: Optional[str] = None  # 수익률 추이 라인 차트
+
+
+class SnapshotAllResponse(BaseModel):
+    ok: bool
+    users_snapshotted: int
+    date: str
+
+
 # ── 유저별 저장 (관심종목 / 대화이력) ──────────────────────
 class WatchlistResponse(BaseModel):
     tickers: List[str]
