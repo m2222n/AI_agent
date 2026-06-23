@@ -2460,13 +2460,21 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
   - `GET /portfolio`(평가손익) · `POST /buy` · `POST /sell` · `GET /trades`(최근200) · `POST /reset`(보유·내역 삭제+현금 1억) · `GET /ranking`(전 유저 total_value 정렬, 상위50+본인, 종목별 현재가 캐시). **계좌 미생성 유저(가상투자 한 번도 안 함)는 랭킹 제외.**
   - 테스트 `test_paper.py` 15개(매수/매도/평단가 가중/잔고부족/전량매도/실현손익/리셋/랭킹/인증). **전체 816 통과**(로컬에 fastapi/bcrypt/PyJWT 설치돼 API 테스트도 로컬 실행됨).
 - **프론트** `/invest`: 자산요약(총자산/수익률/평가손익/현금) + 주문(TickerSearch+수량+매수/매도) + 보유현황 표 + 수익률 랭킹(본인 하이라이트) + 거래내역 + 계좌 초기화. NavBar "💰 가상투자" 탭. 비로그인은 로그인 안내. lib/auth.ts에 paper API(getPortfolio/buyStock/sellStock/getTradeHistory/getRanking/resetPaper).
-- **후속(미구현)**: `PaperSnapshot` 일별 기록(daily-collect.yml 연동) → 수익률 추이 차트. KIS env가 Railway 백엔드에 없으면 장중에도 yfinance/종가로 체결(기능 정상).
+- KIS env가 Railway 백엔드에 없으면 장중에도 yfinance/종가로 체결(기능 정상).
+
+### 가상투자 수익률 추이 차트 — 일별 스냅샷 (2026-06-23, PR #70)
+가상투자 평가액을 일별 스냅샷으로 누적 → 수익률 추이 라인.
+- **기록 2경로**: ①거래 직후 `_snapshot_after_trade`(당일 스냅샷 upsert, total_value 계산, 실패해도 거래 무영향) ②`POST /me/paper/snapshot-all`(X-Cron-Token, 전 유저 — 거래 안 한 날도 시세변동 반영). 종목별 현재가 1회 캐시. **`daily-collect.yml`에 트리거 스텝**(PAPER_SNAPSHOT_URL/CRON_TOKEN secret, 미설정 skip — 관심종목 알림 #56과 동일 패턴).
+- `PaperSnapshot(user_id, date YYYYMMDD, total_value)` upsert(같은 날 최신값). `_today_kst()` KST 기준. `GET /me/paper/history`(본인 시계열 + `generate_paper_trend_chart` 0%=원금 기준 수익률 라인, financial.py). reset 시 스냅샷도 삭제+1억 시점 재기록.
+- 프론트 `/invest`: 자산 요약 아래 추이 차트(스냅샷 2일+ 누적 시 표시). lib/auth getPaperHistory.
+- 테스트 +5(history 빈/거래시 기록/reset 초기화/cron 토큰 403/snapshot-all 전유저). **전체 821 통과**.
+- **사용자 후속(선택)**: Railway env `CRON_TOKEN` + GHA secret `PAPER_SNAPSHOT_URL`(=`{백엔드}/me/paper/snapshot-all`) 설정 시 매일 자동 스냅샷. 미설정이어도 거래 시점 스냅샷은 쌓임.
 
 ### 다음
-- 가상투자 일별 스냅샷 cron → 수익률 추이 차트(후속) → 후원("해줘" 시, BMC+토스) → 블로그 9편 / 메일 인프라(비번찾기) / Railway 유료전환(trial 소진 전)
+- 후원("해줘" 시, BMC+토스 안내) → 블로그 9편 → Railway 유료전환(trial 소진 전, ~6월 말) / 메일 인프라(비번찾기)
 
 ---
 
-_Last Updated: 2026-06-23 (가상투자 탭 #69 — 1억 가상자금 매수/매도/평가손익/거래내역/유저간 랭킹, 체결가=현재가(_price_blocking 재사용), DB 4모델, 테스트 15개·전체 816. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 가상투자 일별스냅샷 추이차트(후속)/후원/블로그)_
+_Last Updated: 2026-06-23 (가상투자 탭 #69 + 수익률 추이 차트 #70 — 1억 매수/매도/평가손익/랭킹 + 일별 스냅샷(거래시+cron 2경로) 추이차트. DB 4모델, 테스트 +20·전체 821. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편/Railway 유료전환)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_

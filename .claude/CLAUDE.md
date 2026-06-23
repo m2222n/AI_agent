@@ -281,7 +281,8 @@
   - [x] **계정 관리** (2026-06-18, PR #63): 비밀번호 변경(`PUT /auth/password`) + 닉네임(표시용, `PUT /auth/profile` + User.nickname) + 회원 탈퇴(`DELETE /auth/me`, 연관 watchlist/chat/push 정리). 프론트 `/account` 페이지 + NavBar ⚙️닉네임. ID찾기=이메일이 곧 ID, 비번찾기=메일인프라 후속. 테스트 +13.
   - [x] **UI 개선 4건** (2026-06-18~23): ①'티커'→'종목코드' 화면 문구(#64) ②재무제표 주식만 검색(ETF 제외)+10년+직접설정(#65) ③비교분석 기간 직접설정(#66) ④섹터 기간 추이 차트(업종 선택 후 1주~10년, 시총 상위20 가중지수, `/tabs/sector?period=`, #68). 상세: CLAUDE.local.md "UI 개선 요청 4건".
   - [x] **주가 DB malformed 자동복구** (2026-06-19, PR #67): Railway에서 `database disk image is malformed`로 주가 SQLite 로드 실패 → `ensure_db`가 `exists()`만 보고 손상 파일 재사용한 게 원인(Release 파일 자체는 정상 확인). `_is_valid_sqlite`(PRAGMA quick_check) + 손상 시 삭제·재다운로드 + 다운로드 크기 검증. 재배포로 복구 확인. 테스트 +8.
-  - [x] **가상투자(모의투자) 탭** (2026-06-23, PR #69): 로그인 유저 가상 현금 1억으로 실제 시세 기반 모의투자. `api/paper.py`(`/me/paper/*`) — 4모델(계좌/보유/내역/스냅샷) + 매수(평단가 가중평균)/매도(실현손익) + 체결가=현재가(`_price_blocking` 재사용) + 포트폴리오 평가손익 + 거래내역 + 계좌 초기화 + 유저간 수익률 랭킹. 프론트 `/invest` 탭. 테스트 +15(전체 816). 후속: 일별 스냅샷 cron→수익률 추이 차트.
+  - [x] **가상투자(모의투자) 탭** (2026-06-23, PR #69): 로그인 유저 가상 현금 1억으로 실제 시세 기반 모의투자. `api/paper.py`(`/me/paper/*`) — 4모델(계좌/보유/내역/스냅샷) + 매수(평단가 가중평균)/매도(실현손익) + 체결가=현재가(`_price_blocking` 재사용) + 포트폴리오 평가손익 + 거래내역 + 계좌 초기화 + 유저간 수익률 랭킹. 프론트 `/invest` 탭. 테스트 +15.
+  - [x] **가상투자 수익률 추이 차트** (2026-06-23, PR #70): 일별 평가액 스냅샷(PaperSnapshot) 누적 → 수익률 추이 라인. 거래 직후 + `/me/paper/snapshot-all`(X-Cron-Token, daily-collect 트리거) 2경로 기록. `/me/paper/history`(차트). 테스트 +5(전체 821).
 - [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
@@ -539,7 +540,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-23 (가상투자 탭 #69 — 1억 가상자금 매수/매도/평가손익/거래내역/랭킹, 체결가=현재가, 테스트 816. 직전: 유저DB Postgres 영구화 + 계정관리 #63 + UI개선 4건 #64~66·#68 + 주가DB malformed 자동복구 #67. 후원=BMC+토스 보류. git push HTTP/1.1 우회 필요. 다음: 가상투자 일별 스냅샷 cron→추이 차트 / 후원 / 블로그. 상세: CLAUDE.local.md)_
+_Last Updated: 2026-06-23 (가상투자 탭 #69 + 수익률 추이 차트 #70 — 1억 가상자금 매수/매도/평가손익/랭킹 + 일별 스냅샷 추이. 테스트 821. 직전: 유저DB Postgres 영구화 + 계정관리 #63 + UI개선 4건 #64~66·#68 + 주가DB malformed #67. 후원=BMC+토스 보류. git push HTTP/1.1 우회 필요. 다음: 후원 / 블로그 / Railway 유료전환. 상세: CLAUDE.local.md)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
