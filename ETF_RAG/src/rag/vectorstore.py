@@ -15,15 +15,15 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 
 from config import (
-    EMBEDDING_MODEL, DATA_DIR,
+    EMBEDDING_MODEL, PERSIST_DIR,
     VECTOR_DB_BACKEND, PINECONE_API_KEY, PINECONE_INDEX_NAME,
 )
 from src.rag.utils import compute_docs_hash as _compute_docs_hash
 
 logger = logging.getLogger(__name__)
 
-# FAISS 인덱스 저장 디렉토리
-FAISS_INDEX_DIR = DATA_DIR / "faiss_index"
+# FAISS 인덱스 저장 디렉토리 — 영속 볼륨(PERSIST_DIR)에 두면 콜드스타트 재임베딩 제거.
+FAISS_INDEX_DIR = PERSIST_DIR / "faiss_index"
 
 
 def get_embeddings() -> OpenAIEmbeddings:

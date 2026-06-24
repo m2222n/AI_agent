@@ -51,18 +51,20 @@ HTTP로만 결합된 **독립 2서비스**다. 기존 Streamlit 앱은 그대로
 
 프론트 URL 열기 → health 게이트 통과 확인 → 채팅 한 번 → 데이터 탭(기술/재무/섹터) 확인.
 
-## 영속(권장 후속) — DB/FAISS 콜드스타트 제거
+## 영속 볼륨 — DB/FAISS 콜드스타트 제거 (코드 구현 완료)
 
-현재 영속 볼륨 **미구현**. 그대로 두면 컨테이너 재생성(콜드스타트)마다 DB 재다운로드(3~5분) +
-FAISS 재임베딩(~90s, ~$0.005). 한 번 띄우면 유지되지만, 재배포 때마다 반복.
+영속 볼륨이 없으면 재배포(콜드스타트)마다 DB 재다운로드(3~5분, 1.8GB) + FAISS
+재임베딩(~90s)이 반복된다. **코드는 `ETF_DATA_DIR` 환경변수를 지원**하도록 구현됨:
+- `config.PERSIST_DIR = ETF_DATA_DIR`(미설정 시 기존 `src/data`) → DB_PATH·FAISS·BM25
+  캐시가 모두 이 경로 기준(`_schema.py`/`api/deps.py`/`vectorstore.py`/`retriever.py` 통일).
+- 미설정 시 동작 무변경(로컬·기존 배포 안전).
 
-**권장 후속 편집** (별도 작업):
-1. `config.py`: `DATA_DIR`를 `ETF_DATA_DIR` 환경변수로 오버라이드 가능하게.
-   (DB_PATH, FAISS/BM25 캐시 경로가 DATA_DIR 기준이 되도록 — vectorstore/retriever도 확인.)
-2. `api/deps.py`: 하드코딩된 `_DB_PATH`도 `ETF_DATA_DIR` 반영.
-3. Railway: 볼륨을 **`/data`에 마운트**(❌ `src/data` 금지 — 소스 패키지/`deploy/` fallback을 가림),
-   `ETF_DATA_DIR=/data` 설정.
-→ DB와 FAISS가 `/data`에 영속되어 콜드스타트 1회로 끝남.
+**Railway 설정 (사용자 1회):**
+1. `etf-backend`(AI_agent) 서비스 → 우클릭/메뉴 → **Add Volume**
+2. Mount path = **`/data`** (❌ `/app/src/data` 금지 — 소스 패키지/deploy fallback을 가림)
+3. Variables에 **`ETF_DATA_DIR=/data`** 추가 → 재배포
+→ 첫 부팅에 DB가 `/data`에 1회 저장되고, 이후 재배포는 그걸 재사용해 즉시 부팅.
+   (deploy/ JSON·하드코딩 샘플은 소스(`src/data`)에 그대로 — 볼륨과 분리.)
 
 ## Render 대안 (비권장)
 

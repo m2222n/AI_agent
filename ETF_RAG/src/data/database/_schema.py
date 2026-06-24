@@ -3,12 +3,17 @@ DB 스키마 + 초기화 — 테이블 정의, 연결, 마이그레이션
 """
 
 import logging
+import os
 import sqlite3
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = Path(__file__).resolve().parent.parent / "etf_rag.db"
+# DB는 영속 볼륨(ETF_DATA_DIR, 예: Railway /data)에 두어 재배포 시 재다운로드를
+# 피한다. 미설정 시 기존 경로(src/data)와 동일 — config.PERSIST_DIR와 같은 규칙.
+# (config 직접 import는 순환 위험이라 env를 직접 읽어 동일 로직 유지.)
+_DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent  # src/data
+DB_PATH = Path(os.getenv("ETF_DATA_DIR", str(_DEFAULT_DATA_DIR))) / "etf_rag.db"
 
 _SCHEMA_SQL = """
 -- 종목 마스터 (ETF + 주식)

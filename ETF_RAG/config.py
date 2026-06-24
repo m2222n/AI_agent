@@ -15,11 +15,18 @@ def is_langsmith_enabled() -> bool:
     )
 
 # Data paths
+# DATA_DIR: 소스 동봉 데이터(git 추적) — deploy/ JSON, 하드코딩 샘플. 항상 소스 경로.
 DATA_DIR = PROJECT_ROOT / "src" / "data"
 ETF_DATA_PATH = DATA_DIR / "etf_data.json"  # 하드코딩 샘플 (fallback)
 COLLECTED_DIR = DATA_DIR / "collected"       # 수집 데이터 디렉토리
 DEPLOY_DIR = DATA_DIR / "deploy"             # 배포용 데이터 (Git 추적)
-DB_PATH = DATA_DIR / "etf_rag.db"           # SQLite 데이터베이스 (주가 데이터, read-only)
+
+# PERSIST_DIR: 재배포에도 살아남아야 하는 대용량 산출물(DB·FAISS·BM25 캐시).
+# ETF_DATA_DIR 환경변수(예: Railway 볼륨 /data)로 오버라이드 → 콜드스타트 제거.
+# 미설정 시 기존 동작(소스 내 src/data)과 동일 — 로컬/기존 배포 무영향.
+PERSIST_DIR = Path(os.getenv("ETF_DATA_DIR", str(DATA_DIR)))
+PERSIST_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = PERSIST_DIR / "etf_rag.db"        # SQLite (주가 데이터). 볼륨에 영속.
 LOG_DIR = PROJECT_ROOT / "logs"
 
 # --- 인증 / 사용자 DB (Phase F-1 잔여) -------------------------------
