@@ -541,7 +541,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-24 (기술분석 페이지내 종목클릭 버그 #80(useSearchParams+Suspense) + 비교 1주/1개월/3개월 #79 + 관심종목 종목명 #78 + 시세정확성 #77 + 사이드바 전체검색·관심탭 #76 + 가상투자 #69~71·#75. ⚠️미해결: 기술분석 기간가격 동일=프로덕션 _get_ohlcv가 high/low>0 필터로 과거 잘림(프로덕션 DB 과거 high/low 결측). 다음: high/low 필터 완화 or Release DB 점검 / 후원 / 블로그)_
+_Last Updated: 2026-06-24 (기술분석: 페이지내 종목클릭 #80 + 과거 high/low 결측 기간잘림 #81(close>0만 필터+high/low 없으면 close대체→기간별 가격 구분) + 비교 단기기간 #79 + 관심종목명 #78 + 시세정확성 #77. 전체 835. ⚠️사용자: Railway 백엔드 재배포해야 #80·#81 반영. #2(B) Release DB high/low 점검은 후속. 다음: 후원/블로그)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
