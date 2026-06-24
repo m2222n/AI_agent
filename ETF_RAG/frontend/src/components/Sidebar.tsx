@@ -6,10 +6,12 @@ import { getOverview, getVisitor, searchTickers } from "@/lib/api";
 import PushToggle from "@/components/PushToggle";
 import WatchlistStar from "@/components/WatchlistStar";
 import { useWatchlist } from "@/lib/useWatchlist";
+import { getWatchlistDetail } from "@/lib/auth";
 import type {
   InstrumentItem,
   OverviewResponse,
   VisitorResponse,
+  WatchlistDetailItem,
 } from "@/lib/types";
 
 // "삼성전자 (005930)" → {name, ticker}
@@ -110,6 +112,8 @@ export default function Sidebar({
   const [sectorStocks, setSectorStocks] = useState<InstrumentItem[] | null>(null);
   // 전체 종목 검색 결과 ("이름 (코드)" 문자열). 검색어 있을 때만 채움.
   const [searchHits, setSearchHits] = useState<string[]>([]);
+  // 관심종목 + 종목명 (관심 탭 표시용)
+  const [watchDetail, setWatchDetail] = useState<WatchlistDetailItem[]>([]);
 
   useEffect(() => {
     getOverview(20).then(setData);
@@ -152,6 +156,14 @@ export default function Sidebar({
     }, 250);
     return () => clearTimeout(timer);
   }, [q, tab]);
+
+  // 관심 탭 진입 또는 관심종목 변경 시 종목명 포함 상세 로드
+  useEffect(() => {
+    if (tab !== "watch" || !watch.enabled) {
+      return;
+    }
+    getWatchlistDetail().then(setWatchDetail);
+  }, [tab, watch.enabled, watch.tickers.length]);
 
   const stockList = sector ? sectorStocks ?? [] : data?.top_stocks ?? [];
   const list = data ? (tab === "etf" ? data.top_etfs : stockList) : [];
@@ -243,15 +255,18 @@ export default function Sidebar({
               관심종목이 없어요. ETF·주식 탭에서 ⭐로 추가하세요.
             </div>
           ) : (
-            watch.tickers.map((tk) => (
-              <SearchRow
-                key={tk}
-                name={tk}
-                ticker={tk}
-                onClick={() => goTicker(tk)}
-                showStar
-              />
-            ))
+            // 종목명 로드 전이면 ticker로, 로드 후엔 종목명 표시
+            (watchDetail.length ? watchDetail : watch.tickers.map((t) => ({ ticker: t, name: t }))).map(
+              (it) => (
+                <SearchRow
+                  key={it.ticker}
+                  name={it.name}
+                  ticker={it.ticker}
+                  onClick={() => goTicker(it.ticker)}
+                  showStar
+                />
+              ),
+            )
           )
         ) : q.trim() ? (
           searchHits.length === 0 ? (

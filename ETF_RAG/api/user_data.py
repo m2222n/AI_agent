@@ -15,6 +15,8 @@ from api.models import (
     ChatHistoryAppend,
     ChatHistoryItemDB,
     ChatHistoryResponse,
+    WatchlistDetailItem,
+    WatchlistDetailResponse,
     WatchlistResponse,
 )
 from api.models_db import ChatHistory, User, Watchlist
@@ -34,6 +36,26 @@ def get_watchlist(
         .order_by(Watchlist.created_at)
     ).all()
     return WatchlistResponse(tickers=list(rows))
+
+
+@router.get("/watchlist/detail", response_model=WatchlistDetailResponse)
+def get_watchlist_detail(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> WatchlistDetailResponse:
+    """관심종목 + 종목명 (관심 탭 가독성용). 종목명 해석 실패 시 ticker fallback."""
+    from src.llm.tools import _find_structured_data
+
+    rows = db.scalars(
+        select(Watchlist.ticker)
+        .where(Watchlist.user_id == user.id)
+        .order_by(Watchlist.created_at)
+    ).all()
+    items = []
+    for tk in rows:
+        data = _find_structured_data(tk)
+        name = (data.get("name") if data else None) or tk
+        items.append(WatchlistDetailItem(ticker=tk, name=name))
+    return WatchlistDetailResponse(items=items)
 
 
 @router.put("/watchlist/{ticker}", response_model=WatchlistResponse,
