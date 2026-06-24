@@ -249,3 +249,30 @@ def test_delete_account_purges_watchlist(client):
 def test_delete_account_requires_auth_401(client):
     r = client.request("DELETE", "/auth/me", json={"password": "pw123456"})
     assert r.status_code == 401
+
+
+def test_delete_account_purges_paper_trading(client):
+    """탈퇴 시 가상투자(PaperAccount/Holding/Trade/...) 데이터도 소거되어야 한다.
+
+    회귀: 탈퇴 cascade에 Watchlist/ChatHistory/Push만 있고 Paper* 5개가 누락돼
+    탈퇴 후 재가입 시 옛 보유종목/평가액이 남던 버그(2026-06-24 발견)."""
+    from unittest.mock import patch
+
+    token = _token(client)
+    with patch("api.paper._resolve_price",
+               return_value={"ticker": "005930", "name": "삼성전자", "price": 70000}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10},
+                    headers=_auth(token))
+        pf = client.get("/me/paper/portfolio", headers=_auth(token)).json()
+    assert any(h["ticker"] == "005930" for h in pf["holdings"])
+
+    # 탈퇴
+    assert client.request(
+        "DELETE", "/auth/me", json={"password": "pw123456"}, headers=_auth(token)
+    ).status_code == 204
+
+    # 같은 이메일 재가입 → 가상투자가 1억 새 계좌로 초기화(이전 보유종목 없음)
+    token2 = _token(client)
+    pf2 = client.get("/me/paper/portfolio", headers=_auth(token2)).json()
+    assert pf2["holdings"] == []
+    assert pf2["cash"] == 100_000_000

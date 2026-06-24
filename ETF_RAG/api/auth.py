@@ -26,7 +26,17 @@ from api.models import (
     TokenResponse,
     UserResponse,
 )
-from api.models_db import ChatHistory, PushSubscription, User, Watchlist
+from api.models_db import (
+    ChatHistory,
+    PaperAccount,
+    PaperHolding,
+    PaperRound,
+    PaperSnapshot,
+    PaperTrade,
+    PushSubscription,
+    User,
+    Watchlist,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -165,6 +175,12 @@ def delete_account(
     db.execute(delete(Watchlist).where(Watchlist.user_id == uid))
     db.execute(delete(ChatHistory).where(ChatHistory.user_id == uid))
     db.execute(delete(PushSubscription).where(PushSubscription.user_id == uid))
+    # 가상투자(Phase F #69~71) — user_id FK를 가지나 모델 cascade 미설정이므로 명시 삭제.
+    db.execute(delete(PaperTrade).where(PaperTrade.user_id == uid))
+    db.execute(delete(PaperHolding).where(PaperHolding.user_id == uid))
+    db.execute(delete(PaperSnapshot).where(PaperSnapshot.user_id == uid))
+    db.execute(delete(PaperRound).where(PaperRound.user_id == uid))
+    db.execute(delete(PaperAccount).where(PaperAccount.user_id == uid))
     db.delete(user)
     db.commit()
 
