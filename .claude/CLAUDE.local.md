@@ -2479,17 +2479,17 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
 - `GET /me/paper/rounds`(최신순, summary JSON→RoundSymbolPnl 파싱, 손상 시 빈목록). 프론트 "📚 지난 성적" 섹션(`<details>` 라운드별 펼침: 기간·거래수·수익률·최종자산 + 종목 실현/미실현/합계 표).
 - 테스트 +6(결산 저장, 종목별 실현·미실현 정확도, round_no 증가, 거래없음 무기록, 확인문구 400, reset 시 _price_patch 안에서 호출). **전체 825**.
 
-### 시세 부족 신규 종목 기술분석 자동완성 제외 (2026-06-24, PR #72)
-사용자 발견: 0192L0(RISE SK하이닉스레버리지) 자동완성엔 뜨나 기술분석 "데이터 없음". **원인=상장 19거래일, MA/RSI 등 최소 20거래일 필요(`_summary.py` `len(ohlcv)<20→None`). 버그 아님.** 자동완성=종목 메타 기준 / 기술분석=과거시세 기준이라 괴리.
-- `get_low_history_tickers(min_days)`(_read.py): 880만행 GROUP BY는 14.5초 → `instruments.first_seen` 최근(min_days*3 달력일) 종목만 후보로 좁혀 거래일 카운트 → 0.02초. 제외 38개.
-- `/tabs/tickers?min_days=`(5분 캐시 `_low_history_set`, 기본 0=제외 안 함). `searchTickers(q,limit,assetType,minDays)` + `TickerSearch minDays` prop. 기술탭만 minDays=20 + 안내문(전망/비교/재무는 영향 없음).
-- 테스트 +2(제외/미제외). 전체 827.
+### 시세 부족 신규 종목 자동완성 제외 — 기술 #72 + 전망 #73 (2026-06-24)
+사용자 발견: 0192L0(RISE SK하이닉스레버리지) 자동완성엔 뜨나 기술분석/전망 "데이터 없음". **원인=상장 19거래일. 버그 아님.** 자동완성=종목 메타 기준 / 분석=과거시세 기준이라 괴리. **탭별 최소 시세 다름**: 기술 20거래일(`_summary.py` `len(ohlcv)<20→None`) / 전망 **60거래일**(`predictor.py:346` `min_required=max(60, horizon+60)`).
+- `get_low_history_tickers(min_days)`(_read.py): 880만행 GROUP BY는 14.5초 → `instruments.first_seen` 최근(min_days*3 달력일) 종목만 후보로 좁혀 거래일 카운트 → 0.02초.
+- `/tabs/tickers?min_days=`(min_days별 분리 5분 캐시 `_low_history_set`={min_days:(set,ts)}, 기본 0=제외 안 함). `searchTickers(q,limit,assetType,minDays)` + `TickerSearch minDays` prop. **기술탭 minDays=20 / 전망탭 minDays=60** + 각 안내문(비교/재무는 영향 없음).
+- 테스트 +3(제외/미제외/캐시 min_days별 분리). 전체 828.
 
 ### 다음
 - 후원("해줘" 시, BMC+토스 안내) → 블로그 9편 → Railway 유료전환(trial 소진 전) / 메일 인프라(비번찾기)
 
 ---
 
-_Last Updated: 2026-06-24 (가상투자 완성 #69~71 + 시세부족 신규종목(0192L0 류) 기술분석 자동완성 제외 #72(min_days 필터, first_seen 좁혀 0.02초). DB 5모델, 전체 827. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편/Railway 유료전환)_
+_Last Updated: 2026-06-24 (가상투자 완성 #69~71 + 시세부족 신규종목(0192L0 류) 자동완성 제외 — 기술 #72(20일)·전망 #73(60일), min_days별 캐시. DB 5모델, 전체 828. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편/Railway 유료전환)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
