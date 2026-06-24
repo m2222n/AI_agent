@@ -22,7 +22,7 @@ from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
-from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY, DATA_DIR
+from config import SIMILARITY_THRESHOLD, TOP_K_RESULTS, HYBRID_SEARCH, RERANK, COHERE_API_KEY, PERSIST_DIR
 from src.rag.utils import compute_docs_hash as _compute_docs_hash
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ def tokenize_korean(text: str) -> List[str]:
 
 
 # BM25 캐시 디렉토리
-BM25_CACHE_DIR = DATA_DIR / "bm25_cache"
+BM25_CACHE_DIR = PERSIST_DIR / "bm25_cache"
 
 
 def _load_bm25_cache(docs_hash: str) -> Optional[Tuple[BM25Okapi, List[List[str]]]]:

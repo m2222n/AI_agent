@@ -9,7 +9,6 @@ run_agent/stream_agent가 투명하게 읽는다. AppState에는 init 상태만 
 
 import logging
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 from fastapi import HTTPException, Request
@@ -28,8 +27,9 @@ from src.llm.tools import set_retriever
 
 logger = logging.getLogger(__name__)
 
-# ETF_RAG/src/data/etf_rag.db (app.py의 download_db와 동일 경로)
-_DB_PATH = Path(__file__).resolve().parent.parent / "src" / "data" / "etf_rag.db"
+# DB 경로는 config.DB_PATH 단일 출처 사용(ETF_DATA_DIR 볼륨 반영). 과거 하드코딩은
+# config·_schema와 어긋날 수 있어 통일.
+from config import DB_PATH as _DB_PATH  # noqa: E402
 
 
 @dataclass
