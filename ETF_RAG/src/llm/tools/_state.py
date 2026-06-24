@@ -28,7 +28,12 @@ _sector_index = {}             # {sector_name: [{name, ticker, per, pbr, market_
 
 
 def _build_data_index(data_list):
-    """데이터 리스트에서 이름/티커 → dict 인덱스 구축"""
+    """데이터 리스트에서 이름/티커 → dict 인덱스 구축.
+
+    조회(_find_structured_data)가 query를 .lower()로 찾으므로 키도 소문자로 통일한다.
+    일부 신형 ETF 티커는 영문 대문자 포함(예: 0162Z0, 0192L0) — 소문자화 안 하면
+    티커로 조회 시 매칭 실패('0162z0' != '0162Z0').
+    """
     index = {}
     for item in data_list:
         name = item.get("name", "")
@@ -36,7 +41,7 @@ def _build_data_index(data_list):
         if name:
             index[name.lower()] = item
         if ticker:
-            index[ticker] = item
+            index[ticker.lower()] = item
     return index
 
 

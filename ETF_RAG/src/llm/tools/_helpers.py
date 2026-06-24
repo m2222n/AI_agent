@@ -60,10 +60,11 @@ def _fallback_deploy_lookup(key: str) -> Optional[dict]:
                 raw = json.load(f)
             items = raw.get("stocks", raw.get("etfs", []))
 
-            # 1단계: 정확 매칭 (이름 또는 티커)
+            # 1단계: 정확 매칭 (이름 또는 티커). key는 소문자이므로 티커도 소문자로
+            # 비교 — 일부 ETF 티커는 영문 대문자 포함(0162Z0 등).
             for item in items:
                 name = item.get("name", "").lower()
-                ticker = item.get("ticker", "")
+                ticker = item.get("ticker", "").lower()
                 if key == name or key == ticker:
                     return _normalize_deploy_item(item)
 
