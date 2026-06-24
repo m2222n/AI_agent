@@ -170,17 +170,25 @@ def _get_ohlcv(ticker: str, days: int = 250,
 
     use_conn = conn if conn is not None else _get_db_conn()
 
+    # close>0만 필수. 과거 데이터(yfinance 백필 등)는 high/low가 0/null일 수 있어
+    # high>0 AND low>0으로 거르면 과거가 통째로 잘려 기간 분석이 1년치로 제한됐음.
+    # high/low가 없으면 close로 대체(종가만 있는 날의 자연스러운 OHLC 근사).
     rows = use_conn.execute("""
         SELECT date, open, high, low, close, volume FROM daily_prices
-        WHERE ticker = ? AND close > 0 AND high > 0 AND low > 0
+        WHERE ticker = ? AND close > 0
         ORDER BY date DESC
         LIMIT ?
     """, (ticker, days)).fetchall()
 
-    result = [
-        {"date": r["date"], "open": r["open"], "high": r["high"],
-         "low": r["low"], "close": r["close"], "volume": r["volume"]}
-        for r in reversed(rows)
-    ]
+    result = []
+    for r in reversed(rows):
+        close = r["close"]
+        high = r["high"] if r["high"] and r["high"] > 0 else close
+        low = r["low"] if r["low"] and r["low"] > 0 else close
+        opn = r["open"] if r["open"] and r["open"] > 0 else close
+        result.append({
+            "date": r["date"], "open": opn, "high": high,
+            "low": low, "close": close, "volume": r["volume"] or 0,
+        })
     _ohlcv_cache_put(ticker, days, result)
     return result
