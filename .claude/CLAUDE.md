@@ -541,7 +541,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-24 (#2 기간가격 동일 진짜원인 #83 — _technical_blocking이 get_technical_summary에 days 미전달→항상 250 고정. Console로 프로덕션 DB(880만행 2014~) 정상 확인 후 호출부 누락 발견. #77/#81/#82는 정상이었으나 이 한줄이 무력화. 전체 838. + 종목클릭 #80 + 비교단기 #79 + 관심종목명 #78 + 시세정확성 #77. ⚠️사용자 백엔드 재배포해야 반영. 다음: 후원/블로그)_
+_Last Updated: 2026-06-24 (영속볼륨 지원 #84 — ETF_DATA_DIR env로 DB/FAISS/BM25 영속(미설정 시 기존경로). 재배포마다 1.8GB 재다운+재임베딩 제거. 사용자: Railway 볼륨/data 마운트+ETF_DATA_DIR=/data. + #2 기간가격 days미전달 #83(라이브 검증 완료) + 종목클릭 #80 + 비교단기 #79. 전체 838. 다음: 후원/블로그)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
