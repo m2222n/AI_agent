@@ -8,6 +8,7 @@ import {
   getTradeHistory,
   getRanking,
   getPaperHistory,
+  getPaperRounds,
   buyStock,
   sellStock,
   resetPaper,
@@ -17,6 +18,7 @@ import type {
   PaperTradeHistoryItem,
   PaperRanking,
   PaperHistory,
+  PaperRound,
 } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
@@ -35,8 +37,11 @@ export default function InvestPage() {
   const [trades, setTrades] = useState<PaperTradeHistoryItem[]>([]);
   const [ranking, setRanking] = useState<PaperRanking | null>(null);
   const [hist, setHist] = useState<PaperHistory | null>(null);
+  const [pastRounds, setPastRounds] = useState<PaperRound[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ k: "ok" | "err"; t: string } | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetInput, setResetInput] = useState("");
 
   // 매수/매도 입력
   const [ticker, setTicker] = useState("");
@@ -44,16 +49,18 @@ export default function InvestPage() {
   const [qty, setQty] = useState("");
 
   const refresh = useCallback(async () => {
-    const [p, t, r, hh] = await Promise.all([
+    const [p, t, r, hh, rd] = await Promise.all([
       getPortfolio(),
       getTradeHistory(),
       getRanking(),
       getPaperHistory(),
+      getPaperRounds(),
     ]);
     setPf(p);
     setTrades(t);
     setRanking(r);
     setHist(hh);
+    setPastRounds(rd);
   }, []);
 
   useEffect(() => {
@@ -104,17 +111,22 @@ export default function InvestPage() {
     }
   };
 
-  const onReset = async () => {
-    if (!confirm("계좌를 초기화할까요? 보유 종목과 거래 내역이 모두 사라지고 현금 1억 원으로 돌아갑니다."))
-      return;
+  const doReset = async () => {
+    if (resetInput.trim() !== "초기화") return;
     setBusy(true);
-    const p = await resetPaper();
-    if (p) {
+    setMsg(null);
+    try {
+      const p = await resetPaper(resetInput.trim());
       setPf(p);
-      setMsg({ k: "ok", t: "계좌를 초기화했어요." });
+      setMsg({ k: "ok", t: "새 라운드를 시작했어요. 지난 성적은 아래에 기록됐어요." });
+      setResetOpen(false);
+      setResetInput("");
+      await refresh();
+    } catch (e) {
+      setMsg({ k: "err", t: e instanceof Error ? e.message : "초기화 실패" });
+    } finally {
+      setBusy(false);
     }
-    await refresh();
-    setBusy(false);
   };
 
   return (
@@ -307,15 +319,114 @@ export default function InvestPage() {
         </section>
       )}
 
-      {/* 리셋 */}
+      {/* 지난 성적 (라운드 결산) */}
+      {pastRounds.length > 0 && (
+        <section className="mb-5">
+          <h2 className="mb-2 text-sm font-semibold text-gray-800">📚 지난 성적</h2>
+          <div className="space-y-2">
+            {pastRounds.map((rd) => (
+              <details key={rd.round_no} className="rounded-xl border border-gray-200 p-3">
+                <summary className="cursor-pointer text-xs">
+                  <b>R{rd.round_no}</b>{" "}
+                  <span className="text-gray-400">
+                    {rd.started_at.slice(0, 10)} ~ {rd.ended_at.slice(0, 10)} · 거래 {rd.trade_count}회
+                  </span>{" "}
+                  <span className={`font-semibold ${signColor(rd.return_pct)}`}>
+                    {pctStr(rd.return_pct)}
+                  </span>{" "}
+                  <span className="text-gray-500">({won(rd.final_value)})</span>
+                </summary>
+                {rd.symbols.length > 0 && (
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="comparison-table text-xs">
+                      <thead>
+                        <tr>
+                          <th className="text-left">종목</th>
+                          <th className="text-right">실현</th>
+                          <th className="text-right">미실현</th>
+                          <th className="text-right">합계</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rd.symbols.map((s) => (
+                          <tr key={s.ticker}>
+                            <td className="text-left">{s.name}</td>
+                            <td className={`text-right tabular-nums ${signColor(s.realized)}`}>
+                              {s.realized > 0 ? "+" : ""}{s.realized.toLocaleString("ko-KR")}
+                            </td>
+                            <td className={`text-right tabular-nums ${signColor(s.unrealized)}`}>
+                              {s.unrealized > 0 ? "+" : ""}{s.unrealized.toLocaleString("ko-KR")}
+                            </td>
+                            <td className={`text-right tabular-nums font-semibold ${signColor(s.total)}`}>
+                              {s.total > 0 ? "+" : ""}{s.total.toLocaleString("ko-KR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 계좌 초기화 (새 라운드) */}
       <button
         type="button"
-        onClick={onReset}
+        onClick={() => { setResetOpen(true); setResetInput(""); }}
         disabled={busy}
         className="rounded-lg border border-gray-300 px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
       >
-        🔄 계좌 초기화
+        🔄 계좌 초기화 (새 라운드 시작)
       </button>
+
+      {/* 초기화 확인 모달 */}
+      {resetOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => setResetOpen(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-gray-900">계좌 초기화</h3>
+            <p className="mt-2 text-xs leading-relaxed text-gray-600">
+              현재 라운드를 <b>결산해 &lsquo;지난 성적&rsquo;에 기록</b>하고, 보유 종목·거래
+              내역을 비운 뒤 현금 <b>1억 원</b>으로 새 라운드를 시작해요.
+              <br />
+              계속하려면 아래에 <b>초기화</b>를 입력하세요.
+            </p>
+            <input
+              value={resetInput}
+              onChange={(e) => setResetInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") doReset(); }}
+              placeholder="초기화"
+              autoFocus
+              className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={doReset}
+                disabled={busy || resetInput.trim() !== "초기화"}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+              >
+                초기화
+              </button>
+              <button
+                type="button"
+                onClick={() => setResetOpen(false)}
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

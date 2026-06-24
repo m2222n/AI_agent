@@ -304,3 +304,21 @@ export interface PaperHistory {
   points: PaperHistoryPoint[];
   chart_b64: string | null;
 }
+
+export interface RoundSymbolPnl {
+  ticker: string;
+  name: string;
+  realized: number;
+  unrealized: number;
+  total: number;
+}
+export interface PaperRound {
+  round_no: number;
+  started_at: string;
+  ended_at: string;
+  initial_cash: number;
+  final_value: number;
+  return_pct: number;
+  trade_count: number;
+  symbols: RoundSymbolPnl[];
+}

@@ -112,6 +112,10 @@ class PaperAccount(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )
+    # 현재 라운드 시작 시각 (초기화 시 갱신 → 라운드 결산 기간 산정)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
 
 
 class PaperHolding(Base):
@@ -167,4 +171,31 @@ class PaperSnapshot(Base):
     total_value: Mapped[int] = mapped_column(BigInteger, nullable=False)  # 현금+평가액
     __table_args__ = (
         UniqueConstraint("user_id", "date", name="uq_snapshot_user_date"),
+    )
+
+
+class PaperRound(Base):
+    """라운드 결산 — 계좌 초기화 시 직전 라운드의 성과를 1건 저장(기록 보존).
+
+    summary: 종목별 손익 요약 JSON 문자열
+      [{"ticker","name","realized","unrealized","total"}, ...] (total 내림차순).
+    """
+    __tablename__ = "paper_rounds"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), index=True, nullable=False
+    )
+    round_no: Mapped[int] = mapped_column(Integer, nullable=False)  # 유저별 1,2,3...
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ended_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+    initial_cash: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    final_value: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    return_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    trade_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # 종목별 손익 JSON
+    __table_args__ = (
+        Index("ix_round_user_no", "user_id", "round_no"),
     )
