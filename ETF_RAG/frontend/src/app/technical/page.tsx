@@ -157,6 +157,32 @@ export default function TechnicalPage() {
           {/* 실시간 시세 (KIS 우선 → yfinance, 장 외엔 종가) */}
           <PriceCard ticker={data.ticker} />
 
+          {/* 선택 기간 대비 등락률 (종가 기준) */}
+          {(() => {
+            const cur = Number(s.close);
+            const base = Number(s.first_close);
+            const fd = String(s.first_date ?? "");
+            if (!cur || !base || base <= 0) return null;
+            const pct = ((cur - base) / base) * 100;
+            const label = PERIODS.find((p) => p.days === days)?.label ?? "기간";
+            const color =
+              pct > 0 ? "text-red-600" : pct < 0 ? "text-blue-600" : "text-gray-500";
+            const fdFmt =
+              fd.length === 8 ? `${fd.slice(0, 4)}.${fd.slice(4, 6)}.${fd.slice(6, 8)}` : fd;
+            return (
+              <p className="mt-2 text-xs text-gray-500">
+                {label} 전({fdFmt}) 대비{" "}
+                <span className={`font-semibold ${color}`}>
+                  {pct > 0 ? "+" : ""}
+                  {pct.toFixed(2)}%
+                </span>{" "}
+                <span className="text-gray-400">
+                  ({base.toLocaleString("ko-KR")} → {cur.toLocaleString("ko-KR")}원)
+                </span>
+              </p>
+            );
+          })()}
+
           {/* 호가 10단계 (KIS 전용, 장중에만 표시) */}
           <div className="mt-3">
             <OrderbookCard ticker={data.ticker} />
