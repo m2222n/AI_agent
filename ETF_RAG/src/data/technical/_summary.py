@@ -84,6 +84,7 @@ def get_technical_summary(ticker: str, days: int = 250) -> Optional[dict]:
         "ticker": ticker,
         "date": latest["date"],
         "close": latest["close"],
+        "first_close": ohlcv[0]["close"],  # 조회 기간 첫 종가(기간 대비 등락률용)
         "data_days": len(ohlcv),
         "first_date": ohlcv[0]["date"],
         "last_date": latest["date"],
