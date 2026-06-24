@@ -80,7 +80,7 @@ export default function OutlookPage() {
         기술적·펀더멘털·통계·Prophet 4축 종합 + 시나리오
       </p>
 
-      <TickerSearch onSelect={onSelect} />
+      <TickerSearch onSelect={onSelect} minDays={60} />
 
       {selected && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -155,6 +155,10 @@ export default function OutlookPage() {
         </div>
       )}
 
+      <p className="mt-4 text-[11px] leading-relaxed text-gray-400">
+        ℹ️ 가격 전망은 회귀·Prophet 등 모델 학습에 충분한 과거 시세가 필요해, 상장
+        직후라 시세가 60거래일 미만인 신규 종목은 검색에서 자동 제외됩니다.
+      </p>
       <DataRangeNote />
     </main>
   );

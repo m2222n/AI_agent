@@ -351,23 +351,23 @@ async def sector(
 
 # ── 종목 자동완성 / 해석 ────────────────────────────────────────────
 # 시세 부족(min_days 미만) 제외 종목 집합 캐시 — 자동완성 매 호출 DB 조회 회피.
-_low_hist_cache: dict = {"set": None, "min_days": None, "at": 0.0}
+# min_days별로 분리 캐시(기술탭 20 / 전망탭 60 병행 시 상호 무효화 방지).
+_low_hist_cache: dict = {}  # {min_days: (set, ts)}
 _LOW_HIST_TTL = 300  # 5분
 
 
 def _low_history_set(min_days: int) -> set:
     import time
     now = time.time()
-    c = _low_hist_cache
-    if (c["set"] is not None and c["min_days"] == min_days
-            and now - c["at"] < _LOW_HIST_TTL):
-        return c["set"]
+    cached = _low_hist_cache.get(min_days)
+    if cached and now - cached[1] < _LOW_HIST_TTL:
+        return cached[0]
     conn = get_connection(DB_PATH)
     try:
         s = get_low_history_tickers(conn, min_days)
     finally:
         conn.close()
-    c.update(set=s, min_days=min_days, at=now)
+    _low_hist_cache[min_days] = (s, now)
     return s
 
 

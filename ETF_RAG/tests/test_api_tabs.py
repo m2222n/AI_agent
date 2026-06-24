@@ -274,6 +274,28 @@ def test_tickers_min_days_zero_keeps_all(client):
     low.assert_not_called()
 
 
+def test_low_history_cache_separates_by_min_days():
+    """min_days별 캐시 분리 — 20과 60이 서로 무효화하지 않는다(전망탭60/기술탭20 병행)."""
+    import api.tabs as tabs
+    calls = []
+
+    def fake_get(conn, md):
+        calls.append(md)
+        return {f"under{md}"}
+
+    tabs._low_hist_cache.clear()
+    with patch("api.tabs.get_low_history_tickers", side_effect=fake_get), patch(
+        "api.tabs.get_connection"
+    ):
+        assert tabs._low_history_set(20) == {"under20"}
+        assert tabs._low_history_set(60) == {"under60"}
+        # 캐시 적중 — DB 재조회 없음
+        assert tabs._low_history_set(20) == {"under20"}
+        assert tabs._low_history_set(60) == {"under60"}
+    assert calls == [20, 60]  # 각 1회씩만
+    tabs._low_hist_cache.clear()
+
+
 def test_tickers_resolve_404(client):
     with patch("api.tabs._find_structured_data", return_value=None):
         r = client.get("/tabs/tickers/resolve", params={"q": "ZZZ"})
