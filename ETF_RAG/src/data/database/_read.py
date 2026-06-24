@@ -202,6 +202,34 @@ def get_historical_prices(conn: sqlite3.Connection,
     return [dict(r) for r in rows]
 
 
+def get_low_history_tickers(conn: sqlite3.Connection,
+                            min_days: int = 20) -> set:
+    """시세 거래일 수가 min_days 미만인 종목 집합 (기술분석 불가 종목 제외용).
+
+    880만 행 전체 GROUP BY는 느리므로(>10초), first_seen이 최근(min_days*2.5일)인
+    신규 상장 종목만 후보로 좁혀 그들의 거래일만 센다(~0.02초).
+    """
+    latest_row = conn.execute("SELECT MAX(date) FROM daily_prices").fetchone()
+    if not latest_row or not latest_row[0]:
+        return set()
+    latest = latest_row[0]
+    # 달력일 여유(min_days 거래일 ≈ min_days*1.5 달력일) + 버퍼
+    from datetime import datetime, timedelta
+    window = max(min_days * 3, 30)
+    cut = (datetime.strptime(latest, "%Y%m%d") - timedelta(days=window)).strftime("%Y%m%d")
+    cands = [r[0] for r in conn.execute(
+        "SELECT ticker FROM instruments WHERE first_seen >= ?", (cut,)).fetchall()]
+    if not cands:
+        return set()
+    placeholders = ",".join("?" * len(cands))
+    rows = conn.execute(
+        f"SELECT ticker, COUNT(*) c FROM daily_prices "
+        f"WHERE ticker IN ({placeholders}) GROUP BY ticker HAVING c < ?",
+        (*cands, min_days),
+    ).fetchall()
+    return {r[0] for r in rows}
+
+
 def get_closes_batch(conn: sqlite3.Connection,
                      tickers: List[str],
                      start_date: str,
