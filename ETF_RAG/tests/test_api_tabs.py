@@ -45,6 +45,20 @@ def test_technical_returns_summary_and_chart(client):
     assert body["chart_b64"] == "BASE64PNG"
 
 
+def test_technical_passes_days_to_summary(client):
+    """days가 get_technical_summary에 그대로 전달돼야 한다.
+    (미전달 시 기본 250 고정 → 6개월=1년=3년 동일해지던 버그 회귀 방지)."""
+    structured = {"ticker": "005930", "name": "삼성전자"}
+    with patch("api.tabs._find_structured_data", return_value=structured), patch(
+        "api.tabs.get_technical_summary", return_value={"close": 70000}
+    ) as m, patch("api.tabs.generate_technical_chart", return_value="X"):
+        client.get("/tabs/technical", params={"ticker": "삼성전자", "days": 2500})
+    # get_technical_summary(ticker, days=2500)로 호출됐는지
+    assert m.call_args.kwargs.get("days") == 2500 or (
+        len(m.call_args.args) > 1 and m.call_args.args[1] == 2500
+    )
+
+
 def test_technical_404_when_unresolved(client):
     with patch("api.tabs._find_structured_data", return_value=None):
         r = client.get("/tabs/technical", params={"ticker": "ZZZ"})
