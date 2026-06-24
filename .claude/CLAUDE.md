@@ -541,7 +541,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-24 (영속볼륨 지원 #84 — ETF_DATA_DIR env로 DB/FAISS/BM25 영속(미설정 시 기존경로). 재배포마다 1.8GB 재다운+재임베딩 제거. 사용자: Railway 볼륨/data 마운트+ETF_DATA_DIR=/data. + #2 기간가격 days미전달 #83(라이브 검증 완료) + 종목클릭 #80 + 비교단기 #79. 전체 838. 다음: 후원/블로그)_
+_Last Updated: 2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
