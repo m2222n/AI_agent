@@ -13,12 +13,14 @@ import {
   sellStock,
   resetPaper,
 } from "@/lib/auth";
+import { getPrice } from "@/lib/api";
 import type {
   PaperPortfolio,
   PaperTradeHistoryItem,
   PaperRanking,
   PaperHistory,
   PaperRound,
+  PriceData,
 } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
@@ -47,6 +49,7 @@ export default function InvestPage() {
   const [ticker, setTicker] = useState("");
   const [tickerLabel, setTickerLabel] = useState("");
   const [qty, setQty] = useState("");
+  const [price, setPrice] = useState<PriceData | null>(null); // 선택 종목 현재가
 
   const refresh = useCallback(async () => {
     const [p, t, r, hh, rd] = await Promise.all([
@@ -83,6 +86,24 @@ export default function InvestPage() {
     );
   }
   if (loading || !user) return null;
+
+  // 종목 선택 → 현재가 조회(등락률 표시 + 비율 버튼 수량 계산용)
+  const onSelectTicker = async (sel: { ticker: string; name: string }) => {
+    setTicker(sel.ticker);
+    setTickerLabel(sel.name);
+    setQty("");
+    setPrice(null);
+    const p = await getPrice(sel.ticker);
+    if (p) setPrice(p);
+  };
+
+  // 현금의 일정 비율로 매수 가능한 수량 자동 입력 (현재가 기준 내림)
+  const setQtyByRatio = (ratio: number) => {
+    if (!pf || !price || price.price <= 0) return;
+    const budget = pf.cash * ratio;
+    const n = Math.floor(budget / price.price);
+    setQty(n > 0 ? String(n) : "");
+  };
 
   const trade = async (side: "buy" | "sell") => {
     if (!ticker || !qty) return;
@@ -165,15 +186,43 @@ export default function InvestPage() {
       <section className="mb-5 rounded-xl border border-gray-200 p-4">
         <h2 className="mb-2 text-sm font-semibold text-gray-800">주문</h2>
         <TickerSearch
-          onSelect={(sel) => {
-            setTicker(sel.ticker);
-            setTickerLabel(sel.name);
-          }}
+          onSelect={onSelectTicker}
           placeholder="종목명 또는 종목코드 검색"
         />
         {tickerLabel && (
-          <p className="mt-1 text-xs text-gray-500">선택: {tickerLabel}</p>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-xs text-gray-500">{tickerLabel}</span>
+            {price && (
+              <span className="text-sm font-semibold tabular-nums text-gray-900">
+                {price.price.toLocaleString("ko-KR")}원
+                {typeof price.change_pct === "number" && (
+                  <span className={`ml-1 text-xs font-medium ${signColor(price.change_pct)}`}>
+                    ({price.change_pct > 0 ? "+" : ""}{price.change_pct.toFixed(2)}%)
+                  </span>
+                )}
+                {price.source === "close" && (
+                  <span className="ml-1 text-[10px] text-gray-400">종가</span>
+                )}
+              </span>
+            )}
+          </div>
         )}
+
+        {/* 금액 비율 버튼 — 현금의 N%로 매수 가능 수량 자동 입력 */}
+        <div className="mt-2 flex gap-1.5">
+          {[0.1, 0.25, 0.5, 1].map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setQtyByRatio(r)}
+              disabled={!price || price.price <= 0}
+              className="flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+            >
+              {r === 1 ? "100%" : `${r * 100}%`}
+            </button>
+          ))}
+        </div>
+
         <div className="mt-2 flex gap-2">
           <input
             type="number"
@@ -200,6 +249,12 @@ export default function InvestPage() {
             매도
           </button>
         </div>
+        {/* 예상 체결 금액 (수량 × 현재가) */}
+        {price && qty && parseInt(qty, 10) > 0 && (
+          <p className="mt-2 text-xs text-gray-500">
+            예상 금액 약 {won(price.price * parseInt(qty, 10))}
+          </p>
+        )}
         {msg && (
           <p className={`mt-2 text-xs ${msg.k === "ok" ? "text-green-600" : "text-red-600"}`}>
             {msg.t}
