@@ -94,7 +94,7 @@ def _technical_blocking(query: str, days: int) -> Optional[dict]:
         return None
     ticker = data.get("ticker") or query
     name = data.get("name") or query
-    summary = get_technical_summary(ticker)
+    summary = get_technical_summary(ticker, days=days)  # days 전달(미전달 시 항상 250 고정 버그)
     if summary is None:
         return None
     return {
