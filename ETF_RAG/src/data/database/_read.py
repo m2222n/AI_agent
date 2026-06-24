@@ -202,6 +202,14 @@ def get_historical_prices(conn: sqlite3.Connection,
     return [dict(r) for r in rows]
 
 
+def get_market_map(conn: sqlite3.Connection) -> dict:
+    """{ticker: 'KOSPI'|'KOSDAQ'} 맵 (market 비어있는 종목 제외). yfinance .KS/.KQ 변환용."""
+    rows = conn.execute(
+        "SELECT ticker, market FROM instruments WHERE market IS NOT NULL AND market != ''"
+    ).fetchall()
+    return {r["ticker"]: r["market"] for r in rows}
+
+
 def get_low_history_tickers(conn: sqlite3.Connection,
                             min_days: int = 20) -> set:
     """시세 거래일 수가 min_days 미만인 종목 집합 (기술분석 불가 종목 제외용).

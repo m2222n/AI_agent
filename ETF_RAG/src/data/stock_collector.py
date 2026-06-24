@@ -276,8 +276,12 @@ def collect_all(date: str, market: str = "ALL", max_stocks: int = 0) -> dict:
     logger.info(f"주식 목록 수집 중... (기준일: {date}, 시장: {market})")
     markets = ["KOSPI", "KOSDAQ"] if market == "ALL" else [market]
     tickers = []
+    ticker_market = {}  # {ticker: "KOSPI"|"KOSDAQ"} — yfinance .KS/.KQ 정확 변환용
     for mkt in markets:
-        tickers.extend(stock.get_market_ticker_list(date, market=mkt))
+        mkt_tickers = stock.get_market_ticker_list(date, market=mkt)
+        tickers.extend(mkt_tickers)
+        for t in mkt_tickers:
+            ticker_market[t] = mkt
 
     name_map = {}
     for t in tickers:
@@ -315,6 +319,7 @@ def collect_all(date: str, market: str = "ALL", max_stocks: int = 0) -> dict:
             "name": name_map.get(ticker, ""),
             "date": date,
             "sector": bulk_sector.get(ticker, ""),
+            "market": ticker_market.get(ticker, ""),
             "ohlcv": ohlcv,
             "market_cap": cap.get("market_cap", 0),
             "shares_outstanding": cap.get("shares_outstanding", 0),

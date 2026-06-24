@@ -80,13 +80,17 @@ def get_technical_summary(ticker: str, days: int = 250) -> Optional[dict]:
     obv = calc_obv(closes, volumes)
     atr = calc_atr(highs, lows, closes)
 
+    # 기간 시작점: 지표 계산용으로 fetch는 250일 이상 당기지만, '기간 대비 등락률'은
+    # 사용자가 고른 days 기준이어야 한다(아니면 6개월=1년 first_close가 같아짐).
+    # 최근 days개 중 첫 항목을 시작점으로(데이터가 days보다 적으면 가장 오래된 것).
+    period_start = ohlcv[-days] if len(ohlcv) >= days else ohlcv[0]
     return {
         "ticker": ticker,
         "date": latest["date"],
         "close": latest["close"],
-        "first_close": ohlcv[0]["close"],  # 조회 기간 첫 종가(기간 대비 등락률용)
+        "first_close": period_start["close"],  # 선택 기간 시작 종가(기간 대비 등락률용)
         "data_days": len(ohlcv),
-        "first_date": ohlcv[0]["date"],
+        "first_date": period_start["date"],
         "last_date": latest["date"],
         "ma": {
             "ma5": round(ma5) if ma5 else None,

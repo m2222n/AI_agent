@@ -20,6 +20,30 @@ _cache: dict = {}
 # 티커 마켓 매핑 캐시: {krx_ticker: "KS" | "KQ"}
 _market_suffix_cache: dict = {}
 
+# DB instruments.market 맵 (lazy 1회 로드): {ticker: "KOSPI"|"KOSDAQ"}
+_db_market_map: Optional[dict] = None
+
+
+def _market_suffix_from_db(ticker: str) -> Optional[str]:
+    """DB 시장구분으로 정확한 yfinance suffix. 추측 없는 정공법(전 종목 동일 기준)."""
+    global _db_market_map
+    if _db_market_map is None:
+        try:
+            from src.data.database import get_connection, get_market_map, DB_PATH
+            conn = get_connection(DB_PATH)
+            try:
+                _db_market_map = get_market_map(conn)
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001 — DB 없으면 빈 맵(아래 yfinance fallback)
+            _db_market_map = {}
+    mkt = _db_market_map.get(ticker, "")
+    if mkt == "KOSPI":
+        return "KS"
+    if mkt == "KOSDAQ":
+        return "KQ"
+    return None
+
 
 def is_market_open(now: Optional[datetime] = None) -> bool:
     """KST 기준 장 운영 시간 판단 (평일 09:00~15:30)"""
@@ -45,18 +69,38 @@ def krx_to_yfinance(ticker: str, asset_type: str = "etf") -> str:
         _market_suffix_cache[ticker] = "KS"
         return f"{ticker}.KS"
 
-    # 주식: KS 먼저 시도, 실패하면 KQ
+    # 주식: 1순위 DB 시장구분(정확, 전 종목 동일 기준). 없으면 yfinance 거래량 검증.
+    db_suffix = _market_suffix_from_db(ticker)
+    if db_suffix:
+        _market_suffix_cache[ticker] = db_suffix
+        return f"{ticker}.{db_suffix}"
+
+    # 2순위: KS/KQ 둘 다 확인 후 '거래량이 있는' 쪽 선택.
+    # ⚠️ 같은 6자리 코드가 KOSPI·KOSDAQ 양쪽에 last_price를 반환할 수 있어
+    # (예: 코스닥 039440 에스티아이를 .KS로 조회하면 엉뚱한 값+volume 0),
+    # last_price만 보면 잘못된 시장을 고른다 → 거래량(volume>0)까지 검증.
     try:
         import yfinance as yf
+        candidates = []  # (suffix, has_volume)
         for suffix in ("KS", "KQ"):
             yf_ticker = f"{ticker}.{suffix}"
             try:
                 info = yf.Ticker(yf_ticker).fast_info
-                if info and getattr(info, "last_price", None):
-                    _market_suffix_cache[ticker] = suffix
-                    return yf_ticker
+                if not info or not getattr(info, "last_price", None):
+                    continue
+                # last_volume만 본다 — ten_day_average_volume은 양 시장이 같은 값을
+                # 줘서(엉뚱한 시장도 통과) 변별력 없음. 당일 실거래(last_volume>0)가
+                # 있는 시장이 진짜 상장 시장.
+                vol = getattr(info, "last_volume", None)
+                candidates.append((suffix, bool(vol)))
             except Exception:
                 continue
+        # 거래량 있는 시장 우선, 없으면 last_price라도 있는 첫 시장
+        for want_vol in (True, False):
+            for suffix, has_vol in candidates:
+                if has_vol == want_vol:
+                    _market_suffix_cache[ticker] = suffix
+                    return f"{ticker}.{suffix}"
     except ImportError:
         logger.warning("yfinance 패키지가 설치되지 않았습니다.")
 
