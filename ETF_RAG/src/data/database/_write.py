@@ -28,12 +28,14 @@ def upsert_daily_data(conn: sqlite3.Connection, data: dict) -> int:
     date = meta.get("collection_date", "")
 
     with conn:
-        # 1) instruments
+        # 1) instruments (ETF는 모두 KOSPI 상장 → market='KOSPI')
         conn.executemany("""
-            INSERT INTO instruments (ticker, name, type, first_seen, last_seen)
-            VALUES (?, ?, 'etf', ?, ?)
+            INSERT INTO instruments (ticker, name, type, market, first_seen, last_seen)
+            VALUES (?, ?, 'etf', 'KOSPI', ?, ?)
             ON CONFLICT(ticker) DO UPDATE SET
                 name = excluded.name,
+                market = CASE WHEN instruments.market = '' THEN 'KOSPI'
+                              ELSE instruments.market END,
                 last_seen = excluded.last_seen,
                 is_active = 1
         """, [(e["ticker"], e["name"], date, date) for e in etfs])
@@ -129,17 +131,19 @@ def upsert_stock_data(conn: sqlite3.Connection, data: dict) -> int:
     date = meta.get("collection_date", "")
 
     with conn:
-        # 1) instruments (type='stock', sector 포함)
+        # 1) instruments (type='stock', sector·market 포함)
         conn.executemany("""
-            INSERT INTO instruments (ticker, name, type, sector, first_seen, last_seen)
-            VALUES (?, ?, 'stock', ?, ?, ?)
+            INSERT INTO instruments (ticker, name, type, sector, market, first_seen, last_seen)
+            VALUES (?, ?, 'stock', ?, ?, ?, ?)
             ON CONFLICT(ticker) DO UPDATE SET
                 name = excluded.name,
                 sector = CASE WHEN excluded.sector != '' THEN excluded.sector
                               ELSE instruments.sector END,
+                market = CASE WHEN excluded.market != '' THEN excluded.market
+                              ELSE instruments.market END,
                 last_seen = excluded.last_seen,
                 is_active = 1
-        """, [(s["ticker"], s["name"], s.get("sector", ""), date, date)
+        """, [(s["ticker"], s["name"], s.get("sector", ""), s.get("market", ""), date, date)
               for s in stocks])
 
         # 2) daily_prices (주식은 nav/base_index/deviation/tracking_error 없음)

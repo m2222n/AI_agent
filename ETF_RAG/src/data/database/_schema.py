@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS instruments (
     name        TEXT NOT NULL,
     type        TEXT NOT NULL DEFAULT 'etf',
     sector      TEXT DEFAULT '',
+    market      TEXT DEFAULT '',   -- KOSPI | KOSDAQ (yfinance .KS/.KQ 정확 변환용)
     first_seen  TEXT NOT NULL,
     last_seen   TEXT NOT NULL,
     is_active   INTEGER NOT NULL DEFAULT 1
@@ -147,5 +148,9 @@ def _migrate(conn: sqlite3.Connection):
     if "sector" not in cols:
         conn.execute("ALTER TABLE instruments ADD COLUMN sector TEXT DEFAULT ''")
         logger.info("마이그레이션: instruments.sector 컬럼 추가")
+    # instruments.market 컬럼 추가 (v3) — yfinance .KS/.KQ 정확 변환용
+    if "market" not in cols:
+        conn.execute("ALTER TABLE instruments ADD COLUMN market TEXT DEFAULT ''")
+        logger.info("마이그레이션: instruments.market 컬럼 추가")
     # sector 인덱스 (컬럼 존재 확인 후 생성)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_instruments_sector ON instruments(sector)")

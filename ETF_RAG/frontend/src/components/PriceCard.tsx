@@ -112,31 +112,44 @@ export default function PriceCard({ ticker }: { ticker: string }) {
         ? { label: "🟡 15분 지연 (yfinance)", cls: "bg-yellow-50 text-yellow-700" }
         : { label: "종가", cls: "bg-gray-100 text-gray-500" };
 
+  // 현재가(장중)인지 종가(장외)인지에 따라 라벨 구분
+  const isLivePrice = data.source !== "close";
+  const headLabel = isLivePrice ? "현재 시세" : "최근 종가";
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold tabular-nums text-gray-900">
-            {data.price.toLocaleString("ko-KR")}원
-          </span>
-          {data.change_pct != null && (
-            <span className={`text-sm font-medium tabular-nums ${color}`}>
-              {data.change != null
-                ? `${up ? "+" : ""}${data.change.toLocaleString("ko-KR")}원 `
-                : ""}
-              ({up ? "+" : ""}
-              {data.change_pct}%)
-            </span>
-          )}
-        </div>
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] font-medium text-gray-500">{headLabel}</span>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${badge.cls} ${live ? "animate-pulse" : ""}`}
         >
           {badge.label}
         </span>
       </div>
+      <div className="mt-0.5 flex items-baseline gap-2">
+        <span className="text-xl font-bold tabular-nums text-gray-900">
+          {data.price.toLocaleString("ko-KR")}원
+        </span>
+        {data.change_pct != null && (
+          <span className={`text-sm font-medium tabular-nums ${color}`}>
+            {data.change != null
+              ? `${up ? "+" : ""}${data.change.toLocaleString("ko-KR")}원 `
+              : ""}
+            ({up ? "+" : ""}
+            {data.change_pct}%)
+          </span>
+        )}
+      </div>
+      {/* 등락 기준 명시 */}
+      {data.change_pct != null && (
+        <div className="mt-0.5 text-[11px] text-gray-400">
+          전일 종가 대비
+          {data.prev_close != null &&
+            ` (전일 ${data.prev_close.toLocaleString("ko-KR")}원)`}
+        </div>
+      )}
       <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-400">
-        {data.volume != null && (
+        {data.volume != null && data.volume > 0 && (
           <span>거래량 {data.volume.toLocaleString("ko-KR")}주</span>
         )}
         {data.timestamp && <span>{data.timestamp}</span>}
