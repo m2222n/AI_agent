@@ -43,19 +43,45 @@ def _is_valid_sqlite(db_path: Path) -> bool:
         return False
 
 
+# full DB(2014~, ~880만행)의 깊이 하한. 이보다 적으면 '얕은 DB'로 보고 재다운로드.
+# 일일수집만으로 빈 DB에 쌓인 1년치(~105만행)를 잡아 full Release로 교체하기 위함.
+# (full이 본 프로젝트 강점인 12년 시계열·재무제표를 담음 — 얕은 DB면 기간분석 불가)
+_MIN_FULL_ROWS = 3_000_000
+
+
+def _is_full_depth(db_path: Path) -> bool:
+    """daily_prices 행수가 full DB 수준인지(얕은 1년치 DB 감지)."""
+    import sqlite3
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            cnt = con.execute("SELECT COUNT(*) FROM daily_prices").fetchone()[0]
+            return cnt >= _MIN_FULL_ROWS
+        finally:
+            con.close()
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def ensure_db(db_path: Path) -> bool:
     """DB가 없으면 GitHub Release에서 다운로드. 성공 시 True, 실패/스킵 시 False.
 
-    이미 존재하더라도 무결성을 검사해 손상 파일(malformed)이면 지우고 재다운로드한다
-    — 과거 다운로드/해제 중단으로 깨진 파일이 남아 매 부팅 재사용되던 문제 방지.
+    이미 존재하더라도 (1) 무결성 검사 — 손상(malformed)이면 재다운로드,
+    (2) 깊이 검사 — 일일수집만으로 쌓인 얕은 1년치 DB면 full Release로 교체.
     """
     if db_path.exists():
         if _is_valid_sqlite(db_path):
-            size_mb = db_path.stat().st_size / (1024 * 1024)
-            logger.info(f"DB 이미 존재(무결성 OK): {db_path} ({size_mb:.0f}MB)")
-            return True
-        logger.warning("기존 DB 손상 감지 — 삭제 후 재다운로드")
-        db_path.unlink(missing_ok=True)
+            if _is_full_depth(db_path):
+                size_mb = db_path.stat().st_size / (1024 * 1024)
+                logger.info(f"DB 이미 존재(무결성·깊이 OK): {db_path} ({size_mb:.0f}MB)")
+                return True
+            logger.warning(
+                "기존 DB가 얕음(full 미만, 일일수집 누적 추정) — full Release로 교체"
+            )
+            db_path.unlink(missing_ok=True)
+        else:
+            logger.warning("기존 DB 손상 감지 — 삭제 후 재다운로드")
+            db_path.unlink(missing_ok=True)
 
     logger.info("DB 없음 — GitHub Release에서 다운로드 시작")
     zst_path = db_path.parent / "etf_rag.db.zst"

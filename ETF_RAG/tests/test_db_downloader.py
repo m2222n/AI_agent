@@ -52,8 +52,8 @@ def test_valid_sqlite_without_daily_prices_fails(tmp_path):
     assert _is_valid_sqlite(db) is False
 
 
-def test_ensure_db_skips_when_valid_exists(tmp_path, monkeypatch):
-    """이미 정상 DB가 있으면 다운로드 없이 True."""
+def test_ensure_db_skips_when_valid_and_deep(tmp_path, monkeypatch):
+    """유효 + 깊이 충분(full)이면 다운로드 없이 True."""
     db = tmp_path / "etf_rag.db"
     _make_valid_db(db)
 
@@ -63,8 +63,36 @@ def test_ensure_db_skips_when_valid_exists(tmp_path, monkeypatch):
         called["download"] = True
 
     monkeypatch.setattr("src.data.db_downloader._download", _fake_download)
+    monkeypatch.setattr("src.data.db_downloader._is_full_depth", lambda p: True)
     assert ensure_db(db) is True
     assert called["download"] is False  # 재다운로드 안 함
+
+
+def test_ensure_db_redownloads_when_shallow(tmp_path, monkeypatch):
+    """유효하나 얕은 DB(일일수집 1년치)면 full Release로 재다운로드."""
+    db = tmp_path / "etf_rag.db"
+    _make_valid_db(db)  # 유효하지만 행수 적음 → _is_full_depth False
+
+    attempted = {"download": False}
+
+    def _fake_download(url, dest):
+        attempted["download"] = True
+        raise IOError("network down")  # 다운로드 분기 진입만 확인
+
+    monkeypatch.setattr("src.data.db_downloader._download", _fake_download)
+    # 실제 _is_full_depth로 검증(소수 행 DB는 얕음 판정)
+    result = ensure_db(db)
+    assert attempted["download"] is True  # 얕음 감지 → full 재다운로드 시도
+    assert result is False  # 다운로드 실패 → fallback
+    assert not db.exists()  # 얕은 DB 삭제됨
+
+
+def test_is_full_depth(tmp_path):
+    """행수 임계 미만이면 얕음(False)."""
+    from src.data.db_downloader import _is_full_depth
+    db = tmp_path / "shallow.db"
+    _make_valid_db(db)  # 1행
+    assert _is_full_depth(db) is False  # _MIN_FULL_ROWS 미만
 
 
 def test_ensure_db_redownloads_when_corrupt(tmp_path, monkeypatch):
