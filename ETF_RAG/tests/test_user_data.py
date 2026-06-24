@@ -89,6 +89,26 @@ def test_watchlist_requires_auth(client):
     assert client.put("/me/watchlist/005930").status_code == 401
 
 
+def test_watchlist_detail_includes_name(client, auth):
+    from unittest.mock import patch
+    client.put("/me/watchlist/005930", headers=auth)
+    with patch("src.llm.tools._find_structured_data",
+               return_value={"ticker": "005930", "name": "삼성전자"}):
+        r = client.get("/me/watchlist/detail", headers=auth)
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert items == [{"ticker": "005930", "name": "삼성전자"}]
+
+
+def test_watchlist_detail_fallback_to_ticker(client, auth):
+    """종목명 해석 실패 시 ticker로 fallback."""
+    from unittest.mock import patch
+    client.put("/me/watchlist/999999", headers=auth)
+    with patch("src.llm.tools._find_structured_data", return_value=None):
+        r = client.get("/me/watchlist/detail", headers=auth)
+    assert r.json()["items"] == [{"ticker": "999999", "name": "999999"}]
+
+
 def test_watchlist_isolated_per_user(client):
     t1 = client.post("/auth/signup", json={"email": "a@b.com", "password": "pw123456"}).json()["access_token"]
     t2 = client.post("/auth/signup", json={"email": "b@b.com", "password": "pw123456"}).json()["access_token"]

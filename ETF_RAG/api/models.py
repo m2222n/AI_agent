@@ -201,6 +201,15 @@ class WatchlistResponse(BaseModel):
     tickers: List[str]
 
 
+class WatchlistDetailItem(BaseModel):
+    ticker: str
+    name: str  # 종목명(해석 실패 시 ticker로 fallback)
+
+
+class WatchlistDetailResponse(BaseModel):
+    items: List[WatchlistDetailItem]
+
+
 class ChatHistoryItemDB(BaseModel):
     role: Literal["user", "assistant"]
     content: str

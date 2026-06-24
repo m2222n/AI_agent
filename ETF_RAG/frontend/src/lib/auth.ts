@@ -158,6 +158,19 @@ export async function getWatchlist(): Promise<string[]> {
   return (data.tickers ?? []) as string[];
 }
 
+/** 관심종목 + 종목명 (관심 탭 가독성용). */
+export async function getWatchlistDetail(): Promise<
+  import("./types").WatchlistDetailItem[]
+> {
+  const res = await fetch(`${API_BASE}/me/watchlist/detail`, {
+    headers: authHeader(),
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.items ?? []) as import("./types").WatchlistDetailItem[];
+}
+
 export async function addWatchlist(ticker: string): Promise<string[]> {
   const res = await fetch(`${API_BASE}/me/watchlist/${ticker}`, {
     method: "PUT",

@@ -322,3 +322,8 @@ export interface PaperRound {
   trade_count: number;
   symbols: RoundSymbolPnl[];
 }
+
+export interface WatchlistDetailItem {
+  ticker: string;
+  name: string;
+}
