@@ -541,7 +541,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-24 (가상투자 #69~71 + 주문UX #75(현재가·등락률·비율버튼) + 시세부족 신규종목 자동완성 제외 #72·#73 + 영문대문자 티커 조회 실버그 #74. + Railway Hobby 유료전환·상한 $15(사용자). 테스트 833. 직전: 유저DB Postgres 영구화 + 계정관리 #63 + UI개선 4건 #64~66·#68 + 주가DB malformed #67. 후원=BMC+토스 보류. git push HTTP/1.1 우회 필요. 다음: 후원 / 블로그9편 / Railway 유료전환. 상세: CLAUDE.local.md)_
+_Last Updated: 2026-06-24 (기간대비 등락률 + 사이드바 전체검색·⭐관심탭 #76 / 가상투자 #69~71·주문UX #75 / 시세부족 신규종목 제외 #72·#73 / 영문대문자 티커 실버그 #74 + Railway Hobby 유료전환(사용자). 전체 833. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
