@@ -2470,11 +2470,20 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
 - 테스트 +5(history 빈/거래시 기록/reset 초기화/cron 토큰 403/snapshot-all 전유저). **전체 821 통과**.
 - **사용자 후속(선택)**: Railway env `CRON_TOKEN` + GHA secret `PAPER_SNAPSHOT_URL`(=`{백엔드}/me/paper/snapshot-all`) 설정 시 매일 자동 스냅샷. 미설정이어도 거래 시점 스냅샷은 쌓임.
 
+### 가상투자 계좌 초기화 = 라운드 결산 (2026-06-24, PR #71)
+"초기로 돌아가기"는 이미 `/reset`에 있었으나 사용자 요청대로 **①확인 강화 ②기록 보존 ③기간·종목별 수익 기록** 추가. **결정: 라운드 결산 후 새출발 단일 모드**(현금만 리셋은 보유 유지 시 총자산 1억 초과→수익률 이상이라 기각).
+- **초기화 동작**: 거래 있던 라운드면 결산 저장(현재 total_value, 종목별 손익) → 보유/내역/스냅샷 비우고 현금 1억 + `started_at` 갱신(새 라운드).
+- **DB**: `PaperRound`(round_no 유저별 1,2,3 / started·ended_at / initial·final / return_pct / trade_count / summary=종목별 손익 JSON Text) + `PaperAccount.started_at`(NOT NULL, `_migrate_add_columns`에 멱등 추가 — 기존 행은 created_at으로 채움).
+- **종목별 손익**(`_round_symbol_pnl`): 실현=종목별 매도 realized_pnl 합 / 미실현=현재 보유 (현재가-평단가)*qty / total=실현+미실현, total 내림차순.
+- **확인**: `ResetRequest.confirm`이 "초기화"여야 진행(서버 400 가드). 프론트는 `confirm()` 팝업→**모달**(설명+"초기화" 입력+취소, Enter 제출).
+- `GET /me/paper/rounds`(최신순, summary JSON→RoundSymbolPnl 파싱, 손상 시 빈목록). 프론트 "📚 지난 성적" 섹션(`<details>` 라운드별 펼침: 기간·거래수·수익률·최종자산 + 종목 실현/미실현/합계 표).
+- 테스트 +6(결산 저장, 종목별 실현·미실현 정확도, round_no 증가, 거래없음 무기록, 확인문구 400, reset 시 _price_patch 안에서 호출). **전체 825**.
+
 ### 다음
 - 후원("해줘" 시, BMC+토스 안내) → 블로그 9편 → Railway 유료전환(trial 소진 전, ~6월 말) / 메일 인프라(비번찾기)
 
 ---
 
-_Last Updated: 2026-06-23 (가상투자 탭 #69 + 수익률 추이 차트 #70 — 1억 매수/매도/평가손익/랭킹 + 일별 스냅샷(거래시+cron 2경로) 추이차트. DB 4모델, 테스트 +20·전체 821. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편/Railway 유료전환)_
+_Last Updated: 2026-06-24 (가상투자 완성 — 탭 #69 + 추이차트 #70 + 라운드 결산 초기화 #71(지난 성적·종목별 실현/미실현 손익, 확인 모달). DB 5모델, 전체 825. 직전: UI 4건 #64~66·#68 + 유저DB 영구화 + 계정관리 #63 + 주가DB malformed #67. git push HTTP/1.1 우회 필요. 다음: 후원/블로그9편/Railway 유료전환)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
