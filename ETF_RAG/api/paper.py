@@ -5,11 +5,12 @@
 수수료/세금은 미반영(가상). 공매도/미수 불가(현금·보유 범위 내).
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, func as safunc, select
 from sqlalchemy.orm import Session
 
 from api.auth import get_current_user, _display_nickname
@@ -18,9 +19,13 @@ from api.models import (
     HoldingItem,
     PaperHistoryPoint,
     PaperHistoryResponse,
+    PaperRoundItem,
+    PaperRoundsResponse,
     PortfolioResponse,
     RankingItem,
     RankingResponse,
+    ResetRequest,
+    RoundSymbolPnl,
     SnapshotAllResponse,
     TradeHistoryItem,
     TradeHistoryResponse,
@@ -32,6 +37,7 @@ from api.models_db import (
     INITIAL_CASH,
     PaperAccount,
     PaperHolding,
+    PaperRound,
     PaperSnapshot,
     PaperTrade,
     User,
@@ -250,21 +256,107 @@ def trades(
     ])
 
 
+def _round_symbol_pnl(db: Session, user_id: int) -> list:
+    """현재 라운드의 종목별 손익 = 실현(매도분 합) + 미실현(보유 평가손익).
+    [{ticker,name,realized,unrealized,total}, ...] total 내림차순."""
+    # 실현손익: 종목별 매도 realized_pnl 합 + 이름(가장 최근 거래명)
+    agg: dict = {}
+    for t in db.scalars(select(PaperTrade).where(PaperTrade.user_id == user_id)):
+        e = agg.setdefault(t.ticker, {"ticker": t.ticker, "name": t.name or t.ticker,
+                                      "realized": 0, "unrealized": 0})
+        if t.name:
+            e["name"] = t.name
+        if t.side == "sell" and t.realized_pnl is not None:
+            e["realized"] += t.realized_pnl
+    # 미실현손익: 현재 보유 평가손익
+    for h in _holdings(db, user_id):
+        cur = _price_simple(h.ticker)
+        e = agg.setdefault(h.ticker, {"ticker": h.ticker, "name": h.ticker,
+                                      "realized": 0, "unrealized": 0})
+        if cur:
+            e["unrealized"] += int(round((cur - h.avg_price) * h.qty))
+    out = []
+    for e in agg.values():
+        e["total"] = e["realized"] + e["unrealized"]
+        out.append(e)
+    out.sort(key=lambda x: x["total"], reverse=True)
+    return out
+
+
 @router.post("/reset", response_model=PortfolioResponse)
 def reset(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    req: ResetRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> PortfolioResponse:
-    """계좌 초기화 — 보유/내역/스냅샷 삭제 + 현금 1억으로 복구."""
-    from sqlalchemy import delete
+    """계좌 초기화 — 직전 라운드 결산(기록 보존) 저장 후 1억으로 새 라운드 시작.
+
+    confirm은 '초기화'여야 진행(실수 방지). 거래가 있었던 라운드만 결산 기록.
+    """
+    if req.confirm.strip() != "초기화":
+        raise HTTPException(400, "확인 문구가 일치하지 않습니다. '초기화'를 입력하세요.")
+
+    acc = _get_or_create_account(db, user.id)
+    trade_count = db.scalar(
+        select(safunc.count()).select_from(PaperTrade)
+        .where(PaperTrade.user_id == user.id)
+    ) or 0
+
+    # 거래가 있었으면 라운드 결산 저장
+    if trade_count > 0:
+        final_value = _user_total_value(db, user.id, _price_simple)
+        symbols = _round_symbol_pnl(db, user.id)
+        last_no = db.scalar(
+            select(safunc.max(PaperRound.round_no))
+            .where(PaperRound.user_id == user.id)
+        ) or 0
+        db.add(PaperRound(
+            user_id=user.id, round_no=last_no + 1,
+            started_at=acc.started_at, initial_cash=INITIAL_CASH,
+            final_value=final_value,
+            return_pct=round((final_value - INITIAL_CASH) / INITIAL_CASH * 100.0, 2),
+            trade_count=trade_count,
+            summary=json.dumps(symbols, ensure_ascii=False),
+        ))
+
+    # 초기화
     db.execute(delete(PaperHolding).where(PaperHolding.user_id == user.id))
     db.execute(delete(PaperTrade).where(PaperTrade.user_id == user.id))
     db.execute(delete(PaperSnapshot).where(PaperSnapshot.user_id == user.id))
-    acc = _get_or_create_account(db, user.id)
     acc.cash = INITIAL_CASH
+    acc.started_at = datetime.now(timezone.utc)  # 새 라운드 시작
     db.commit()
-    _record_snapshot(db, user.id, INITIAL_CASH)  # 초기화 시점 스냅샷(1억)
+    _record_snapshot(db, user.id, INITIAL_CASH)  # 새 라운드 첫 스냅샷(1억)
     db.commit()
     return _build_portfolio(db, user.id)
+
+
+@router.get("/rounds", response_model=PaperRoundsResponse)
+def rounds(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> PaperRoundsResponse:
+    """지난 라운드 결산 목록 (최신순)."""
+    rows = db.scalars(
+        select(PaperRound).where(PaperRound.user_id == user.id)
+        .order_by(PaperRound.round_no.desc())
+    )
+    items = []
+    for r in rows:
+        syms = []
+        if r.summary:
+            try:
+                for s in json.loads(r.summary):
+                    syms.append(RoundSymbolPnl(**s))
+            except Exception:  # noqa: BLE001 — 손상 summary는 빈 목록
+                pass
+        items.append(PaperRoundItem(
+            round_no=r.round_no,
+            started_at=r.started_at.isoformat() if r.started_at else "",
+            ended_at=r.ended_at.isoformat() if r.ended_at else "",
+            initial_cash=r.initial_cash, final_value=r.final_value,
+            return_pct=r.return_pct, trade_count=r.trade_count, symbols=syms,
+        ))
+    return PaperRoundsResponse(rounds=items)
 
 
 @router.get("/ranking", response_model=RankingResponse)

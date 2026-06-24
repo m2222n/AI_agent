@@ -185,6 +185,7 @@ import type {
   PaperTradeHistoryItem,
   PaperRanking,
   PaperHistory,
+  PaperRound,
 } from "./types";
 
 async function paperGet<T>(path: string): Promise<T | null> {
@@ -236,11 +237,21 @@ export const buyStock = (ticker: string, qty: number) =>
 export const sellStock = (ticker: string, qty: number) =>
   paperTrade("sell", ticker, qty);
 
-export async function resetPaper(): Promise<PaperPortfolio | null> {
+/** 계좌 초기화 — confirm은 "초기화"여야 서버가 진행(실수 방지). 직전 라운드는 결산 저장됨. */
+export async function resetPaper(confirm: string): Promise<PaperPortfolio> {
   const res = await fetch(`${API_BASE}/me/paper/reset`, {
     method: "POST",
-    headers: authHeader(),
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({ confirm }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.detail || `초기화 실패 (${res.status})`);
+  }
   return (await res.json()) as PaperPortfolio;
+}
+
+export async function getPaperRounds(): Promise<PaperRound[]> {
+  const r = await paperGet<{ rounds: PaperRound[] }>("/rounds");
+  return r?.rounds ?? [];
 }

@@ -51,6 +51,20 @@ def _migrate_add_columns() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN nickname VARCHAR(40)"))
         logger.info("마이그레이션: users.nickname 컬럼 추가")
 
+    # paper_accounts.started_at (라운드 결산 기간 산정용). 기존 행은 created_at으로 채움.
+    if "paper_accounts" in insp.get_table_names():
+        pa_cols = {c["name"] for c in insp.get_columns("paper_accounts")}
+        if "started_at" not in pa_cols:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE paper_accounts ADD COLUMN started_at TIMESTAMP"
+                ))
+                conn.execute(text(
+                    "UPDATE paper_accounts SET started_at = created_at "
+                    "WHERE started_at IS NULL"
+                ))
+            logger.info("마이그레이션: paper_accounts.started_at 컬럼 추가")
+
 
 def get_db() -> Iterator[Session]:
     """요청 스코프 세션 의존성."""

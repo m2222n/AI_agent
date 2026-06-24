@@ -182,11 +182,17 @@ def test_reset_restores_initial(client):
     auth = _auth(client)
     with _price_patch({"005930": 100}):
         client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10}, headers=auth)
-    r = client.post("/me/paper/reset", headers=auth)
+        r = client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
     b = r.json()
     assert b["cash"] == INITIAL_CASH
     assert b["holdings"] == []
     assert client.get("/me/paper/trades", headers=auth).json()["trades"] == []
+
+
+def test_reset_wrong_confirm_400(client):
+    auth = _auth(client)
+    r = client.post("/me/paper/reset", json={"confirm": "ok"}, headers=auth)
+    assert r.status_code == 400
 
 
 def test_requires_auth_401(client):
@@ -242,11 +248,54 @@ def test_reset_clears_snapshots(client):
     auth = _auth(client)
     with _price_patch({"005930": 100}):
         client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10}, headers=auth)
-    client.post("/me/paper/reset", headers=auth)
+        client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
     h = client.get("/me/paper/history", headers=auth).json()
     # 리셋 후 1억 스냅샷 1개만(초기화 시점)
     assert len(h["points"]) == 1
     assert h["points"][0]["total_value"] == INITIAL_CASH
+
+
+# ── 라운드 결산 (기록 보존) ──────────────────────────────
+def test_reset_records_round_with_symbol_pnl(client):
+    auth = _auth(client)
+    # 005930 100주 @100 매수 → 50주 @130 매도(실현 +1500) → 가격 150에서 초기화(미실현)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with _price_patch({"005930": 130}):
+        client.post("/me/paper/sell", json={"ticker": "005930", "qty": 50}, headers=auth)
+    with _price_patch({"005930": 150}):
+        client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
+    rounds = client.get("/me/paper/rounds", headers=auth).json()["rounds"]
+    assert len(rounds) == 1
+    rd = rounds[0]
+    assert rd["round_no"] == 1
+    assert rd["trade_count"] == 2
+    syms = rd["symbols"]
+    assert len(syms) == 1
+    s = syms[0]
+    assert s["ticker"] == "005930"
+    # 실현: (130-100)*50 = 1500 / 미실현: (150-100)*50 = 2500 / total 4000
+    assert s["realized"] == 1500
+    assert s["unrealized"] == 2500
+    assert s["total"] == 4000
+
+
+def test_reset_no_trades_no_round(client):
+    """거래 없이 초기화하면 라운드 기록을 남기지 않는다."""
+    auth = _auth(client)
+    client.get("/me/paper/portfolio", headers=auth)  # 계좌 생성만
+    client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
+    assert client.get("/me/paper/rounds", headers=auth).json()["rounds"] == []
+
+
+def test_round_no_increments(client):
+    auth = _auth(client)
+    for _ in range(2):
+        with _price_patch({"005930": 100}):
+            client.post("/me/paper/buy", json={"ticker": "005930", "qty": 1}, headers=auth)
+            client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
+    rounds = client.get("/me/paper/rounds", headers=auth).json()["rounds"]
+    assert [r["round_no"] for r in rounds] == [2, 1]  # 최신순
 
 
 def test_snapshot_all_requires_cron_token(client):

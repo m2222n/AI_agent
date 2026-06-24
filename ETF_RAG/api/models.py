@@ -168,6 +168,34 @@ class SnapshotAllResponse(BaseModel):
     date: str
 
 
+class RoundSymbolPnl(BaseModel):
+    ticker: str
+    name: str
+    realized: int      # 실현손익(매도분)
+    unrealized: int    # 미실현손익(초기화 시점 보유분 평가)
+    total: int
+
+
+class PaperRoundItem(BaseModel):
+    round_no: int
+    started_at: str
+    ended_at: str
+    initial_cash: int
+    final_value: int
+    return_pct: float
+    trade_count: int
+    symbols: List[RoundSymbolPnl]  # 종목별 손익(total 내림차순)
+
+
+class PaperRoundsResponse(BaseModel):
+    rounds: List[PaperRoundItem]  # 최신 라운드부터
+
+
+class ResetRequest(BaseModel):
+    # 실수 방지 — 클라이언트에서 "초기화" 확인 입력. 서버도 재검증.
+    confirm: str = Field(..., min_length=1)
+
+
 # ── 유저별 저장 (관심종목 / 대화이력) ──────────────────────
 class WatchlistResponse(BaseModel):
     tickers: List[str]
