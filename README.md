@@ -2,208 +2,141 @@
 
 # 📈 투자 질의응답 챗봇
 
-### **[👉 SaaS 웹앱 (Next.js)](https://radiant-abundance-production-bdf0.up.railway.app)** · **[Streamlit 프로토타입](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)** — 별도 설치 없이 브라우저에서 바로 사용
+**한국 주식·ETF를 AI에게 물어보면, 오늘 데이터로 답하는 투자 분석 서비스**
 
-**LangGraph Agent + Hybrid RAG 기반 ETF/주식 투자 정보 시스템**
+"삼성전자 요즘 어때?", "2차전지 ETF 비교해줘", "이 종목 6개월 전망은?" 같은 질문을 하면
+AI 에이전트가 알아서 필요한 데이터(실시간 시세·12년 차트·재무제표·뉴스)를 찾아 분석해 답합니다.
+**ChatGPT와 달리 학습 시점이 아닌 "오늘 종가" 기준으로, 실제 KRX 전종목 데이터에 근거해서** 답하는 것이 핵심입니다.
 
-KRX 전종목 ETF + 주식 데이터를 기반으로, AI 에이전트가 질문에 맞는 도구를 자동 선택하여 정확한 답변을 제공합니다.
-**Streamlit 프로토타입 → FastAPI + Next.js SaaS 웹앱**으로 전환했습니다 (한국투자증권 실시간 시세 + 웹 푸시 알림 포함).
+### [👉 웹앱 바로 써보기](https://radiant-abundance-production-bdf0.up.railway.app)
 
-[![Railway](https://img.shields.io/badge/SaaS-Railway_Live-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://radiant-abundance-production-bdf0.up.railway.app)
-[![Streamlit](https://img.shields.io/badge/Prototype-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
+별도 설치 없이 브라우저에서 바로 사용 (모바일 설치형 PWA 지원)
+
 [![CI](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-766_Passed-2ea44f?style=for-the-badge)](#)
-[![Hit Rate](https://img.shields.io/badge/Hit_Rate-100%25-blue?style=for-the-badge)](#)
-[![Tools](https://img.shields.io/badge/Tools-14_Functions-orange?style=for-the-badge)](#)
-
-[![LangGraph](https://img.shields.io/badge/LangGraph-Agent-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](#)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square&logo=fastapi&logoColor=white)](#)
-[![Next.js](https://img.shields.io/badge/Next.js_16-Frontend-000000?style=flat-square&logo=nextdotjs&logoColor=white)](#)
-[![OpenAI](https://img.shields.io/badge/GPT--4o-Routing-412991?style=flat-square&logo=openai&logoColor=white)](#)
-[![FAISS](https://img.shields.io/badge/FAISS-Vector_DB-0467DF?style=flat-square&logo=meta&logoColor=white)](#)
-[![SQLite](https://img.shields.io/badge/SQLite-12yr_Data-003B57?style=flat-square&logo=sqlite&logoColor=white)](#)
+&nbsp;·&nbsp; 테스트 838개 &nbsp;·&nbsp; RAG 검색 정확도 100% &nbsp;·&nbsp; AI 도구 14종
 
 </div>
 
 ---
 
-## ChatGPT와 뭐가 다른가?
+## 어떤 서비스인가요?
 
-| | 이 챗봇 | ChatGPT |
+KRX(한국거래소)에 상장된 **ETF + KOSPI/KOSDAQ 주식 전종목**의 데이터를 매일 자동으로 모으고,
+그 위에 **AI 에이전트(LangGraph)** 와 **검색 엔진(RAG)** 을 얹어 자연어 질문에 답하는 서비스입니다.
+
+세 가지로 요약하면:
+
+1. **물어보면 답한다** — 질문을 던지면 AI가 14개 분석 도구 중 알맞은 것을 스스로 골라 실행하고, 근거와 함께 답합니다.
+2. **데이터가 최신이고 진짜다** — 매일 18:30 KRX 종가를 자동 수집하고, 장중에는 한국투자증권 실시간 시세를 씁니다. 추정이 아니라 실제 숫자로 답합니다.
+3. **혼자서도 굴러간다** — 수집·검증·배포가 전부 자동화돼 있어, 내 컴퓨터를 꺼둬도 매일 데이터가 갱신되고 누구나 URL로 접속해 씁니다.
+
+### ChatGPT로는 안 되는 것
+
+| | 이 서비스 | ChatGPT |
 |---|---|---|
-| **데이터** | KRX 오늘 기준 (매일 18:30 자동 수집) | 학습 데이터 기준 (수개월 전) |
-| **종목 커버리지** | ETF 1,088 + 주식 KOSPI/KOSDAQ 전종목 | 일부 유명 종목만 |
-| **정확도** | 실제 종가/NAV/PER/수익률 기반 답변 | 추정 + 할루시네이션 위험 |
-| **비교 분석** | 구조화 테이블 + 시계열 차트 자동 생성 | 텍스트만 |
-| **장중 시세** | 한국투자증권 실시간 (REST 현재가/호가 + WebSocket 체결) → yfinance 15분 지연 fallback | 불가 |
-| **보유종목 분석** | 역인덱스로 "삼성전자 담은 ETF" 즉시 답변 | 검색 불가 |
-| **과거 데이터** | 12년 일별 데이터 (2014~2026, 800만 행) | 없음 |
-| **기술적 분석** | 11개 지표 자동 분석 + matplotlib 차트 | 불가 |
-| **재무제표** | OpenDart 분기 실적 (매출/영업이익/마진/YoY) | 불가 |
-| **포트폴리오** | 백테스트 시뮬레이션 (수익률/MDD/샤프) + 벤치마크 비교 | 불가 |
-| **가격 전망** | 4축 종합 분석 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI) | 불가 |
-| **뉴스 분석** | Google News 실시간 수집 + 감성 분석 (로컬 KR-FinBert-SC → GPT fallback) | 불가 |
-| **알림** | 관심종목 급등/급락 웹 푸시 알림 (VAPID, 장 마감 후) | 불가 |
+| **데이터 기준일** | 오늘 종가 (매일 자동 수집) | 학습 시점 (보통 수개월 전) |
+| **종목 범위** | ETF + KOSPI/KOSDAQ 주식 전종목 | 일부 유명 종목만 |
+| **답변 근거** | 실제 종가·NAV·PER·수익률 숫자 | 추정 → 할루시네이션 위험 |
+| **과거 데이터** | 12년 일별 (2014~, 880만 행) | 없음 |
+| **장중 시세** | 한국투자증권 실시간 (현재가/호가/체결) | 불가 |
+| **기술적 분석** | 11개 지표 + 차트, 기간별 수익률 | 불가 |
+| **재무제표** | 분기 실적 (매출/영업이익/마진/YoY) | 불가 |
+| **가격 전망** | 4개 모델 종합 (통계·머신러닝·시계열) | 불가 |
+| **가상투자** | 1억 가상자금으로 모의 매매 + 랭킹 | 불가 |
 
 ---
 
-## 핵심 기능
+## 주요 기능
 
-### 🤖 LangGraph 에이전트 (14개 도구)
+### 🤖 질문하면 알아서 분석하는 AI 에이전트
 
-```mermaid
-graph LR
-    Q[질문] --> C{LLM 분류}
-    C -->|단순/일반| Mini[GPT-4o-mini]
-    C -->|비교/추천/위험| Pro[GPT-4o]
-    Mini --> T{도구 선택}
-    Pro --> T
-    T --> S1[search_etf]
-    T --> S2[compare_etfs]
-    T --> S3[get_etf_list]
-    T --> S4[search_stock]
-    T --> S5[compare_stocks]
-    T --> S6[get_stock_list]
-    T --> S7[get_realtime_price]
-    T --> S8[analyze_sector]
-    T --> S9[get_technical_indicators]
-    T --> S10[get_stock_correlation]
-    T --> S11[simulate_portfolio]
-    T --> S12[get_financial_statements]
-    T --> S13[predict_price_outlook]
-    T --> S14[get_stock_news]
-    S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10 & S11 & S12 & S13 & S14 --> V{CoV 검증}
-    V --> R[답변 생성]
-```
+질문을 LLM이 분류해 모델(GPT-4o / GPT-4o-mini)을 자동 선택하고,
+아래 14개 도구 중 필요한 것을 골라(여러 개 동시에도) 실행한 뒤,
+CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답합니다.
 
-| 도구 | 기능 |
+| 도구 | 하는 일 |
 |------|------|
-| `search_etf` | 하이브리드 RAG 검색 (FAISS + Kiwi BM25 + RRF + Cohere Rerank + MMR) |
-| `compare_etfs` | ETF 비교 분석 (표/차트 자동 생성) |
-| `get_etf_list` | 카테고리별 ETF 목록 검색 |
-| `search_stock` | 주식 RAG 검색 |
-| `compare_stocks` | 주식 비교 분석 (PER/PBR/시가총액/배당/재무제표) |
-| `get_stock_list` | 키워드 기반 주식 목록 검색 |
-| `get_realtime_price` | 장중 실시간 시세 (한국투자증권 KIS 우선 → yfinance → 장 외 종가 fallback) |
-| `analyze_sector` | 종목→ETF 역인덱스 보유종목/섹터 분석 + 업종 밸류에이션 |
-| `get_technical_indicators` | 기술적 지표 11개 (MA/RSI/MACD/볼린저/크로스/스토캐스틱/일목균형표/CCI/ADX/OBV/ATR) + 차트 이미지 |
-| `get_stock_correlation` | 종목 간 상관관계 + 베타 계수 분석 |
-| `simulate_portfolio` | 포트폴리오 백테스트 (수익률/MDD/샤프/변동성) + KODEX 200 벤치마크 비교 |
+| `search_etf` / `search_stock` | 종목 검색 (하이브리드 RAG: 벡터 + 키워드 + 재정렬) |
+| `compare_etfs` / `compare_stocks` | 2종목 비교 (표·차트 자동 생성, PER/PBR/시총/배당/재무) |
+| `get_etf_list` / `get_stock_list` | 카테고리·키워드별 종목 목록 |
+| `get_realtime_price` | 장중 실시간 시세 (한국투자증권 → yfinance → 종가 순) |
+| `analyze_sector` | "삼성전자 담은 ETF 찾기" 같은 역추적 + 업종 밸류에이션 |
+| `get_technical_indicators` | 기술적 지표 11종 (RSI·MACD·볼린저·일목 등) + 차트 |
+| `get_stock_correlation` | 종목 간 상관관계 + 베타 |
+| `simulate_portfolio` | 포트폴리오 백테스트 (수익률/최대낙폭/샤프) + 벤치마크 비교 |
 | `get_financial_statements` | 분기별 재무제표 (매출/영업이익/마진/YoY, OpenDart) |
-| `predict_price_outlook` | 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI, 시나리오별 확률) |
-| `get_stock_news` | 종목 뉴스 수집 + 감성 분석 (Google News RSS, 로컬 KR-FinBert-SC → GPT fallback, 긍정/부정/중립/혼재) |
+| `predict_price_outlook` | 4축 가격 전망 (기술적 + 펀더멘털 + Ridge 회귀 + Prophet) |
+| `get_stock_news` | 종목 뉴스 + 감성 분석 (Google News + 로컬 금융 BERT → GPT) |
 
-### 🔍 하이브리드 검색 파이프라인
+### 🔍 정확한 검색을 위한 하이브리드 RAG
+
+질문에서 종목을 찾을 때, 의미 기반 검색과 키워드 검색을 결합해 정확도를 높입니다.
 
 ```
-질문 입력
-  │
-  ├─ Step 0: ETF/주식 이름·티커 직접 매칭 (score=1.0)
-  ├─ Step 1: FAISS Dense 검색 (벡터 유사도, k=20)
-  ├─ Step 2: Kiwi BM25 Sparse 검색 (한국어 형태소, k=20)
-  ├─ Step 3: RRF 결합 (dense 70% + sparse 30%)
-  ├─ Step 4: Cohere Rerank v3.5 (cross-encoder 재정렬)
-  ├─ Step 5: MMR 다양성 확보 (λ=0.7)
-  └─ Step 6: 구조화 데이터 enrichment → 최종 답변
+질문 → ① 종목명·코드 직접 매칭 → ② 벡터 검색(FAISS) + ③ 키워드 검색(Kiwi BM25)
+     → ④ 결과 결합(RRF) → ⑤ 재정렬(Cohere Rerank) → ⑥ 다양성 확보(MMR) → 답변
 ```
 
-### 📊 탭 기반 UI (Streamlit 프로토타입 / Next.js SaaS 동일 6탭)
+검색 정확도(Hit Rate)는 평가셋 192개 질문(11개 유형)에서 **100%**.
+답변 품질(RAGAS)은 Faithfulness 0.69 · Answer Relevancy 0.75 · Context Recall 0.85 수준입니다.
 
-| 탭 | 기능 |
+### 🖥️ 7개 탭으로 나뉜 웹앱
+
+채팅뿐 아니라, 분석 종류별로 전용 탭을 제공합니다.
+
+| 탭 | 내용 |
 |----|------|
-| **종합 채팅** | 자유 질문 + 스트리밍 답변 + 후속 질문 버튼 |
-| **기술적 분석** | 종목 선택 → 11개 지표 + matplotlib 3단 차트 (기간 지정 가능: 6개월~10년) |
-| **재무제표** | 종목 선택 → 분기별 매출/영업이익/마진/성장률 (2015년~) |
-| **가격 전망** | 종목 선택 → 4축 종합 전망 (기술적+펀더멘털+Ridge+Prophet, 시나리오/확률/리스크) |
-| **비교 분석** | 2종목 비교 → 구조화 테이블 + 시계열 차트 |
-| **섹터 분석** | 업종별 등락률/시총 차트 + 업종 상세 종목 + 밸류에이션 요약 |
+| **채팅** | 자유 질문 + 실시간 스트리밍 답변 + 후속 질문 추천 |
+| **기술적 분석** | 11개 지표 + 차트, 기간별(6개월~10년) 수익률 |
+| **재무제표** | 분기 매출/영업이익/마진/성장률 (1~10년) |
+| **비교 분석** | 2종목 상대 수익률 + 밸류에이션 (1주~10년) |
+| **가격 전망** | 4개 모델 종합 전망 + 시나리오·확률·리스크 |
+| **섹터 분석** | 업종별 등락률·밸류에이션 + 기간 추이 차트 |
+| **가상투자** | 1억 가상자금으로 모의 매매 + 평가손익 + 유저 랭킹 + 수익률 추이 |
 
-- **자동완성 검색**: ~4,200종목 이름/티커 검색 (`st.selectbox`)
-- **후속 질문**: 1클릭 버튼 (`on_click` 콜백)
-- **에러 재시도**: 실패 시 재질문 버튼
-- **사이드바**: ETF/주식 종목 현황 + 기준일 + 업데이트 시간 안내
+- **계정(선택)**: 이메일 로그인 시 관심종목·대화이력·가상투자가 영구 저장 — 비로그인도 전 기능 사용 가능
+- **실시간 시세**: 기술 탭에서 한국투자증권 WebSocket 체결가 + 호가 10단계 표시
+- **모바일**: 설치형 PWA + 반응형 + 관심종목 급등/급락 웹 푸시 알림
 
-### 📈 데이터 파이프라인
+### 📈 매일 자동으로 갱신되는 데이터
 
-- **자동 수집 (이중화 + Watchdog)**:
-  - **GitHub Actions** — 매일 18:30 KST, deploy/ JSON + SQLite DB Release 갱신 → auto-commit → Streamlit Cloud 자동 재배포
-  - **Watchdog** — 20:30 KST 수집 검증, 미실행 시 자동 재트리거 + GitHub Issue 알림
-  - **macOS launchd** — 매일 18:30 로컬 SQLite DB 업데이트 + 19:00 DART 재무제표 백필
-- **12년 과거 데이터**: 2014~2026, ETF+주식 전종목, 800만 행 (SQLite 1.5GB)
-- **재무제표**: OpenDart API 전종목 147,048건 백필 완료 + 주간 자동 갱신
-- **장중 시세**: yfinance 15분 지연, 5분 캐시
-
-### 🛡️ 답변 품질 보장
-
-- **CoV (Chain of Verification)**: 도구 사용 답변 자동 검증 (할루시네이션 방어)
-- **Structured Output**: Pydantic 스키마 강제 (LLM 분류 JSON 보장)
-- **force_answer**: 도구 2회 초과 호출 시 수집 증거 기반 강제 답변 생성
-- **FAISS 디스크 캐싱**: MD5 해시 기반 캐시 무효화 (냉부팅 임베딩 절약)
-- **BM25 pickle 캐싱**: 토크나이징 결과 pickle 직렬화 + MD5 해시 캐시 무효화
-
-### 🚀 SaaS 전환 (Phase F) — FastAPI + Next.js
-
-Streamlit 프로토타입을 **REST/SSE 백엔드 + Next.js 프론트엔드**로 전환해 Railway에 실배포했습니다.
-
-- **백엔드 (`api/`, FastAPI)**: `/chat`·`/stream`(SSE 토큰 스트리밍) + 6개 데이터 탭 REST(`/tabs/*`) + JWT 이메일 인증 + 유저별 관심종목/대화이력 저장(동기 SQLAlchemy, Postgres/SQLite). 기존 LangGraph 에이전트를 Streamlit 없이 래핑.
-- **프론트엔드 (`frontend/`, Next.js 16 + Tailwind v4)**: 채팅(SSE 실시간 타이핑·마크다운) + 6탭(기술/재무/비교/전망/섹터) + 로그인/관심종목 UI + 모바일 사이드바 드로워 + **설치형 PWA**.
-- **한국투자증권 실시간 시세 (F-2)**: REST 현재가(`FHKST01010100`)·호가 10단계(`FHKST01010200`) + WebSocket 체결(`H0STCNT0`, 온디맨드 구독). 기술탭 PriceCard는 **WebSocket 우선 → REST 폴링 → 종가** fallback, OrderbookCard로 10단계 호가 표시.
-- **웹 푸시 알림**: VAPID 구독 + Service Worker push 핸들러 + 관심종목 ±5% 급등/급락 일일 자동 발송(GitHub Actions 트리거).
-- **로컬 감성 분석 (F-3)**: 뉴스 감성 분류를 로컬 `snunlp/KR-FinBert-SC`(선택적 설치)로 — 분류는 로컬, 요약은 GPT 하이브리드. 미설치 시 GPT fallback.
+- **자동 수집**: GitHub Actions가 매일 18:30 KST에 종가 수집 → 검증(Watchdog) → 배포까지 자동 (내 PC 불필요)
+- **12년 데이터**: 2014년~현재, 전종목 880만 행 (KOSPI/KOSDAQ 시장 구분 포함)
+- **재무제표**: OpenDart 전종목 백필 + 주간 자동 갱신
 
 ---
 
-## 기술 스택
+## 아키텍처
+
+```
+┌─ 프론트 (Next.js 16 + Tailwind) ──────── Railway
+│   채팅(SSE 스트리밍) · 7탭 · 로그인 · PWA · 푸시
+│        │ REST / SSE
+┌─ 백엔드 (FastAPI) ────────────────────── Railway
+│   /chat·/stream(SSE) · /tabs/* · /auth · /me/* · /push
+│   └─ LangGraph 에이전트 (14 도구) + 하이브리드 RAG
+│        │
+├─ 유저 DB: PostgreSQL (계정·관심종목·이력·가상투자, 영구)
+├─ 주가 DB: SQLite 880만 행 (영속 볼륨에 보존, GitHub Release로 배포)
+└─ 외부 API: OpenAI · Cohere · 한국투자증권 KIS · OpenDart · Google News
+```
 
 | 구분 | 기술 |
 |------|------|
-| **에이전트** | LangGraph + Function Calling (14개 도구) + 모델 라우팅 + CoV 검증 |
-| **LLM** | GPT-4o (복잡 질문) + GPT-4o-mini (단순 질문) + Structured Output |
-| **임베딩** | OpenAI text-embedding-3-small + FAISS persist (MD5 캐시) |
-| **Vector DB** | FAISS (인메모리, 디스크 캐싱) + Pinecone (서버리스, 자동 fallback) |
-| **검색** | Kiwi BM25 + FAISS Dense + RRF + Cohere Rerank v3.5 + MMR + 이름/접두어/별칭 매칭 |
-| **데이터** | pykrx (ETF 1,088 + 주식 전종목) + 한국투자증권 KIS OpenAPI (REST 현재가/호가 + WebSocket 체결) + yfinance (15분 지연 fallback) + dart-fss (재무제표) |
-| **저장** | SQLite WAL (12년 보존, 1.5GB, 800만 행) + JSON fallback / 유저 DB(Postgres·SQLite, SQLAlchemy) |
-| **분석** | 기술적 지표 11개 + 상관관계/베타 + 포트폴리오 백테스트 + Ridge 회귀 + Prophet 시계열 전망 |
-| **차트** | matplotlib (기술적 분석 3단 + 비교 시계열, base64 PNG) |
-| **예측** | scikit-learn Ridge 회귀 + Facebook Prophet + Bootstrap CI + 4축 종합 (기술적+펀더멘털+통계+Prophet) |
-| **뉴스/감성** | Google News RSS + 로컬 KR-FinBert-SC (선택적) → GPT-4o-mini fallback (긍정/부정/중립/혼재) |
-| **백엔드 (SaaS)** | FastAPI (`/chat`·`/stream` SSE + `/tabs/*` REST) + JWT 인증 + 동기 SQLAlchemy + 웹 푸시(pywebpush/VAPID) |
-| **프론트엔드 (SaaS)** | Next.js 16 + Tailwind v4 (SSE 스트리밍, 6탭, 로그인/관심종목, 모바일 드로워, 설치형 PWA) |
-| **평가** | RAGAS (Hit Rate 100%, F 0.688, AR 0.709, CR 0.854, 172개 데이터셋) |
-| **테스트** | pytest 766개 (단위 + E2E 통합 + API/인증/푸시/KIS) |
-| **자동 수집** | GitHub Actions (deploy/ + DB Release + 푸시 알림 트리거) + Watchdog (자동 재트리거) + macOS launchd |
-| **모니터링** | LangSmith (free tier) |
-| **UI** | Streamlit (프로토타입) + Next.js (SaaS) — 탭 UI, 자동완성, 후속질문, 반응형 |
-| **배포** | Railway (FastAPI 백엔드 + Next.js 프론트, 2서비스) + Streamlit Cloud (프로토타입) |
+| **AI 에이전트 / LLM** | LangGraph + Function Calling(14 도구) + 모델 라우팅(GPT-4o / 4o-mini) + CoV 검증 |
+| **검색 / 임베딩** | Kiwi BM25 + FAISS + RRF + Cohere Rerank v3.5 + MMR / OpenAI text-embedding-3-small |
+| **벡터 DB** | FAISS(디스크 캐싱) + Pinecone(서버리스, 자동 fallback) |
+| **데이터 수집** | pykrx · 한국투자증권 KIS OpenAPI(REST+WebSocket) · yfinance(fallback) · dart-fss |
+| **분석 / 예측** | 기술 지표 11종 + 상관/베타 + 포트폴리오 백테스트 + Ridge 회귀 + Prophet |
+| **백엔드** | FastAPI(SSE) + JWT 인증 + SQLAlchemy(PostgreSQL) + pywebpush(VAPID) |
+| **프론트엔드** | Next.js 16 + Tailwind v4 (SSE 스트리밍, PWA, 모바일 드로워) |
+| **품질 / 평가** | RAGAS 평가 · pytest 838개 · GitHub Actions CI |
+| **배포 / 운영** | Railway 2서비스(백엔드+프론트) + 영속 볼륨 · GitHub Actions 일일 자동 수집 |
 
-**월 비용**: $5~17 (OpenAI API) + Railway 무료 티어 / Hobby $5~ (개인 프로젝트). KIS 실시간·로컬 감성은 추가 비용 0.
+**운영 비용**: OpenAI API $5~17/월 + Railway Hobby $5/월~ (개인 프로젝트 규모). 한국투자증권 실시간·로컬 감성 분석은 추가 비용 0.
 
----
-
-## 평가 결과
-
-### 검색 품질 (Hit Rate)
-```
-평가 데이터셋: 172개 질문 (8개 유형)
-├── simple, compare, recommend, risk, general,
-│   technical, correlation, portfolio
-├── ETF / 주식 / 혼합 전 유형
-└── 전체 Hit Rate:     100.0% (172/172)
-```
-
-**Hit Rate 개선 과정**: 45% → 75% (이름 매칭) → 88% (에이전트) → 91.9% (도구 확장) → 95.2% (프롬프트) → **100%** (접두어/별칭 매칭)
-
-### RAGAS 답변 품질
-| 지표 | 값 | 개선 |
-|------|-----|------|
-| Hit Rate | 100% (172/172) | — |
-| Faithfulness | **0.688** | +0.188 |
-| Answer Relevancy | **0.709** | +0.286 |
-| Context Recall | **0.854** | +0.518 |
-
-**개선 방법**: 컨텍스트 조립 강화 (도구 결과 5000자, 비교 테이블 텍스트화) + 프롬프트 수치 인용 강제 + AR 한국어 역질문 프롬프트 커스텀 (strictness 5) + ground_truth 44개 보정
+> 참고: 초기 프로토타입은 Streamlit으로 만들었고, 현재는 FastAPI + Next.js 기반 웹앱으로 전환했습니다.
+> Streamlit 버전도 [여전히 동작](https://aiagent-5ejryv4fsnjvhrevzwn3ct.streamlit.app/)합니다.
 
 ---
 
@@ -211,155 +144,76 @@ Streamlit 프로토타입을 **REST/SSE 백엔드 + Next.js 프론트엔드**로
 
 ```
 ETF_RAG/
-├── app.py                     # Streamlit 진입점 (프로토타입)
-├── config.py                  # 설정/상수 관리 (KIS / VAPID / SENTIMENT 등)
-├── api/                       # SaaS 백엔드 (FastAPI)
+├── api/                       # FastAPI 백엔드
 │   ├── main.py                # /chat·/stream(SSE)·/health·/feedback·/stats
-│   ├── tabs.py                # 6탭 REST + /tabs/price·orderbook·price/stream(SSE)
-│   ├── auth.py                # JWT 이메일 인증
-│   ├── user_data.py           # 유저별 관심종목/대화이력 CRUD
+│   ├── tabs.py                # 데이터 탭 REST + /tabs/price·orderbook·price/stream(SSE)
+│   ├── auth.py                # JWT 인증 (가입/로그인/비번변경/닉네임/탈퇴)
+│   ├── user_data.py           # 관심종목·대화이력 CRUD
+│   ├── paper.py               # 가상투자 (매수/매도/포트폴리오/랭킹/스냅샷/라운드)
 │   ├── push.py                # 웹 푸시 (VAPID 구독 + 관심종목 일일 알림)
-│   ├── db.py / models_db.py   # 동기 SQLAlchemy (User/Watchlist/ChatHistory/PushSubscription)
-│   └── models.py / deps.py    # Pydantic 모델 + init 의존성
-├── frontend/                  # SaaS 프론트엔드 (Next.js 16 + Tailwind v4)
-│   └── src/                   # 채팅(SSE) + 6탭 + 로그인/관심종목 + PriceCard/OrderbookCard + PushToggle + PWA
+│   └── db.py / models_db.py   # SQLAlchemy (User/Watchlist/ChatHistory/Push/Paper*)
+├── frontend/                  # Next.js 16 + Tailwind v4 (채팅·7탭·로그인·PWA)
 ├── src/
 │   ├── data/
-│   │   ├── loader.py          # 데이터 로딩 (SQLite→JSON→fallback)
-│   │   ├── database/          # SQLite CRUD 패키지 (5 서브모듈, WAL, 8 테이블)
-│   │   ├── collector.py       # ETF 일배치 수집 (pykrx)
-│   │   ├── stock_collector.py # 주식 일배치 수집
-│   │   ├── dart_collector.py  # OpenDart 재무제표 수집 (dart-fss)
-│   │   ├── realtime.py        # 장중 시세 (KIS 우선 → yfinance fallback)
-│   │   ├── kis_client.py      # 한국투자증권 REST (현재가 FHKST01010100 / 호가 FHKST01010200, OAuth 토큰 캐시)
-│   │   ├── kis_ws.py          # 한국투자증권 WebSocket 실시간 체결 (H0STCNT0 온디맨드 구독, refcount)
-│   │   ├── technical/         # 기술적 지표 패키지 (5 서브모듈, 11개 지표)
-│   │   ├── chart_generator/   # matplotlib 차트 패키지 (5 서브모듈, 8종 차트)
-│   │   ├── predictor.py       # 4축 가격 전망 (기술적+펀더멘털+Ridge회귀+Prophet, Bootstrap CI)
-│   │   ├── news.py            # Google News RSS + 감성 분석 (로컬 → GPT fallback)
-│   │   ├── sentiment.py       # 로컬 금융 감성 분류 (KR-FinBert-SC 선택적, 미설치 시 None→GPT)
-│   │   └── db_downloader.py   # GitHub Release DB 다운로드 (Streamlit Cloud용)
-│   ├── rag/
-│   │   ├── retriever.py       # HybridRetriever (FAISS+BM25+RRF+MMR+이름매칭, BM25 pickle 캐시)
-│   │   └── vectorstore.py     # FAISS/Pinecone 벡터스토어 (persist + MD5 캐시 + 자동 fallback)
-│   ├── llm/
-│   │   ├── agent.py           # LangGraph 에이전트 (라우팅+도구+재검색+CoV+force_answer)
-│   │   ├── tools/             # Function Calling 도구 패키지 (7 서브모듈, 14개 도구)
-│   │   ├── prompts.py         # 유형별 시스템 프롬프트
-│   │   └── classifier.py      # 질문 분류 (Structured Output + 키워드 fallback)
-│   └── ui/
-│       ├── chat.py            # 스트리밍 채팅 + 후속질문 on_click 콜백
-│       ├── charts.py          # 구조화 데이터 렌더링 (비교 테이블 + 기술적 차트)
-│       ├── tabs.py            # 탭별 전용 UI (6개 탭, selectbox 자동완성)
-│       ├── sidebar.py         # 사이드바 (데이터 현황)
-│       └── styles.py          # 커스텀 CSS
-├── eval/                      # RAGAS 평가 (172개 질문, 8개 유형)
-├── tests/                     # pytest 766개 (단위 + E2E + API/인증/푸시/KIS)
-├── scripts/
-│   ├── daily_collect.sh                # ETF+주식+DART 일배치 수집
-│   ├── collect_for_deploy.py           # GitHub Actions용 경량 수집
-│   ├── backfill_historical.py          # 12년 과거 데이터 백필
-│   ├── backfill_financials_runner.py   # DART 전종목 재무제표 백필
-│   ├── backfill_yfinance.py            # yfinance KRX 윈도우 밖 백필
-│   ├── verify_and_recover.py           # 수집 검증 + 누락 자동 보충
-│   ├── com.etfrag.daily-collect.plist  # launchd 스케줄 (18:30)
-│   └── com.etfrag.dart-backfill.plist  # launchd 스케줄 (19:00, DART)
-├── .gitignore                      # Python/SQLite/IDE/OS 파일 제외
-└── .github/workflows/
-    ├── daily-collect.yml               # GitHub Actions (18:30 KST, deploy/ + DB Release + 실패 Issue)
-    ├── ci.yml                          # CI (PR/push 시 pytest + coverage)
-    └── watchdog-collect.yml            # 수집 Watchdog (20:30 KST, 자동 재트리거 + Issue 알림)
+│   │   ├── database/          # SQLite CRUD 패키지 (WAL, 시장 구분 포함)
+│   │   ├── collector.py / stock_collector.py / dart_collector.py   # 일배치 수집
+│   │   ├── realtime.py · kis_client.py · kis_ws.py   # 시세 (KIS REST/WS → yfinance)
+│   │   ├── technical/ · chart_generator/             # 지표 11종 · matplotlib 차트
+│   │   ├── predictor.py · news.py · sentiment.py     # 가격 전망 · 뉴스/감성
+│   │   └── db_downloader.py                          # Release DB 다운로드(무결성 검증)
+│   ├── rag/                   # retriever(하이브리드) · vectorstore(FAISS/Pinecone)
+│   ├── llm/                   # agent(LangGraph) · tools(14개) · prompts · classifier
+│   └── ui/                    # Streamlit 프로토타입 UI
+├── app.py                     # Streamlit 진입점 (프로토타입)
+├── eval/                      # RAGAS 평가 (192개 질문, 11개 유형)
+├── tests/                     # pytest 838개
+├── scripts/                   # 수집·백필·배포 스크립트 + launchd
+└── .github/workflows/         # daily-collect · watchdog-collect · ci
 ```
 
 ---
 
-## 실행 방법
-
-### 1. 설치
+## 직접 실행하기
 
 ```bash
 git clone https://github.com/m2222n/AI_agent.git
 cd AI_agent/ETF_RAG
 pip install -r requirements.txt
-```
+cp .env.example .env          # OPENAI_API_KEY 등 설정
 
-### 2. 환경 변수
-
-```bash
-cp .env.example .env
-# .env 파일에 OPENAI_API_KEY, DART_API_KEY 설정
-```
-
-### 3. 데이터 수집 (선택)
-
-```bash
-# ETF 수집
-python -m src.data.collector
-
-# 주식 수집
-python -m src.data.stock_collector
-
-# 재무제표 수집 (OpenDart)
-python -m src.data.dart_collector
-
-# 12년 과거 데이터 백필
-python scripts/backfill_historical.py --resume
-```
-
-### 4. 실행
-
-```bash
 # 프로토타입 (Streamlit)
 streamlit run app.py
 
-# SaaS 백엔드 (FastAPI) — repo 루트가 ETF_RAG 기준
+# 또는 SaaS 구성 — 백엔드 (FastAPI)
 uvicorn api.main:app --port 8000
-
-# SaaS 프론트엔드 (Next.js) — 별도 터미널
+# 프론트엔드 (Next.js, 별도 터미널)
 cd frontend && npm install && npm run dev   # NEXT_PUBLIC_API_BASE=http://localhost:8000
+
+# 테스트
+pytest tests/
 ```
 
-### 5. 테스트
-
-```bash
-pytest tests/ -v
-```
-
-> 선택: `transformers`/`torch` 설치 시 뉴스 감성을 로컬 KR-FinBert-SC로 분류(비용 0), 미설치 시 GPT fallback.
-> 선택: KIS 실시간(`KIS_*`)·웹 푸시(`VAPID_*`, `scripts/gen_vapid_keys.py`)는 `.env`에 키 설정 시 활성화.
+**선택 설정**
+- `transformers`/`torch` 설치 시 뉴스 감성을 로컬 모델(KR-FinBert-SC)로 분류(비용 0), 미설치 시 GPT로 fallback
+- 한국투자증권 실시간(`KIS_*`)·웹 푸시(`VAPID_*`)는 `.env`에 키 설정 시 자동 활성화
+- 배포 시 `ETF_DATA_DIR`를 영속 볼륨 경로로 지정하면 콜드스타트(DB 재다운로드)가 사라집니다
 
 ---
 
-## 로드맵
+## 개발 로드맵
 
-- [x] **Phase 0**: 프로젝트 구조 리셋 (모듈 분리)
-- [x] **Phase 1**: pykrx 데이터 수집 + SQLite DB + 주식 확장 + 12년 백필 + 자동화 (launchd + GitHub Actions)
-- [x] **Phase 2**: 하이브리드 검색 (FAISS + BM25 + RRF + MMR) + RAGAS 평가
-- [x] **Phase 3**: LangGraph 에이전트 + 도구 + 모델 라우팅 + 프롬프트 개선
-- [x] **Phase 4**: UI/UX 개편 + 탭 분리 + 자동완성 + 실시간 시세 + 섹터 분석
-- [x] **Phase C**: 정량 분석 — 기술적 지표 + 상관관계/베타 + 포트폴리오 시뮬레이션 + 재무제표 (OpenDart)
-- [x] **Phase D**: 기술적 지표 확장 (11개) + matplotlib 차트 + 가격 전망 모델 (4축: Ridge회귀+Prophet)
-- [x] **품질 강화**: CoV 검증 + Structured Output + FAISS persist + force_answer + Bootstrap CI
-- [x] **안정성 + 모바일**: 수집 Watchdog (자동 재트리거) + 반응형 CSS (태블릿/모바일 대응)
-- [x] **Phase E-1**: 답변 품질 + UX — 멀티 도구 병렬 호출, 대화 맥락 유지, 섹션 접기/펼치기, 동적 예시 질문
-- [x] **Phase E-2**: 검색 + 평가 고도화 — Cohere Rerank v3.5, E2E 통합 테스트 42개, RAGAS 답변 품질 재개선 (F 0.688, AR 0.709, CR 0.854)
-- [x] **Phase E-3**: 차트 시각화 + 섹터 탭 — 포트폴리오/재무/밸류에이션/장중/섹터 차트, 관심종목, 속도 최적화
-- [x] **Phase E-4**: BM25 pickle 캐싱 + 뉴스 감성 분석 + Prophet 시계열 예측 + Pinecone 벡터 DB
-- [x] 코드 리팩토링: 4개 대형 모듈 → 패키지 분리 (~4,170줄 → 22 서브모듈, 100% 역호환)
-- [x] 코드 리뷰 6건 수정 + CI 파이프라인 (PR/push 자동 테스트) + .gitignore
-- [x] 방문자 카운터 (Supabase REST API, 일별+누적) + 수집 버그 수정
-- [x] Hit Rate 100% (172개 eval) + RAGAS 답변 품질 대폭 개선 (F=0.688, AR=0.709, CR=0.854)
-- [x] **Phase F: SaaS 전환** — FastAPI 백엔드(`/chat`·`/stream`·`/tabs/*` + JWT 인증 + 유저 저장) + Next.js 16 프론트(6탭 + 로그인/관심종목 + PWA) + **Railway 실배포**
-- [x] **F-2: 한국투자증권 실시간 시세** — REST 현재가/호가(10단계) + WebSocket 체결(온디맨드 구독), yfinance/종가 fallback
-- [x] **웹 푸시 알림** — VAPID 구독 + Service Worker + 관심종목 ±5% 급등/급락 일일 자동 발송
-- [x] **F-3: 로컬 감성 분석** — 뉴스 감성을 로컬 KR-FinBert-SC(선택적) → GPT fallback 하이브리드
-- [ ] 한국어 임베딩 비교 (BGE-M3) / 유료 구독 전환
-- [ ] **Phase G: 모바일 앱** — React Native (웹 코드 70% 재사용), 네이티브 푸시, 오프라인 캐시
+- [x] **기반 (Phase 0~4)** — 모듈 구조 → pykrx 수집·SQLite·12년 백필·자동화 → 하이브리드 검색·RAGAS → LangGraph 에이전트·모델 라우팅 → 탭 UI·실시간 시세·섹터 분석
+- [x] **정량 분석 (Phase C~D)** — 기술 지표 11종·상관/베타·포트폴리오 백테스트·재무제표 + 4축 가격 전망(Ridge + Prophet) + 차트
+- [x] **검색 고도화 (Phase E)** — Cohere Rerank · E2E 테스트 · RAGAS 재개선 · 뉴스 감성 · Prophet · Pinecone · 패키지 리팩토링
+- [x] **SaaS 전환 (Phase F)** — FastAPI + Next.js 16 + Railway 실배포 · JWT 인증·유저별 저장 · 한국투자증권 실시간 시세(REST+WebSocket) · 웹 푸시(PWA) · 로컬 감성 분석
+- [x] **가상투자** — 1억 가상자금 매매 · 평가손익 · 유저 랭킹 · 수익률 추이 · 라운드 결산
+- [x] **운영 안정화** — PostgreSQL 유저 DB 영구화 · 영속 볼륨(콜드스타트 제거) · 시장 구분 기반 시세 정확화
+- [ ] **모바일 앱 (Phase G)** — React Native (웹 코드 재사용), 네이티브 푸시, 오프라인 캐시
 
 ---
 
 <div align="center">
 
-**개인 프로젝트** | 정태민 ([@m2222n](https://github.com/m2222n))
+**개인 프로젝트** · 정태민 ([@m2222n](https://github.com/m2222n))
 
 </div>
