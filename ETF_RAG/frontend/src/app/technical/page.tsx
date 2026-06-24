@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { getTechnical, getIntraday } from "@/lib/api";
 import type { TechnicalResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
@@ -29,7 +30,8 @@ function str(v: unknown): string {
   return v == null || v === "" ? "-" : String(v);
 }
 
-export default function TechnicalPage() {
+function TechnicalInner() {
+  const searchParams = useSearchParams();
   const [days, setDays] = useState(120);
   const [data, setData] = useState<TechnicalResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,15 +77,19 @@ export default function TechnicalPage() {
     }
   };
 
-  // 관심종목 칩 등에서 /technical?ticker=005930 로 진입 시 자동 조회 (mount 1회)
+  // 사이드바/관심종목에서 /technical?ticker=X 진입 시 자동 조회.
+  // useSearchParams로 쿼리 변화를 감지 — 이미 이 페이지에 있을 때 다른 종목을
+  // 클릭하면 URL만 바뀌고 리마운트가 안 돼(mount 1회 useEffect는 안 돎) 종목이
+  // 안 바뀌던 버그 수정.
+  const queryTicker = searchParams.get("ticker");
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get("ticker");
-    if (t) {
-      setSelected({ name: t, ticker: t });
-      run(t, 120);
+    if (queryTicker) {
+      setSelected({ name: queryTicker, ticker: queryTicker });
+      run(queryTicker, 120);
+      setDays(120);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [queryTicker]);
 
   const onPeriod = (d: number) => {
     setDays(d);
@@ -274,6 +280,15 @@ export default function TechnicalPage() {
       </p>
       <DataRangeNote />
     </main>
+  );
+}
+
+// useSearchParams는 Suspense 경계 필요(Next.js CSR bailout) → 래핑.
+export default function TechnicalPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto w-full max-w-3xl px-3 py-5" />}>
+      <TechnicalInner />
+    </Suspense>
   );
 }
 
