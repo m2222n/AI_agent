@@ -40,7 +40,7 @@ class VisitorResponse(BaseModel):
 
 class ComparisonRequest(BaseModel):
     tickers: List[str] = Field(..., min_length=2, max_length=2)
-    days: int = Field(120, ge=20, le=2500)
+    days: int = Field(120, ge=5, le=2500)  # 1주(5거래일)~10년
 
 
 # ── 인증 ────────────────────────────────────────────────

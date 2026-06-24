@@ -13,8 +13,11 @@ import ChartImage from "@/components/ChartImage";
 import ComparisonTable from "@/components/ComparisonTable";
 import DataRangeNote from "@/components/DataRangeNote";
 
-// 상대 수익률 차트 기간 (기술 분석 탭과 동일 옵션)
+// 상대 수익률 차트 기간 (1주=5거래일, 1개월=20, 3개월=60 ...)
 const PERIODS: { label: string; days: number }[] = [
+  { label: "1주", days: 5 },
+  { label: "1개월", days: 20 },
+  { label: "3개월", days: 60 },
   { label: "6개월", days: 120 },
   { label: "1년", days: 250 },
   { label: "3년", days: 750 },
