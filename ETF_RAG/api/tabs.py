@@ -44,6 +44,7 @@ from src.data.database import (
     get_connection,
     get_financial_data,
     get_closes_batch,
+    get_low_history_tickers,
     DB_PATH,
 )
 from src.llm.tools import (
@@ -349,13 +350,48 @@ async def sector(
 
 
 # ── 종목 자동완성 / 해석 ────────────────────────────────────────────
+# 시세 부족(min_days 미만) 제외 종목 집합 캐시 — 자동완성 매 호출 DB 조회 회피.
+_low_hist_cache: dict = {"set": None, "min_days": None, "at": 0.0}
+_LOW_HIST_TTL = 300  # 5분
+
+
+def _low_history_set(min_days: int) -> set:
+    import time
+    now = time.time()
+    c = _low_hist_cache
+    if (c["set"] is not None and c["min_days"] == min_days
+            and now - c["at"] < _LOW_HIST_TTL):
+        return c["set"]
+    conn = get_connection(DB_PATH)
+    try:
+        s = get_low_history_tickers(conn, min_days)
+    finally:
+        conn.close()
+    c.update(set=s, min_days=min_days, at=now)
+    return s
+
+
+def _extract_ticker(opt: str) -> str:
+    """'이름 (005930)' → '005930'."""
+    if opt.endswith(")") and " (" in opt:
+        return opt.rsplit(" (", 1)[1][:-1]
+    return opt
+
+
 @router.get("/tickers", response_model=TickerSearchResponse)
 async def tickers(
     q: Optional[str] = Query(None),
     limit: int = Query(30, ge=1, le=200),
     asset_type: Optional[str] = Query(None, pattern="^(stock|etf)$"),
+    min_days: int = Query(0, ge=0, le=250),
 ):
+    """종목 자동완성. min_days>0이면 시세 거래일이 그보다 적은 신규 종목 제외
+    (기술적 분석 탭처럼 과거 데이터가 필요한 화면용 — 기본 0=제외 안 함)."""
     options = await run_in_threadpool(get_available_tickers, asset_type)
+    if min_days > 0:
+        low = await run_in_threadpool(_low_history_set, min_days)
+        if low:
+            options = [o for o in options if _extract_ticker(o) not in low]
     if q:
         ql = q.lower()
         options = [o for o in options if ql in o.lower()]

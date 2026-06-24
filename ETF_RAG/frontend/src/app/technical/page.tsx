@@ -119,7 +119,7 @@ export default function TechnicalPage() {
         이동평균·RSI·MACD·볼린저밴드 등 지표와 차트
       </p>
 
-      <TickerSearch onSelect={onSelect} />
+      <TickerSearch onSelect={onSelect} minDays={20} />
 
       {selected && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -242,6 +242,10 @@ export default function TechnicalPage() {
         </div>
       )}
 
+      <p className="mt-4 text-[11px] leading-relaxed text-gray-400">
+        ℹ️ 기술적 분석은 이동평균·RSI 등 계산에 충분한 과거 시세가 필요해, 상장 직후라
+        시세가 20거래일 미만인 신규 종목은 검색에서 자동 제외됩니다.
+      </p>
       <DataRangeNote />
     </main>
   );

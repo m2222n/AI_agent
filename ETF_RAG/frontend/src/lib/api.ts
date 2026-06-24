@@ -125,11 +125,13 @@ export async function searchTickers(
   q: string,
   limit = 20,
   assetType?: "stock" | "etf",
+  minDays?: number,
 ): Promise<string[]> {
   const url = new URL(`${API_BASE}/tabs/tickers`);
   if (q) url.searchParams.set("q", q);
   url.searchParams.set("limit", String(limit));
   if (assetType) url.searchParams.set("asset_type", assetType);
+  if (minDays && minDays > 0) url.searchParams.set("min_days", String(minDays));
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
   const body = (await res.json()) as TickerSearchResponse;

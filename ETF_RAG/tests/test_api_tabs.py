@@ -251,6 +251,29 @@ def test_tickers_asset_type_invalid_422(client):
     assert r.status_code == 422  # pattern ^(stock|etf)$
 
 
+def test_tickers_min_days_excludes_low_history(client):
+    """min_days>0이면 시세 부족 종목(_low_history_set)을 자동완성에서 제외."""
+    opts = ["삼성전자 (005930)", "신상ETF (0192L0)"]
+    with patch("api.tabs.get_available_tickers", return_value=opts), patch(
+        "api.tabs._low_history_set", return_value={"0192L0"}
+    ):
+        r = client.get("/tabs/tickers", params={"min_days": 20})
+    names = r.json()["options"]
+    assert "삼성전자 (005930)" in names
+    assert "신상ETF (0192L0)" not in names  # 제외됨
+
+
+def test_tickers_min_days_zero_keeps_all(client):
+    """min_days 미지정(0)이면 제외 안 함(_low_history_set 미호출)."""
+    opts = ["삼성전자 (005930)", "신상ETF (0192L0)"]
+    with patch("api.tabs.get_available_tickers", return_value=opts), patch(
+        "api.tabs._low_history_set", return_value={"0192L0"}
+    ) as low:
+        r = client.get("/tabs/tickers")
+    assert len(r.json()["options"]) == 2
+    low.assert_not_called()
+
+
 def test_tickers_resolve_404(client):
     with patch("api.tabs._find_structured_data", return_value=None):
         r = client.get("/tabs/tickers/resolve", params={"q": "ZZZ"})

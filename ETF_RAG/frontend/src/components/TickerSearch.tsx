@@ -14,10 +14,12 @@ export default function TickerSearch({
   onSelect,
   placeholder = "종목명 또는 종목코드 검색…",
   assetType,
+  minDays,
 }: {
   onSelect: (sel: { name: string; ticker: string; raw: string }) => void;
   placeholder?: string;
   assetType?: "stock" | "etf"; // 지정 시 해당 자산만 자동완성 (재무제표=주식)
+  minDays?: number; // 시세 거래일이 이보다 적은 신규 종목 제외 (기술분석=20)
 }) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<string[]>([]);
@@ -32,12 +34,12 @@ export default function TickerSearch({
       return;
     }
     const timer = setTimeout(async () => {
-      const opts = await searchTickers(q, 20, assetType);
+      const opts = await searchTickers(q, 20, assetType, minDays);
       setOptions(opts);
       setOpen(true);
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, assetType]);
+  }, [query, assetType, minDays]);
 
   // 바깥 클릭 시 닫기
   useEffect(() => {
