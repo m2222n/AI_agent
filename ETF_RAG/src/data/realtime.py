@@ -27,7 +27,9 @@ _db_market_map: Optional[dict] = None
 def _market_suffix_from_db(ticker: str) -> Optional[str]:
     """DB 시장구분으로 정확한 yfinance suffix. 추측 없는 정공법(전 종목 동일 기준)."""
     global _db_market_map
-    if _db_market_map is None:
+    # 비어있으면(미로드 또는 직전 로드가 빈 결과) 재시도 — 영속 볼륨 환경에서
+    # DB가 늦게 준비되는 동안 한 번 실패하면 영구히 빈 맵으로 굳던 문제 방지.
+    if not _db_market_map:
         try:
             from src.data.database import get_connection, get_market_map, DB_PATH
             conn = get_connection(DB_PATH)

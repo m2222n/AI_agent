@@ -78,7 +78,8 @@ def test_krx_to_yfinance_stock_kospi():
     mock_ticker = MagicMock()
     mock_ticker.fast_info = mock_info
 
-    with patch("yfinance.Ticker", return_value=mock_ticker):
+    with patch("src.data.realtime._market_suffix_from_db", return_value=None), \
+         patch("yfinance.Ticker", return_value=mock_ticker):
         result = krx_to_yfinance("005930", "stock")
     assert result == "005930.KS"
 
@@ -98,7 +99,8 @@ def test_krx_to_yfinance_stock_kosdaq():
             mock.fast_info.last_price = 30000
         return mock
 
-    with patch("yfinance.Ticker", side_effect=mock_ticker_factory):
+    with patch("src.data.realtime._market_suffix_from_db", return_value=None), \
+         patch("yfinance.Ticker", side_effect=mock_ticker_factory):
         result = krx_to_yfinance("373220", "stock")
     assert result == "373220.KQ"
 
@@ -122,7 +124,8 @@ def test_krx_to_yfinance_fallback_not_cached():
     def mock_ticker_factory(yf_ticker):
         raise Exception("network timeout")
 
-    with patch("yfinance.Ticker", side_effect=mock_ticker_factory):
+    with patch("src.data.realtime._market_suffix_from_db", return_value=None), \
+         patch("yfinance.Ticker", side_effect=mock_ticker_factory):
         result = krx_to_yfinance("373220", "stock")
     assert result == "373220.KS"  # fallback 값은 반환하되
     assert "373220" not in _market_suffix_cache  # 캐시에는 저장 안 함
@@ -133,7 +136,8 @@ def test_krx_to_yfinance_fallback_retries_after_recovery():
     clear_cache()
 
     # 1차: 둘 다 실패 → .KS fallback, 캐시 미저장
-    with patch("yfinance.Ticker", side_effect=Exception("down")):
+    with patch("src.data.realtime._market_suffix_from_db", return_value=None), \
+         patch("yfinance.Ticker", side_effect=Exception("down")):
         krx_to_yfinance("373220", "stock")
 
     # 2차: 복구 → .KQ 정상 탐색
@@ -142,9 +146,90 @@ def test_krx_to_yfinance_fallback_retries_after_recovery():
         mock.fast_info.last_price = None if yf_ticker.endswith(".KS") else 30000
         return mock
 
-    with patch("yfinance.Ticker", side_effect=recovered):
+    with patch("src.data.realtime._market_suffix_from_db", return_value=None), \
+         patch("yfinance.Ticker", side_effect=recovered):
         result = krx_to_yfinance("373220", "stock")
     assert result == "373220.KQ"
+
+
+# ── DB 시장구분 맵 (_market_suffix_from_db) ────────────────
+
+@pytest.fixture
+def reset_db_market_map():
+    """각 테스트 전후로 모듈 전역 _db_market_map 초기화."""
+    import src.data.realtime as rt
+    rt._db_market_map = None
+    yield
+    rt._db_market_map = None
+
+
+def test_market_suffix_from_db_kospi(reset_db_market_map):
+    """DB가 KOSPI로 알려주면 KS suffix"""
+    from src.data.realtime import _market_suffix_from_db
+    with patch("src.data.database.get_market_map", return_value={"005930": "KOSPI"}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("005930") == "KS"
+
+
+def test_market_suffix_from_db_kosdaq(reset_db_market_map):
+    """DB가 KOSDAQ로 알려주면 KQ suffix"""
+    from src.data.realtime import _market_suffix_from_db
+    with patch("src.data.database.get_market_map", return_value={"373220": "KOSDAQ"}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("373220") == "KQ"
+
+
+def test_market_suffix_from_db_unknown(reset_db_market_map):
+    """맵에 없는 종목 → None (호출자가 yfinance fallback)"""
+    from src.data.realtime import _market_suffix_from_db
+    with patch("src.data.database.get_market_map", return_value={"005930": "KOSPI"}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("999999") is None
+
+
+def test_market_suffix_from_db_caches_nonempty(reset_db_market_map):
+    """비어있지 않은 맵은 1회만 로드하고 이후 재사용 (재조회 안 함)"""
+    from src.data.realtime import _market_suffix_from_db
+    gm = MagicMock(return_value={"005930": "KOSPI"})
+    with patch("src.data.database.get_market_map", gm), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        _market_suffix_from_db("005930")
+        _market_suffix_from_db("005930")
+        _market_suffix_from_db("373220")
+    assert gm.call_count == 1  # 한 번만 로드
+
+
+def test_market_suffix_from_db_retries_after_empty(reset_db_market_map):
+    """회귀: 빈 맵으로 굳지 않고 재시도.
+
+    이전 버그: `if _db_market_map is None` 가드라, DB가 늦게 준비되는
+    영속 볼륨 환경에서 첫 로드가 빈 결과({})로 끝나면 영구히 빈 맵으로
+    고착 → 모든 주식이 yfinance 추측 fallback으로 떨어졌다.
+    수정: `if not _db_market_map`로 빈 맵도 다음 호출에서 재로드.
+    """
+    from src.data.realtime import _market_suffix_from_db
+
+    # 1차: DB 아직 준비 안 됨 → 빈 맵
+    with patch("src.data.database.get_market_map", return_value={}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("005930") is None
+
+    # 2차: DB 준비 완료 → 재로드해서 정확한 suffix
+    with patch("src.data.database.get_market_map", return_value={"005930": "KOSPI"}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("005930") == "KS"
+
+
+def test_market_suffix_from_db_exception_returns_none(reset_db_market_map):
+    """DB 연결 실패 → 빈 맵 처리(예외 삼킴) → None, 다음 호출에서 재시도 가능"""
+    from src.data.realtime import _market_suffix_from_db
+    with patch("src.data.database.get_connection", side_effect=Exception("no db")):
+        assert _market_suffix_from_db("005930") is None
+
+    # 복구 후 재시도되는지 (빈 맵으로 굳지 않음)
+    with patch("src.data.database.get_market_map", return_value={"005930": "KOSPI"}), \
+         patch("src.data.database.get_connection", return_value=MagicMock()):
+        assert _market_suffix_from_db("005930") == "KS"
 
 
 # ── 실시간 가격 조회 ──────────────────────────────────────
