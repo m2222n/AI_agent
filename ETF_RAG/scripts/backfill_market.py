@@ -10,6 +10,10 @@ pykrx로 시장별 종목 목록을 받아 instruments.market을 채운다. (ETF
 import logging
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()  # KRX_ID/KRX_PW를 .env에서 로드 (로그인 필수)
+
 from pykrx import stock
 
 from src.data.database import init_db, DB_PATH
@@ -19,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 def backfill() -> None:
+    # KRX는 2026-02부터 로그인 필수 → 로그인 안 하면 종목 목록이 빈 응답으로
+    # 온다(과거 "pykrx 외부 장애"로 오인했던 KOSDAQ 백필 보류의 진짜 원인).
+    from src.data.collector import ensure_krx_login
+    ensure_krx_login()
+
     # init_db가 _migrate를 호출 → instruments.market 컬럼 보장
     conn = init_db(DB_PATH)
     # 날짜: DB 최신 수집일(오늘이 영업일/장중이 아니면 pykrx가 빈 응답을 주므로)
