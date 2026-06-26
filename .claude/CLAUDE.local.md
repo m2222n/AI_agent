@@ -2376,8 +2376,8 @@ PR #50~#56(~972줄, KIS REST/WS + 푸시) 점검. **실버그 1건 발견·수�
 
 **사용자 액션(로컬 모델 켜기)**: requirements의 transformers/torch 주석 해제·설치 → 자동 로컬 분류(첫 호출 ~400MB 다운로드). 안 하면 기존 GPT. (Railway 배포 시 메모리·이미지 부담 고려 — 무료 티어는 GPT 유지 권장.)
 
-### 다음
-- **유료 전환**(구독 결제) 또는 블로그 9편. Railway env 등록(KIS/VAPID/CRON, 사용자). 로컬 감성 쓰려면 torch 설치.
+### 실배포 검토 결론 — GPT fallback 유지 (2026-06-26, ToDo 6)
+**결정: 프로덕션은 GPT-4o-mini 유지, torch/transformers 미설치.** 근거: 백엔드가 이미 full DB 1.8GB + FAISS 인덱스로 메모리가 큰데, KR-FinBert-SC(BERT-base ~420MB 모델)는 CPU 추론 시 +1~1.5GB RSS → Railway Hobby에서 OOM 위험·비용 상승. 뉴스 감성은 건당 극소액 GPT로 충분(요약/키워드도 어차피 GPT 하이브리드). 코드는 그대로 두고(선택적 설치 경로 유지), 로컬 개발에서만 필요 시 활성화. **추가 코드 작업 없음 — 검토만 완료.**
 
 ---
 

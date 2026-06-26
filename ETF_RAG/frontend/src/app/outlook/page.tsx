@@ -5,6 +5,7 @@ import { getOutlook } from "@/lib/api";
 import type { OutlookResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import DataRangeNote from "@/components/DataRangeNote";
+import WatchlistStar from "@/components/WatchlistStar";
 
 const HORIZONS = ["1m", "3m", "6m", "1y"];
 
@@ -43,7 +44,7 @@ function forecastView(axis: Record<string, unknown> | undefined) {
 
 export default function OutlookPage() {
   const [horizon, setHorizon] = useState("1m");
-  const [selected, setSelected] = useState<{ ticker: string } | null>(null);
+  const [selected, setSelected] = useState<{ ticker: string; name?: string } | null>(null);
   const [data, setData] = useState<OutlookResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export default function OutlookPage() {
     }
   };
 
-  const onSelect = (sel: { ticker: string }) => {
+  const onSelect = (sel: { ticker: string; name: string }) => {
     setSelected(sel);
     run(sel.ticker, horizon);
   };
@@ -107,6 +108,13 @@ export default function OutlookPage() {
 
       {data && !loading && (
         <div className="mt-5 space-y-4">
+          {selected && (
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold">{selected.name ?? selected.ticker}</h2>
+              <span className="text-xs text-gray-400">{selected.ticker}</span>
+              <WatchlistStar ticker={selected.ticker} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <Metric label="종합 점수" value={str(data.composite_score)} />
             <Metric label="신뢰 등급" value={str(data.confidence_grade)} />

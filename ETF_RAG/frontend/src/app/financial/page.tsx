@@ -6,6 +6,7 @@ import type { FinancialResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import DataRangeNote from "@/components/DataRangeNote";
+import WatchlistStar from "@/components/WatchlistStar";
 
 // 억원 단위
 function eok(v: number | null | undefined): string {
@@ -129,9 +130,11 @@ export default function FinancialPage() {
 
       {data && !loading && (
         <div className="mt-5">
-          <h2 className="mb-3 text-base font-semibold">
-            {data.name} <span className="text-xs text-gray-400">{data.ticker}</span>
-          </h2>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-base font-semibold">{data.name}</h2>
+            <span className="text-xs text-gray-400">{data.ticker}</span>
+            <WatchlistStar ticker={data.ticker} />
+          </div>
 
           <div className="overflow-x-auto">
             <table className="comparison-table text-xs">
