@@ -60,20 +60,44 @@ def get_expected_business_days(n_days: int = 10) -> list[str]:
     return sorted(result)
 
 
+# 정상 영업일 하한 — ETF/주식을 각각 검사(한쪽만 빠진 날 감지). 휴장일은 둘 다 0.
+_MIN_ETF = 500
+_MIN_STOCK = 1500
+
+
 def find_missing_dates(conn, expected_dates: list[str]) -> list[str]:
-    """DB에서 누락된 영업일 찾기."""
+    """DB에서 누락된 영업일 찾기.
+
+    ETF/주식을 분리 검사 — 한쪽만 빠진 날(예: 주식 수집 실패로 ETF만 존재)도
+    감지한다. 둘 다 0이면 휴장일로 보고 정상 처리(recover에서 0건=휴장 확인).
+    """
     missing = []
     for date in expected_dates:
-        cur = conn.execute(
-            "SELECT COUNT(DISTINCT ticker) FROM daily_prices WHERE date = ?",
+        row = conn.execute(
+            """
+            SELECT
+              SUM(CASE WHEN i.type='etf' THEN 1 ELSE 0 END) etf_n,
+              SUM(CASE WHEN i.type='stock' THEN 1 ELSE 0 END) stock_n
+            FROM daily_prices p JOIN instruments i ON p.ticker = i.ticker
+            WHERE p.date = ?
+            """,
             (date,),
-        )
-        count = cur.fetchone()[0]
-        if count < 500:  # 최소 500종목은 있어야 정상
-            missing.append((date, count))
-            logger.warning(f"누락 감지: {date} — {count}종목 (최소 500 필요)")
+        ).fetchone()
+        etf_n = row[0] or 0
+        stock_n = row[1] or 0
+        if etf_n == 0 and stock_n == 0:
+            # 둘 다 없음 → 휴장일 후보. recover의 수집 시도(0건=휴장)로 자연 확인.
+            missing.append((date, 0))
+            logger.warning(f"누락 감지: {date} — 데이터 없음(휴장일 가능)")
+        elif etf_n < _MIN_ETF or stock_n < _MIN_STOCK:
+            # 한쪽만 부족 → 부분 누락(수집 중단 등). 보충 대상.
+            missing.append((date, etf_n + stock_n))
+            logger.warning(
+                f"부분 누락 감지: {date} — ETF {etf_n}/주식 {stock_n} "
+                f"(하한 ETF {_MIN_ETF}/주식 {_MIN_STOCK})"
+            )
         else:
-            logger.info(f"정상: {date} — {count}종목")
+            logger.info(f"정상: {date} — ETF {etf_n}/주식 {stock_n}")
     return missing
 
 

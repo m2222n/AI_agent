@@ -75,7 +75,7 @@ def _is_full_depth(db_path: Path) -> bool:
 
 
 def _max_stale_days() -> int:
-    """DB_MAX_STALE_DAYS 환경변수(없으면 기본 5, 0이면 비활성)."""
+    """DB_MAX_STALE_DAYS 환경변수(없으면 기본 3, 0이면 비활성)."""
     try:
         return int(os.getenv("DB_MAX_STALE_DAYS", str(_STALE_DAYS_DEFAULT)))
     except (TypeError, ValueError):
@@ -102,8 +102,8 @@ def _is_fresh_enough(db_path: Path) -> bool:
             return False
         latest_dt = datetime.strptime(str(latest), "%Y%m%d").date()
         age = (datetime.now(KST).date() - latest_dt).days
-        if age > max_days:
-            logger.warning(f"DB 최신일 {latest} ({age}일 전) — stale 임계 {max_days}일 초과")
+        if age >= max_days:
+            logger.warning(f"DB 최신일 {latest} ({age}일 전) — stale 임계 {max_days}일 도달")
             return False
         return True
     except Exception:  # noqa: BLE001 — 판단 불가 시 보수적으로 fresh 취급(재다운 안 함)
@@ -115,7 +115,7 @@ def ensure_db(db_path: Path) -> bool:
 
     이미 존재하더라도 (1) 무결성 검사 — 손상(malformed)이면 재다운로드,
     (2) 깊이 검사 — 일일수집만으로 쌓인 얕은 1년치 DB면 full Release로 교체,
-    (3) 신선도 검사 — 최신일이 stale 임계(DB_MAX_STALE_DAYS, 기본 5일) 초과면
+    (3) 신선도 검사 — 최신일이 stale 임계(DB_MAX_STALE_DAYS, 기본 3일) 도달이면
         Release(매일 갱신)로 재다운로드. 영속 볼륨에서 DB가 굳는 문제 대응.
     """
     if db_path.exists():
