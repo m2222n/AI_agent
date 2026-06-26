@@ -122,6 +122,44 @@ def test_get_token_missing_field_returns_none():
         assert kis_client._get_access_token() is None
 
 
+# ── 발급 실패 백오프 (해외 IP 403 등) ─────────────────────────
+
+def test_token_failure_triggers_backoff():
+    """발급 실패 시 백오프 기간 동안 KIS 호출(requests.post)을 건너뛴다."""
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG):
+        # 1차: 403 → None + 백오프 시작
+        with patch("requests.post", return_value=_mock_resp({}, status=403)) as p1:
+            assert kis_client._get_access_token() is None
+            assert p1.call_count == 1
+        # 2차: 백오프 기간 내 → requests.post 아예 호출 안 함
+        with patch("requests.post", return_value=_mock_resp({}, status=403)) as p2:
+            assert kis_client._get_access_token() is None
+            assert p2.call_count == 0  # 건너뜀
+
+
+def test_backoff_expires_then_retries():
+    """백오프 기간이 지나면 다시 발급을 시도한다."""
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG):
+        with patch("requests.post", return_value=_mock_resp({}, status=403)):
+            kis_client._get_access_token()  # 백오프 시작
+        # 백오프 만료 시뮬레이션
+        kis_client._token_fail_until = 0.0
+        with patch("requests.post", return_value=_mock_resp(
+                {"access_token": "tok-after", "expires_in": 86400})) as p:
+            token = kis_client._get_access_token()
+            assert token == "tok-after"
+            assert p.call_count == 1  # 재시도함
+
+
+def test_backoff_cleared_on_success():
+    """발급 성공하면 백오프 상태가 해제된다."""
+    with patch.object(kis_client, "_kis_config", return_value=ENABLED_CFG):
+        with patch("requests.post", return_value=_mock_resp(
+                {"access_token": "tok-ok", "expires_in": 86400})):
+            kis_client._get_access_token()
+        assert kis_client._token_fail_until == 0.0
+
+
 # ── 현재가 파싱 ───────────────────────────────────────────
 
 def test_parse_price_output_rising():
