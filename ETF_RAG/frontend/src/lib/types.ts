@@ -305,6 +305,37 @@ export interface PaperHistory {
   chart_b64: string | null;
 }
 
+export interface DividendItem {
+  ticker: string;
+  name: string;
+  qty: number;
+  dps: number;
+  amount: number;
+}
+export interface PaperDividend {
+  ok: boolean;
+  paid: boolean;
+  total: number;
+  cash: number;
+  items: DividendItem[];
+  message: string;
+}
+
+export interface PaperTradeStats {
+  total_trades: number;
+  buy_count: number;
+  sell_count: number;
+  win_count: number;
+  loss_count: number;
+  win_rate: number;
+  realized_pnl: number;
+  avg_win: number;
+  avg_loss: number;
+  profit_factor: number | null;
+  best_trade: number | null;
+  worst_trade: number | null;
+}
+
 export interface RoundSymbolPnl {
   ticker: string;
   name: string;

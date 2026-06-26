@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 from api.auth import get_current_user, _display_nickname
 from api.db import get_db
 from api.models import (
+    DividendItem,
+    DividendResponse,
     HoldingItem,
     PaperHistoryPoint,
     PaperHistoryResponse,
@@ -29,6 +31,7 @@ from api.models import (
     SnapshotAllResponse,
     TradeHistoryItem,
     TradeHistoryResponse,
+    TradeStatsResponse,
     TradeRequest,
     TradeResult,
 )
@@ -256,6 +259,107 @@ def trades(
     ])
 
 
+@router.get("/stats", response_model=TradeStatsResponse)
+def stats(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> TradeStatsResponse:
+    """현재 라운드 거래 통계 — 매도(청산) 실현손익 기준 승률·평균손익·손익비."""
+    rows = list(db.scalars(
+        select(PaperTrade).where(PaperTrade.user_id == user.id)
+    ))
+    buys = [t for t in rows if t.side == "buy"]
+    sells = [t for t in rows if t.side == "sell"]
+    pnls = [t.realized_pnl for t in sells if t.realized_pnl is not None]
+    wins = [p for p in pnls if p > 0]
+    losses = [p for p in pnls if p < 0]
+    gross_profit = sum(wins)
+    gross_loss = abs(sum(losses))
+    return TradeStatsResponse(
+        total_trades=len(rows),
+        buy_count=len(buys),
+        sell_count=len(sells),
+        win_count=len(wins),
+        loss_count=len(losses),
+        win_rate=round(len(wins) / len(sells) * 100.0, 1) if sells else 0.0,
+        realized_pnl=sum(pnls),
+        avg_win=int(round(gross_profit / len(wins))) if wins else 0,
+        avg_loss=int(round(sum(losses) / len(losses))) if losses else 0,
+        profit_factor=round(gross_profit / gross_loss, 2) if gross_loss > 0 else None,
+        best_trade=max(pnls) if pnls else None,
+        worst_trade=min(pnls) if pnls else None,
+    )
+
+
+def _holding_dps(tickers: list) -> dict:
+    """보유 종목별 최신 DPS(주당 연간 배당금) 조회. {ticker: dps}."""
+    if not tickers:
+        return {}
+    from src.data.database import get_connection, get_latest_dps, DB_PATH
+    if not DB_PATH.exists():
+        return {}
+    conn = get_connection(DB_PATH)
+    try:
+        return {t: get_latest_dps(conn, t) for t in tickers}
+    finally:
+        conn.close()
+
+
+@router.post("/dividend", response_model=DividendResponse)
+def dividend(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> DividendResponse:
+    """배당 정산 — 보유 종목의 연 DPS × 수량을 현금으로 1회 지급(라운드당 1회).
+
+    데이터 한계: pykrx DPS는 'TTM 연간 배당금'이라 정확한 배당락/지급일이 없음.
+    따라서 '예상 연간 배당금'을 라운드당 한 번 현금에 더하는 단순 모델.
+    """
+    acc = _get_or_create_account(db, user.id)
+    holdings = _holdings(db, user.id)
+    dps_map = _holding_dps([h.ticker for h in holdings])
+
+    items = []
+    total = 0
+    for h in holdings:
+        dps = dps_map.get(h.ticker, 0.0)
+        if dps <= 0:
+            continue
+        amount = int(round(dps * h.qty))
+        if amount <= 0:
+            continue
+        # 종목명: 현재가 조회 실패해도 ticker로 표기(정산은 진행)
+        try:
+            name = _resolve_price(h.ticker).get("name", h.ticker)
+        except HTTPException:
+            name = h.ticker
+        total += amount
+        items.append(DividendItem(
+            ticker=h.ticker, name=name, qty=h.qty, dps=round(dps, 2), amount=amount,
+        ))
+    items.sort(key=lambda x: x.amount, reverse=True)
+
+    # 라운드당 1회 가드: 이미 이 라운드에서 정산했으면 지급 안 함(미리보기만)
+    already = acc.last_dividend_at is not None and acc.last_dividend_at >= acc.started_at
+    if already:
+        return DividendResponse(
+            ok=True, paid=False, total=total, cash=acc.cash, items=items,
+            message="이번 라운드에서는 이미 배당을 정산했어요. 계좌 초기화 후 다시 받을 수 있어요.",
+        )
+    if total <= 0:
+        return DividendResponse(
+            ok=True, paid=False, total=0, cash=acc.cash, items=[],
+            message="배당을 지급하는 보유 종목이 없어요.",
+        )
+
+    acc.cash += total
+    acc.last_dividend_at = datetime.now(timezone.utc)
+    db.commit()
+    _snapshot_after_trade(db, user.id)
+    return DividendResponse(
+        ok=True, paid=True, total=total, cash=acc.cash, items=items,
+        message=f"예상 연간 배당금 {total:,}원을 현금으로 지급했어요. (라운드당 1회)",
+    )
+
+
 def _round_symbol_pnl(db: Session, user_id: int) -> list:
     """현재 라운드의 종목별 손익 = 실현(매도분 합) + 미실현(보유 평가손익).
     [{ticker,name,realized,unrealized,total}, ...] total 내림차순."""
@@ -325,6 +429,7 @@ def reset(
     db.execute(delete(PaperSnapshot).where(PaperSnapshot.user_id == user.id))
     acc.cash = INITIAL_CASH
     acc.started_at = datetime.now(timezone.utc)  # 새 라운드 시작
+    acc.last_dividend_at = None  # 새 라운드는 배당 다시 받을 수 있게
     db.commit()
     _record_snapshot(db, user.id, INITIAL_CASH)  # 새 라운드 첫 스냅샷(1억)
     db.commit()

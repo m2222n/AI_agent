@@ -210,6 +210,21 @@ def get_market_map(conn: sqlite3.Connection) -> dict:
     return {r["ticker"]: r["market"] for r in rows}
 
 
+def get_latest_dps(conn: sqlite3.Connection, ticker: str) -> float:
+    """종목의 최신 주당 연간 배당금(DPS). 없으면 0.0.
+
+    pykrx DPS는 'TTM 연간 배당금'을 일별로 반복하는 값(배당락일/지급일 정보 없음).
+    가상투자의 '배당 정산'에서 보유 수량 × DPS로 1회 지급에 사용한다.
+    """
+    row = conn.execute(
+        "SELECT dps FROM stock_fundamentals "
+        "WHERE ticker = ? AND dps IS NOT NULL AND dps > 0 "
+        "ORDER BY date DESC LIMIT 1",
+        (ticker,),
+    ).fetchone()
+    return float(row["dps"]) if row and row["dps"] else 0.0
+
+
 def get_low_history_tickers(conn: sqlite3.Connection,
                             min_days: int = 20) -> set:
     """시세 거래일 수가 min_days 미만인 종목 집합 (기술분석 불가 종목 제외용).

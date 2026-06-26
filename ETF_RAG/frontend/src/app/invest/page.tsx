@@ -8,10 +8,12 @@ import {
   getTradeHistory,
   getRanking,
   getPaperHistory,
+  getPaperStats,
   getPaperRounds,
   buyStock,
   sellStock,
   resetPaper,
+  collectDividend,
 } from "@/lib/auth";
 import { getPrice } from "@/lib/api";
 import type {
@@ -19,11 +21,13 @@ import type {
   PaperTradeHistoryItem,
   PaperRanking,
   PaperHistory,
+  PaperTradeStats,
   PaperRound,
   PriceData,
 } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
+import PortfolioPie from "@/components/PortfolioPie";
 
 const won = (v: number) => `${Math.round(v).toLocaleString("ko-KR")}원`;
 function signColor(v: number): string {
@@ -39,6 +43,7 @@ export default function InvestPage() {
   const [trades, setTrades] = useState<PaperTradeHistoryItem[]>([]);
   const [ranking, setRanking] = useState<PaperRanking | null>(null);
   const [hist, setHist] = useState<PaperHistory | null>(null);
+  const [stats, setStats] = useState<PaperTradeStats | null>(null);
   const [pastRounds, setPastRounds] = useState<PaperRound[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ k: "ok" | "err"; t: string } | null>(null);
@@ -52,17 +57,19 @@ export default function InvestPage() {
   const [price, setPrice] = useState<PriceData | null>(null); // 선택 종목 현재가
 
   const refresh = useCallback(async () => {
-    const [p, t, r, hh, rd] = await Promise.all([
+    const [p, t, r, hh, st, rd] = await Promise.all([
       getPortfolio(),
       getTradeHistory(),
       getRanking(),
       getPaperHistory(),
+      getPaperStats(),
       getPaperRounds(),
     ]);
     setPf(p);
     setTrades(t);
     setRanking(r);
     setHist(hh);
+    setStats(st);
     setPastRounds(rd);
   }, []);
 
@@ -145,6 +152,20 @@ export default function InvestPage() {
       await refresh();
     } catch (e) {
       setMsg({ k: "err", t: e instanceof Error ? e.message : "초기화 실패" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doDividend = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const d = await collectDividend();
+      setMsg({ k: d.paid ? "ok" : "err", t: d.message });
+      await refresh();
+    } catch (e) {
+      setMsg({ k: "err", t: e instanceof Error ? e.message : "배당 정산 실패" });
     } finally {
       setBusy(false);
     }
@@ -264,8 +285,25 @@ export default function InvestPage() {
 
       {/* 보유 현황 */}
       <section className="mb-5">
-        <h2 className="mb-2 text-sm font-semibold text-gray-800">보유 종목</h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-800">보유 종목</h2>
+          {pf && pf.holdings.length > 0 && (
+            <button
+              type="button"
+              onClick={doDividend}
+              disabled={busy}
+              title="보유 종목의 예상 연간 배당금을 현금으로 1회 지급(라운드당 1회)"
+              className="rounded-lg border border-emerald-300 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
+            >
+              💰 배당 받기
+            </button>
+          )}
+        </div>
         {pf && pf.holdings.length > 0 ? (
+          <>
+          <div className="mb-3">
+            <PortfolioPie holdings={pf.holdings} cash={pf.cash} />
+          </div>
           <div className="overflow-x-auto">
             <table className="comparison-table text-xs">
               <thead>
@@ -296,6 +334,7 @@ export default function InvestPage() {
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <p className="text-xs text-gray-400">보유 종목이 없어요. 위에서 매수해 보세요.</p>
         )}
@@ -333,6 +372,42 @@ export default function InvestPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
+
+      {/* 거래 통계 (청산 1건 이상일 때) */}
+      {stats && stats.sell_count > 0 && (
+        <section className="mb-5">
+          <h2 className="mb-2 text-sm font-semibold text-gray-800">거래 통계</h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat label="승률" value={`${stats.win_rate}%`} sub={`${stats.win_count}승 ${stats.loss_count}패`} />
+            <Stat
+              label="실현손익"
+              value={`${stats.realized_pnl > 0 ? "+" : ""}${stats.realized_pnl.toLocaleString("ko-KR")}`}
+            />
+            <Stat
+              label="손익비"
+              value={stats.profit_factor == null ? "-" : `${stats.profit_factor}`}
+              sub="총이익/총손실"
+            />
+            <Stat label="청산 횟수" value={`${stats.sell_count}회`} sub={`매수 ${stats.buy_count}회`} />
+            <Stat
+              label="평균 이익"
+              value={`+${stats.avg_win.toLocaleString("ko-KR")}`}
+            />
+            <Stat
+              label="평균 손실"
+              value={`${stats.avg_loss.toLocaleString("ko-KR")}`}
+            />
+            <Stat
+              label="최고 거래"
+              value={stats.best_trade == null ? "-" : `+${stats.best_trade.toLocaleString("ko-KR")}`}
+            />
+            <Stat
+              label="최악 거래"
+              value={stats.worst_trade == null ? "-" : `${stats.worst_trade.toLocaleString("ko-KR")}`}
+            />
           </div>
         </section>
       )}
@@ -490,15 +565,18 @@ function Stat({
   label,
   value,
   color = "text-gray-900",
+  sub,
 }: {
   label: string;
   value: string;
   color?: string;
+  sub?: string;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 px-3 py-2">
       <div className="text-[11px] text-gray-500">{label}</div>
       <div className={`text-sm font-semibold tabular-nums ${color}`}>{value}</div>
+      {sub ? <div className="text-[10px] text-gray-400">{sub}</div> : null}
     </div>
   );
 }
