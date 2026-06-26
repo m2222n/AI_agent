@@ -541,10 +541,12 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
+_Last Updated: 2026-06-25 (프로덕션 점검 + 코드 점검 라운드 — 탈퇴 가상투자 cascade #86 + realtime db_market_map 재시도 #87. 전체 845. 사용자 지시로 후원/블로그 보류, ToDo 1~10 순차 개발 착수. 직전: ✅영속볼륨 #84, 기간가격 #79~83, 시세정확성 #77, 가상투자 #69~71)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
 
 > 🔬 **임베딩 A/B 실험 (small 유지 결정, 2026-06-08)**: `eval/exp_embedding_ab.py` — `text-embedding-3-small`(현행) vs `-3-large` 격리 비교. **full 파이프라인은 둘 다 100%**(직접매칭+BM25+Rerank가 천장), 순수 dense-only로 격리하면 large가 Hit@1 0.45→0.79(+0.33)·MRR 0.47→0.80로 압도하나 인덱싱 5.6배 느림(19s→106s)·비용 2배. **결론: small 유지** — 하이브리드 검색 덕에 실서비스 체감 개선 0. PDF 투자설명서 등 비정형 문서 확대로 dense 의존도가 커지면 large 재검토.
 
 > 🚀 **Phase F 착수 — F-1 백엔드 골격 (2026-06-08)**: `api/` 패키지 (FastAPI). `/health`·`/chat`·`/stream`(SSE)으로 기존 agent를 Streamlit 없이 노출. 동기 `run_agent`/`stream_agent`는 threadpool 경유, init은 `app.py:init_all()`을 데코레이터 없이 복제(`api/deps.py`). 테스트 **655개**(+6). 단일 워커 전용. Streamlit 앱과 병행. 상세: CLAUDE.local.md.
+
+> 🩺 **프로덕션 점검 + 코드 점검 라운드 (2026-06-25)**: 라이브 점검 전부 정상(full DB 안착 days=2500, 유저DB Postgres 영구화 curl 검증). **실버그 1건 수정(PR #86)** — 회원 탈퇴 시 가상투자 Paper* 5개 테이블 cascade 삭제 누락. **코드 점검**: Explore 3개 병렬 → 보고 8건 중 7건 LLM 오판/단일워커로 기각, 치명버그 0. 경미개선(realtime db_market_map 재시도)은 미커밋. 상세: CLAUDE.local.md.

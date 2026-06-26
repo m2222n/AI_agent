@@ -2497,11 +2497,25 @@ PR #57 이후 머지된 변경(F-3 로컬 감성 #58 + RAG 품질 #61 + sector �
 ### Railway 유료 전환 완료 (2026-06-24, 사용자)
 trial($5 일회성) → **Hobby $5/월**(종량제, $5 포함+초과청구). 사용량 상한: **Compute Hard $15**(자동정지=폭주방어)/Email $8. **서비스 영구 유지**(친구 URL 계속 동작)+유저DB Postgres 영구보존. ⚠️백엔드 메모리 커서 $5 초과 가능 → Usage 탭 Current Usage 모니터링 권장. 라이브: 프론트 radiant-abundance-production-bdf0 / 백엔드 aiagent-production-75ca.
 
-### 다음
-- 후원("해줘" 시, BMC+토스 안내) → 블로그 9편 / 메일 인프라(비번찾기)
+### 프로덕션 점검 + 코드 점검 라운드 (2026-06-25)
+**① 프로덕션 라이브 점검 — 전부 정상.** 백엔드 health `ready:true`. **full DB 안착 확인**(삼성전자 /tabs/technical days=2500 → data_days=2500, first_date 2016-04-11, last_date 2026-06-23 — 영속볼륨 #84 살아있고 기간가격 버그 해결). 실시간시세 장외 종가 fallback 정상. **유저DB Postgres 영구화 라이브 검증**(curl 회원가입201→로그인→me200→탈퇴204→재로그인401, 테스트 계정 정리).
+
+**② 실버그 1건 발견·수정 (PR #86 머지).** 점검 중 `DELETE /auth/me`(회원 탈퇴)가 연관 데이터 중 Watchlist/ChatHistory/PushSubscription 3개만 삭제하고 **나중에 추가된 가상투자(#69~71) 5개 테이블(PaperAccount/Holding/Trade/Snapshot/Round)을 cascade 목록에서 누락** → 탈퇴 후 같은 이메일 재가입 시 옛 보유종목/평가액이 고아로 남던 버그. auth.py에 Paper* 5개 명시 삭제 추가 + 회귀 테스트(매수→탈퇴→재가입 시 holdings=[], cash=1억). 모델에 FK cascade 미설정이라 기존 패턴(명시 삭제)대로. **교훈: 유저 연관 테이블을 나중에 추가할 때 탈퇴 cascade 목록 갱신 필수.**
+
+**③ 코드 점검 라운드 — Explore 3개 병렬(가상투자/시세·시장구분/DB·볼륨·마이그레이션).** 에이전트가 "진짜 버그" 8건 보고 → **6-04 LLM 오판 교훈대로 직접 코드 재검증 → 치명 버그 0건.** 기각 내역:
+  - 매수/캐시/다층TTL 동시성 race 3건 → **단일 워커 전용**(Dockerfile CMD에 --workers 없음, 주석 "단일 워커 전용: set_retriever 프로세스 전역") → 발생 불가.
+  - `_migrate` commit 누락 → SQLite DDL 자동 커밋 + 조건부 멱등(if not in cols) + test_database 멱등 테스트 통과 → 기각.
+  - market trailing space → market은 하드코딩 리터럴 `["KOSPI","KOSDAQ"]`이라 구조적 불가 → 기각.
+  - yfinance candidates 빈 경우 .KS 고착 → last_volume>0 우선 로직 정상, 0원/None 방어됨 → 기각.
+  - **경미 개선 1건 채택**: `realtime._market_suffix_from_db`의 `_db_market_map`이 첫 로드 실패 시 `{}`로 영구 고착(`if _db_market_map is None` → `if not _db_market_map`로 변경, 영속볼륨 환경서 DB 늦게 준비될 때 시장구분 영구 누락 방지). **✅ PR #87 머지 완료**(2026-06-25): 수정 + `_market_suffix_from_db` 테스트 7개(매핑/1회로드/빈맵 재시도 회귀/예외 후 재시도) + 기존 krx_to_yfinance fallback 테스트 4개에 `_market_suffix_from_db` None patch 추가(로컬 DB가 yfinance fallback 경로를 가리던 사전 존재 격리 결함 보강). 전체 845 통과.
+  - Content-Length 누락 시 부분다운로드 미감지 → 이후 quick_check가 잡으므로 스킵.
+
+### 다음 (사용자 지시 2026-06-25: 후원/블로그는 요청 시까지 보류, 개발 우선)
+- ToDo 1~10 순차 진행 중: ①doc정리 ②MEMORY 다이어트 ③KIS env ④푸시/스냅샷 env ⑤KOSDAQ 백필 ⑥F-3 로컬감성 실배포 ⑦관심종목⭐ 확대 ⑧가상투자 고도화 ⑨RAGAS 잔존 ⑩코드점검(#69~#86)
 
 ---
 
-_Last Updated: 2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
+_Last Updated: 2026-06-25 (프로덕션 라이브 점검 전부 정상 + 코드 점검 라운드: 탈퇴 가상투자 cascade 누락 실버그 #86 수정 + realtime db_market_map 재시도 #87 머지(테스트 7개). 에이전트 보고 8건 중 7건 LLM 오판/단일워커로 기각. 전체 845. 사용자 지시로 후원/블로그 보류, ToDo 1~10 순차 개발 착수)_
+_2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
