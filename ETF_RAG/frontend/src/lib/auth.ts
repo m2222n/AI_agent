@@ -25,11 +25,15 @@ export interface AuthUser {
   id: number;
   email: string;
   nickname: string; // 미설정 시 백엔드가 이메일 앞부분으로 채워 보냄
+  age_group?: string | null; // 나이대(선택)
 }
+
+// 허용 나이대 — 백엔드 AGE_GROUPS와 일치
+export const AGE_GROUPS = ["10대", "20대", "30대", "40대", "50대", "60대", "70대 이상"];
 
 async function postAuth(
   path: string,
-  body: { email: string; password: string },
+  body: Record<string, unknown>,
 ): Promise<string> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -44,8 +48,12 @@ async function postAuth(
   return data.access_token as string;
 }
 
-export async function signup(email: string, password: string): Promise<string> {
-  return postAuth("/auth/signup", { email, password });
+export async function signup(
+  email: string,
+  password: string,
+  ageGroup?: string,
+): Promise<string> {
+  return postAuth("/auth/signup", { email, password, age_group: ageGroup || null });
 }
 
 export async function login(email: string, password: string): Promise<string> {
@@ -85,15 +93,23 @@ export async function changePassword(
   if (!res.ok) throw new Error(await readDetail(res));
 }
 
-export async function updateNickname(nickname: string): Promise<AuthUser> {
+export async function updateProfile(
+  nickname: string,
+  ageGroup?: string | null,
+): Promise<AuthUser> {
+  const body: Record<string, unknown> = { nickname };
+  if (ageGroup !== undefined) body.age_group = ageGroup; // undefined면 미변경
   const res = await fetch(`${API_BASE}/auth/profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeader() },
-    body: JSON.stringify({ nickname }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await readDetail(res));
   return (await res.json()) as AuthUser;
 }
+
+// 하위호환 별칭 (기존 호출부 유지)
+export const updateNickname = (nickname: string) => updateProfile(nickname);
 
 export async function deleteAccount(password: string): Promise<void> {
   const res = await fetch(`${API_BASE}/auth/me`, {

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from api.db import get_db
 from api.models import (
+    AGE_GROUPS,
     AccountDeleteRequest,
     LoginRequest,
     PasswordChangeRequest,
@@ -95,6 +96,8 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if db.scalar(select(User).where(User.email == req.email)) is not None:
         raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
     user = User(email=req.email, password_hash=hash_password(req.password))
+    if req.age_group in AGE_GROUPS:  # 선택 — 허용값만 저장, 그 외 무시
+        user.age_group = req.age_group
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -120,7 +123,8 @@ def _display_nickname(user: User) -> str:
 
 def _user_response(user: User) -> UserResponse:
     return UserResponse(
-        id=user.id, email=user.email, nickname=_display_nickname(user)
+        id=user.id, email=user.email, nickname=_display_nickname(user),
+        age_group=user.age_group or None,
     )
 
 
@@ -150,11 +154,14 @@ def update_profile(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UserResponse:
-    """닉네임 변경. 공백만 입력은 거부."""
+    """닉네임 변경(+선택 나이대). 공백만 입력은 거부."""
     nickname = req.nickname.strip()
     if not nickname:
         raise HTTPException(status_code=400, detail="닉네임을 입력하세요.")
     user.nickname = nickname
+    # 나이대: None이면 미변경, 허용값이면 설정, 그 외(빈값 등)는 미설정으로 비움
+    if req.age_group is not None:
+        user.age_group = req.age_group if req.age_group in AGE_GROUPS else None
     db.commit()
     db.refresh(user)
     return _user_response(user)

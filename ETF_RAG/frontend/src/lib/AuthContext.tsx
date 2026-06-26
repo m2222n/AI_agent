@@ -20,7 +20,7 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean; // 초기 토큰 검증 중
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, ageGroup?: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>; // 닉네임 변경 등 후 user 재동기화
 }
@@ -52,8 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(await fetchMe());
   };
 
-  const signup = async (email: string, password: string) => {
-    const token = await apiSignup(email, password);
+  const signup = async (email: string, password: string, ageGroup?: string) => {
+    const token = await apiSignup(email, password, ageGroup);
     setToken(token);
     setUser(await fetchMe());
   };
