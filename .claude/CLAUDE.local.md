@@ -2525,9 +2525,36 @@ trial($5 일회성) → **Hobby $5/월**(종량제, $5 포함+초과청구). 사
 - ⑩ **코드점검(PR #92)** — Explore 3개 병렬→직접 재검증. 채택2: dividend started_at None비교 방어 + app.py download_db 하드코딩경로→config.DB_PATH(ETF_DATA_DIR 정합). 기각: avg_loss음수(의도)·시세/티커(#74/#83 기수정)·DB/마이그레이션 정상·동시성(단일워커 불가)
 - **전체 851 통과.** push 함정 HTTP/1.1 우회 또 사용.
 
+## 세션 후반 (2026-06-26, PR #93~#100)
+
+### KIS env 라이브 검증 → 해외 IP 403 확정 + 백오프 (PR #93)
+사용자가 Railway 백엔드에 KIS env 4종 등록·재배포했으나 장중에도 `source=yfinance`. 로그 `KIS 토큰 발급 실패: 403 Forbidden ... /oauth2/tokenP`(11분 간격 2회 → 분당제한 아님). 로컬(한국 IP)은 정상 발급 → **KIS가 해외(Railway 미국) IP 차단**. KIS Developers 포털에 **앱별 IP 등록 기능 없음** 확인 → 사용자가 풀 방법 없음. **결론: 프로덕션은 yfinance 15분 지연 유지(KIS는 로컬 전용).** 개선: `kis_client._get_access_token` 발급 실패 시 30분 백오프(`_token_fail_until`, `>=`아닌 `<`now 가드)로 매 요청 403 제거. 웹 푸시(VAPID)는 사용자가 "알림 귀찮음"으로 안 켜기로 결정(키 생성만, Railway 미등록). 상세: `memory/project_ai_agent_kis_prod_ip_block.md`.
+
+### 가상투자 보유기간 + CSV (PR #94)
+보유 종목에 since(현재 보유 진입일, 재진입 시 재진입일 — `_holding_since_map` 누적수량 추적)·holding_days. 거래내역 CSV 내보내기(클라이언트, BOM+이스케이프). 거래내역 표 실현손익 컬럼. 테스트 +3.
+
+### UX 다듬기 → 공통 Feedback 컴포넌트 (PR #95)
+Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/Notice/EmptyState) 도입. 5개 데이터탭 로딩→스피너, 인라인 에러→ErrorText, invest 빈상태→EmptyState, account 중복 Notice 제거, 채팅 상태줄 aria-live. 다크모드는 별도(범위 밖).
+
+### 프론트 단위 테스트(Vitest) + 다크모드 → 다크 롤백 (PR #96·#97)
+- **PR #96**: Vitest+jsdom+Testing Library 첫 도입(`npm test`). labels/followup/Feedback 테스트 17개. 다크모드(class 토글 `@custom-variant dark` + ThemeToggle + FOUC 방지 + 주요 면 dark:).
+- **PR #97**: 사용자 피드백 "사이드바 종목 등 다크에서 가독성 저하" → **다크모드 롤백(라이트 고정)**. ThemeToggle 삭제 + 진입점만 제거(dark: 클래스는 .dark가 안 켜져 무해 비활성). **단위 테스트는 유지.**
+
+### 🔍 데이터 수집 누락 진단·해결 (PR #98·#99) — 상세 `memory/project_ai_agent_data_gap_20260626.md`
+사용자 "데이터 수집 누락된 것 같다". **2건(별개):**
+- **A. 프로덕션 DB 6/23에 굳음 (PR #98)**: daily-collect 매일 success·Release 6/25 최신인데 프로덕션(영속볼륨)이 6/23 DB 고수. 원인=`ensure_db`가 무결성·full depth만 보고 **날짜 신선도 안 봄**. 수정: `_is_fresh_enough`(최신 daily_prices.date가 `DB_MAX_STALE_DAYS` 기본 3일 `>=`면 stale→재다운). 평소 1~2일 지연 통과(콜드스타트 유지). **재배포 시 6/25로 교체.**
+- **B. 로컬 6/22(월)·6/25(목) 주식 0 (PR #99)**: ETF 개별지표 수집이 ConnectionReset로 수시간 지연→주식 단계 미도달. **진짜 문제=`verify_and_recover.find_missing_dates`가 `COUNT(ticker)<500`만 봐서 ETF만 1140개여도 정상 통과→부분누락 방치.** 수정: ETF/주식 instruments.type 분리 카운트(하한 ETF 500/주식 1500). 로컬 6/22·6/25 주식 2875개씩 보충 복구. 테스트 5개.
+- **갭 점검**: GitHub Actions(프로덕션용 collect_full.py)는 이미 deploy JSON 검증(ETF<500 or 주식<1000이면 exit 1→watchdog 재트리거)으로 보호됨 → **프로덕션 경로는 원래 OK, 로컬 launchd 검증만 약했던 것.** 외부 수집 실패(원인1)는 근본 차단 불가지만 검증이 잡아 자동 복구.
+- **교훈**: 검증은 종목 수 아닌 ETF/주식 분리, 영속볼륨은 날짜 신선도 검사 필수, stale 경계는 `>=`. (초기 "6/22 일요일 오수집" 오진단=요일 계산 실수, 6/22는 월요일)
+
+### 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 (PR #100)
+- /invest 보유 종목 행 클릭 → 주문 영역에 채움(현재가 조회)+스크롤. 바로 추가매수/매도.
+- 채팅 WatchlistBar 티커→종목명 표시(`getWatchlistDetail` 재사용, 티커 fallback).
+
 ---
 
-_Last Updated: 2026-06-26 (ToDo 1~10 일괄 완료 PR #88~#92 — env진단·KOSDAQ백필(로그인누락)·관심종목⭐확대·가상투자 고도화(파이/통계/배당)·RAGAS재측정 F0.988·코드점검 실버그2건. MEMORY 43KB→8KB 다이어트. 전체 851. 후원/블로그는 사용자 요청 시까지 보류)_
+_Last Updated: 2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403 백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문 / UX 공통컴포넌트 / Vitest 도입+다크모드 롤백 / **데이터 수집 누락 2건 해결**(프로덕션 DB stale 신선도검사 #98 + 검증 ETF/주식 분리 #99). 전체 869+프론트17. 데이터: 외부수집 간헐실패는 불가피하나 검증이 부분누락 잡아 자동복구·프로덕션은 collect_full 검증으로 보호)_
+_2026-06-26 (ToDo 1~10 일괄 완료 PR #88~#92 — env진단·KOSDAQ백필(로그인누락)·관심종목⭐확대·가상투자 고도화(파이/통계/배당)·RAGAS재측정 F0.988·코드점검 실버그2건. MEMORY 43KB→8KB 다이어트. 전체 851. 후원/블로그는 사용자 요청 시까지 보류)_
 _2026-06-25 (프로덕션 라이브 점검 전부 정상 + 코드 점검 라운드: 탈퇴 가상투자 cascade 누락 실버그 #86 수정 + realtime db_market_map 재시도 #87 머지(테스트 7개). 에이전트 보고 8건 중 7건 LLM 오판/단일워커로 기각. 전체 845. 사용자 지시로 후원/블로그 보류, ToDo 1~10 순차 개발 착수)_
 _2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
