@@ -30,6 +30,7 @@ from src.data.database._read import (
     get_historical_prices,
     get_closes_batch,
     get_market_map,
+    get_latest_dps,
     get_low_history_tickers,
     search_instruments,
 )
@@ -55,7 +56,7 @@ __all__ = [
     "DB_PATH", "get_connection", "init_db",
     "upsert_daily_data", "upsert_stock_data",
     "get_latest_date", "get_latest_data", "get_latest_stock_data",
-    "get_historical_prices", "get_closes_batch", "get_market_map", "get_low_history_tickers",
+    "get_historical_prices", "get_closes_batch", "get_market_map", "get_latest_dps", "get_low_history_tickers",
     "search_instruments",
     "upsert_corp_codes", "get_corp_code", "get_all_corp_codes",
     "upsert_financial_data", "get_financial_data", "get_latest_financial_summary",

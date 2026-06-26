@@ -116,6 +116,10 @@ class PaperAccount(Base):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )
+    # 현재 라운드에서 마지막으로 배당 정산한 시각 (라운드당 1회 제한). None=미정산
+    last_dividend_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class PaperHolding(Base):

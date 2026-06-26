@@ -324,3 +324,90 @@ def test_snapshot_all_records_all_accounts(client):
     # 각 유저 history에 스냅샷 1개(현금만이라 1억)
     h = client.get("/me/paper/history", headers=a).json()
     assert len(h["points"]) == 1 and h["points"][0]["total_value"] == INITIAL_CASH
+
+
+def test_stats_empty_account(client):
+    auth = _auth(client)
+    client.get("/me/paper/portfolio", headers=auth)  # 계좌 생성
+    s = client.get("/me/paper/stats", headers=auth).json()
+    assert s["total_trades"] == 0 and s["sell_count"] == 0
+    assert s["win_rate"] == 0.0 and s["realized_pnl"] == 0
+    assert s["profit_factor"] is None and s["best_trade"] is None
+
+
+def test_stats_win_loss_and_winrate(client):
+    auth = _auth(client)
+    # 005930 이익 실현(+1500), 000660 손실 실현(-1000)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with _price_patch({"000660": 200}):
+        client.post("/me/paper/buy", json={"ticker": "000660", "qty": 100}, headers=auth)
+    with _price_patch({"005930": 130}):
+        client.post("/me/paper/sell", json={"ticker": "005930", "qty": 50}, headers=auth)  # +1500
+    with _price_patch({"000660": 180}):
+        client.post("/me/paper/sell", json={"ticker": "000660", "qty": 50}, headers=auth)  # -1000
+    s = client.get("/me/paper/stats", headers=auth).json()
+    assert s["buy_count"] == 2 and s["sell_count"] == 2
+    assert s["win_count"] == 1 and s["loss_count"] == 1
+    assert s["win_rate"] == 50.0
+    assert s["realized_pnl"] == 500          # +1500 - 1000
+    assert s["avg_win"] == 1500 and s["avg_loss"] == -1000
+    assert s["best_trade"] == 1500 and s["worst_trade"] == -1000
+    assert s["profit_factor"] == 1.5         # 1500 / 1000
+
+
+def test_dividend_pays_dps_times_qty(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    # 보유 100주 × DPS 30 = 3000원 지급
+    with _price_patch({"005930": 100}), \
+         patch("api.paper._holding_dps", return_value={"005930": 30.0}):
+        r = client.post("/me/paper/dividend", headers=auth)
+    b = r.json()
+    assert b["ok"] and b["paid"] is True
+    assert b["total"] == 3000
+    assert b["cash"] == INITIAL_CASH - 10000 + 3000
+    assert len(b["items"]) == 1 and b["items"][0]["amount"] == 3000
+
+
+def test_dividend_once_per_round(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with _price_patch({"005930": 100}), \
+         patch("api.paper._holding_dps", return_value={"005930": 30.0}):
+        client.post("/me/paper/dividend", headers=auth)  # 1차 지급
+        r2 = client.post("/me/paper/dividend", headers=auth)  # 2차는 미지급
+    b = r2.json()
+    assert b["paid"] is False
+    # 현금은 1회분만 증가
+    pf = client.get("/me/paper/portfolio", headers=auth).json()
+    assert pf["cash"] == INITIAL_CASH - 10000 + 3000
+
+
+def test_dividend_resets_after_round_reset(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with _price_patch({"005930": 100}), \
+         patch("api.paper._holding_dps", return_value={"005930": 30.0}):
+        client.post("/me/paper/dividend", headers=auth)
+    # 초기화 → 새 라운드
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/reset", json={"confirm": "초기화"}, headers=auth)
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with _price_patch({"005930": 100}), \
+         patch("api.paper._holding_dps", return_value={"005930": 30.0}):
+        r = client.post("/me/paper/dividend", headers=auth)  # 새 라운드라 다시 지급
+    assert r.json()["paid"] is True
+
+
+def test_dividend_no_dps_holdings(client):
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 100}, headers=auth)
+    with patch("api.paper._holding_dps", return_value={"005930": 0.0}):
+        r = client.post("/me/paper/dividend", headers=auth)
+    b = r.json()
+    assert b["paid"] is False and b["total"] == 0

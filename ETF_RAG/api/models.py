@@ -191,6 +191,40 @@ class PaperRoundsResponse(BaseModel):
     rounds: List[PaperRoundItem]  # 최신 라운드부터
 
 
+class TradeStatsResponse(BaseModel):
+    """현재 라운드 거래 통계(실현 기준). 매도 체결만 손익 판정에 사용."""
+    total_trades: int          # 전체 체결 수(매수+매도)
+    buy_count: int
+    sell_count: int            # 청산(손익 확정) 횟수
+    win_count: int             # 이익 실현 매도 수
+    loss_count: int            # 손실 실현 매도 수
+    win_rate: float            # 승률 % = win/sell (매도 없으면 0)
+    realized_pnl: int          # 실현손익 합(매도 realized_pnl)
+    avg_win: int               # 이익 매도 평균 실현손익
+    avg_loss: int              # 손실 매도 평균 실현손익(음수)
+    profit_factor: Optional[float] = None  # 총이익/총손실 절댓값(손실 0이면 None)
+    best_trade: Optional[int] = None       # 최대 단일 실현이익
+    worst_trade: Optional[int] = None      # 최대 단일 실현손실
+
+
+class DividendItem(BaseModel):
+    ticker: str
+    name: str
+    qty: int
+    dps: float          # 주당 연간 배당금(TTM)
+    amount: int         # dps × qty (지급액)
+
+
+class DividendResponse(BaseModel):
+    """배당 정산 결과. 데이터 한계로 '예상 연간 배당금'을 라운드당 1회 현금 지급."""
+    ok: bool
+    paid: bool          # 이번 호출에서 실제 지급했는지(이미 정산했으면 False)
+    total: int          # 지급(예정) 총액
+    cash: int           # 정산 후 현금
+    items: List[DividendItem]
+    message: str
+
+
 class ResetRequest(BaseModel):
     # 실수 방지 — 클라이언트에서 "초기화" 확인 입력. 서버도 재검증.
     confirm: str = Field(..., min_length=1)

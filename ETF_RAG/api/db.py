@@ -64,6 +64,12 @@ def _migrate_add_columns() -> None:
                     "WHERE started_at IS NULL"
                 ))
             logger.info("마이그레이션: paper_accounts.started_at 컬럼 추가")
+        if "last_dividend_at" not in pa_cols:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE paper_accounts ADD COLUMN last_dividend_at TIMESTAMP"
+                ))
+            logger.info("마이그레이션: paper_accounts.last_dividend_at 컬럼 추가")
 
 
 def get_db() -> Iterator[Session]:

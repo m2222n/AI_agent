@@ -198,6 +198,8 @@ import type {
   PaperTradeHistoryItem,
   PaperRanking,
   PaperHistory,
+  PaperTradeStats,
+  PaperDividend,
   PaperRound,
 } from "./types";
 
@@ -225,6 +227,10 @@ export function getRanking(): Promise<PaperRanking | null> {
 
 export function getPaperHistory(): Promise<PaperHistory | null> {
   return paperGet<PaperHistory>("/history");
+}
+
+export function getPaperStats(): Promise<PaperTradeStats | null> {
+  return paperGet<PaperTradeStats>("/stats");
 }
 
 /** 매수/매도 — 실패 시 detail 메시지로 throw(잔고부족 등 사용자에게 표시). */
@@ -262,6 +268,19 @@ export async function resetPaper(confirm: string): Promise<PaperPortfolio> {
     throw new Error(d.detail || `초기화 실패 (${res.status})`);
   }
   return (await res.json()) as PaperPortfolio;
+}
+
+/** 배당 정산 — 보유 종목 연 DPS×수량을 현금 지급(라운드당 1회). */
+export async function collectDividend(): Promise<PaperDividend> {
+  const res = await fetch(`${API_BASE}/me/paper/dividend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.detail || `배당 정산 실패 (${res.status})`);
+  }
+  return (await res.json()) as PaperDividend;
 }
 
 export async function getPaperRounds(): Promise<PaperRound[]> {
