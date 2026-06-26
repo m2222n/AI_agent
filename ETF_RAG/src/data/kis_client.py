@@ -29,6 +29,12 @@ _TOKEN_CACHE_PATH = Path.home() / ".cache" / "etf_rag" / "kis_token.json"
 _token_state: dict = {}
 _token_lock = threading.Lock()
 
+# 토큰 발급 실패 시 백오프 — 해외(예: Railway 미국) IP에서 KIS가 403을 주는 등
+# 발급이 계속 실패하는 환경에서, 매 시세 요청마다 KIS를 때리지 않도록 일정 시간
+# KIS 시도를 건너뛴다(바로 yfinance fallback). 로컬(발급 성공)엔 영향 없음.
+_TOKEN_BACKOFF_SEC = 1800  # 30분
+_token_fail_until: float = 0.0
+
 # 현재가 캐시: {ticker: {"data": dict, "fetched_at": float}}
 _price_cache: dict = {}
 
@@ -80,6 +86,7 @@ def _get_access_token(force: bool = False) -> Optional[str]:
     KIS 토큰은 발급 후 24시간 유효, 재발급은 분당 1회 제한.
     margin(기본 10분) 안에 들면 선제 갱신한다.
     """
+    global _token_fail_until
     cfg = _kis_config()
     if not cfg.get("enabled"):
         return None
@@ -88,7 +95,7 @@ def _get_access_token(force: bool = False) -> Optional[str]:
     now = time.time()
 
     with _token_lock:
-        # 1) 인메모리 캐시
+        # 1) 인메모리 캐시 (백오프와 무관 — 이미 발급된 유효 토큰은 그대로 사용)
         if not force and _token_state.get("access_token") and \
                 _token_state.get("expires_at", 0) - margin > now:
             return _token_state["access_token"]
@@ -99,6 +106,11 @@ def _get_access_token(force: bool = False) -> Optional[str]:
             if cached:
                 _token_state.update(cached)
                 return cached["access_token"]
+
+        # 백오프: 직전 발급이 실패했고 아직 백오프 기간이면 KIS 호출 자체를 건너뛴다
+        # → 호출자가 즉시 yfinance fallback. (해외 IP 403 등에서 매 요청 403 방지)
+        if not force and now < _token_fail_until:
+            return None
 
         # 3) 신규 발급
         import requests
@@ -113,11 +125,15 @@ def _get_access_token(force: bool = False) -> Optional[str]:
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
-            logger.warning(f"KIS 토큰 발급 실패: {e}")
+            _token_fail_until = now + _TOKEN_BACKOFF_SEC
+            logger.warning(
+                f"KIS 토큰 발급 실패: {e} — {_TOKEN_BACKOFF_SEC // 60}분간 KIS 건너뜀(yfinance fallback)"
+            )
             return None
 
         token = data.get("access_token")
         if not token:
+            _token_fail_until = now + _TOKEN_BACKOFF_SEC
             logger.warning(f"KIS 토큰 응답에 access_token 없음: {data}")
             return None
 
@@ -128,6 +144,7 @@ def _get_access_token(force: bool = False) -> Optional[str]:
         except (TypeError, ValueError):
             expires_in = 86400
 
+        _token_fail_until = 0.0  # 성공 → 백오프 해제
         state = {"access_token": token, "expires_at": now + expires_in}
         _token_state.update(state)
         _save_cached_token(state)
@@ -337,6 +354,8 @@ def get_orderbook(ticker: str, cache_ttl: int = 5) -> Optional[dict]:
 
 def clear_cache() -> None:
     """현재가/호가/토큰 인메모리 캐시 초기화 (디스크 캐시는 유지)."""
+    global _token_fail_until
     _price_cache.clear()
     _orderbook_cache.clear()
     _token_state.clear()
+    _token_fail_until = 0.0
