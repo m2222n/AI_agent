@@ -411,3 +411,62 @@ def test_dividend_no_dps_holdings(client):
         r = client.post("/me/paper/dividend", headers=auth)
     b = r.json()
     assert b["paid"] is False and b["total"] == 0
+
+
+def test_portfolio_holding_since_and_days(client):
+    """보유 종목에 보유 시작일(since)·보유일수(holding_days)가 채워진다."""
+    auth = _auth(client)
+    with _price_patch({"005930": 100}):
+        client.post("/me/paper/buy", json={"ticker": "005930", "qty": 10}, headers=auth)
+        pf = client.get("/me/paper/portfolio", headers=auth).json()
+    h = pf["holdings"][0]
+    assert h["since"] is not None          # YYYY-MM-DD
+    assert len(h["since"]) == 10
+    assert h["holding_days"] is not None and h["holding_days"] >= 0
+
+
+def test_holding_since_map_reentry():
+    """전량 매도 후 재매수 시 since가 '재진입일'로 갱신된다."""
+    from datetime import datetime, timezone, timedelta
+    from unittest.mock import MagicMock
+    from api import paper
+
+    KST = timezone(timedelta(hours=9))
+
+    class T:  # PaperTrade 더미
+        def __init__(self, ticker, side, qty, day):
+            self.ticker = ticker; self.side = side; self.qty = qty; self.id = day
+            self.created_at = datetime(2026, 6, day, 10, 0, tzinfo=KST)
+
+    trades = [
+        T("005930", "buy", 10, 1),    # 6/1 진입
+        T("005930", "sell", 10, 5),   # 6/5 전량 청산
+        T("005930", "buy", 5, 10),    # 6/10 재진입 ← since 기준
+        T("000660", "buy", 3, 2),     # 6/2 진입(보유 유지)
+    ]
+    db = MagicMock()
+    db.scalars.return_value = trades
+    out = paper._holding_since_map(db, user_id=1)
+    assert out["005930"] == "2026-06-10"   # 재진입일
+    assert out["000660"] == "2026-06-02"
+
+
+def test_holding_since_map_fully_sold_excluded():
+    """전량 매도해 보유 0인 종목은 since에서 제외."""
+    from datetime import datetime, timezone, timedelta
+    from unittest.mock import MagicMock
+    from api import paper
+    KST = timezone(timedelta(hours=9))
+
+    class T:
+        def __init__(self, ticker, side, qty, day):
+            self.ticker = ticker; self.side = side; self.qty = qty; self.id = day
+            self.created_at = datetime(2026, 6, day, 10, 0, tzinfo=KST)
+
+    db = MagicMock()
+    db.scalars.return_value = [
+        T("005930", "buy", 10, 1),
+        T("005930", "sell", 10, 3),   # 전량 청산
+    ]
+    out = paper._holding_since_map(db, user_id=1)
+    assert "005930" not in out
