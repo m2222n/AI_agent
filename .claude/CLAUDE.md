@@ -455,7 +455,7 @@ ETF_RAG/
 │       ├── formatters.py   # 공통 포맷터 (format_market_cap, format_trade_value, format_number)
 │       └── logging.py      # log_interaction(), log_feedback()
 ├── .gitignore              # Python/SQLite/IDE/OS 파일 제외 (.env, *.db, collected/, logs/ 등)
-├── tests/                  # pytest 869개 (+ 프론트 Vitest 17개)
+├── tests/                  # pytest 873개 (+ 프론트 Vitest 17개)
 ├── .github/
 │   └── workflows/
 │       ├── daily-collect.yml          # GitHub Actions 자동 수집 (18:30 KST, deploy/ JSON + Release DB 갱신 + 실패 시 Issue)
@@ -541,7 +541,8 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403→백오프·yfinance 유지(프로덕션 KIS 불가) / 가상투자 보유기간·CSV·보유클릭주문·비중파이·거래통계·배당 / UX 공통 Feedback 컴포넌트 / **Vitest 프론트 테스트 도입**+다크모드 시도→가독성으로 롤백 / **데이터 수집 누락 2건 해결**: 프로덕션 DB stale 신선도검사 #98 + verify 검증 ETF/주식 분리 #99. 백엔드 869 + 프론트 17. 후원/블로그 보류. 상세: CLAUDE.local.md "세션 후반")_
+_Last Updated: 2026-06-26 세션후반2 (PR #100·#101 — 가상투자 보유종목 클릭→주문·채팅 관심종목 종목명 #100 / 나이대(선택, 분류정보·식별X) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 백엔드 873+프론트17. 상세: CLAUDE.local.md "세션 후반2")_
+_2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403→백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문·비중파이·거래통계·배당 / UX 공통 Feedback / Vitest 도입+다크모드 롤백 / 데이터 수집 누락 2건 해결: 프로덕션 DB stale #98 + verify ETF/주식 분리 #99. 869+17)_
 _2026-06-26 (ToDo 1~10 일괄 완료 PR #88~#92 — env진단스크립트·KOSDAQ백필(KRX로그인누락이 원인)·관심종목⭐확대·가상투자 고도화(비중파이/거래통계/배당정산)·RAGAS재측정(F0.988·AR0.711 측정한계)·코드점검(실버그2건). 전체 851)_
 
 > ✅ **CI 액션 Node 24 대응 완료** (2026-06-08): `checkout@v4→v6`, `setup-python@v5→v6` (ci.yml + daily-collect.yml 4곳). CI green 확인. 2026-06-16 Node 24 강제 전환 대비.
