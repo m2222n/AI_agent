@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import {
@@ -55,6 +55,7 @@ export default function InvestPage() {
   const [ticker, setTicker] = useState("");
   const [tickerLabel, setTickerLabel] = useState("");
   const [qty, setQty] = useState("");
+  const orderRef = useRef<HTMLElement>(null); // 보유종목 클릭 시 주문 영역으로 스크롤
   const [price, setPrice] = useState<PriceData | null>(null); // 선택 종목 현재가
 
   const refresh = useCallback(async () => {
@@ -103,6 +104,12 @@ export default function InvestPage() {
     setPrice(null);
     const p = await getPrice(sel.ticker);
     if (p) setPrice(p);
+  };
+
+  // 보유 종목 행 클릭 → 주문 영역에 채우고 스크롤(바로 매수/매도)
+  const onPickHolding = (h: { ticker: string; name: string }) => {
+    onSelectTicker(h);
+    orderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // 현금의 일정 비율로 매수 가능한 수량 자동 입력 (현재가 기준 내림)
@@ -233,7 +240,7 @@ export default function InvestPage() {
       )}
 
       {/* 매수/매도 */}
-      <section className="mb-5 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+      <section ref={orderRef} className="mb-5 scroll-mt-4 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
         <h2 className="mb-2 text-sm font-semibold text-gray-800">주문</h2>
         <TickerSearch
           onSelect={onSelectTicker}
@@ -329,6 +336,7 @@ export default function InvestPage() {
           <div className="mb-3">
             <PortfolioPie holdings={pf.holdings} cash={pf.cash} />
           </div>
+          <p className="mb-1 text-[11px] text-gray-400">💡 종목을 누르면 주문 영역에 채워져요 (매수·매도)</p>
           <div className="overflow-x-auto">
             <table className="comparison-table text-xs">
               <thead>
@@ -343,9 +351,14 @@ export default function InvestPage() {
               </thead>
               <tbody>
                 {pf.holdings.map((h) => (
-                  <tr key={h.ticker}>
+                  <tr
+                    key={h.ticker}
+                    onClick={() => onPickHolding({ ticker: h.ticker, name: h.name })}
+                    title="클릭하면 주문 영역에 채워져요 (매수/매도)"
+                    className="cursor-pointer hover:bg-blue-50"
+                  >
                     <td className="text-left">
-                      {h.name}
+                      <span className="font-medium text-blue-700">{h.name}</span>
                       {h.holding_days != null && (
                         <span className="block text-[10px] text-gray-400">
                           {h.since} · {h.holding_days}일째
