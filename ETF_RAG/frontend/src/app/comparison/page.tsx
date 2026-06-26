@@ -12,6 +12,7 @@ import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import ComparisonTable from "@/components/ComparisonTable";
 import DataRangeNote from "@/components/DataRangeNote";
+import WatchlistStar from "@/components/WatchlistStar";
 
 // 상대 수익률 차트 기간 (1주=5거래일, 1개월=20, 3개월=60 ...)
 const PERIODS: { label: string; days: number }[] = [
@@ -156,6 +157,17 @@ export default function ComparisonPage() {
 
       {data && !loading && (
         <div className="mt-5">
+          {(t1 || t2) && (
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {[t1, t2].filter(Boolean).map((t) => (
+                <span key={t!.ticker} className="flex items-center gap-1">
+                  <span className="text-sm font-semibold">{t!.name}</span>
+                  <span className="text-xs text-gray-400">{t!.ticker}</span>
+                  <WatchlistStar ticker={t!.ticker} />
+                </span>
+              ))}
+            </div>
+          )}
           <ComparisonTable items={data.items as ComparisonItem[]} />
           <ChartImage b64={data.comparison_chart_b64} alt="상대 수익률 추이" />
           <ChartImage b64={data.valuation_chart_b64} alt="밸류에이션 비교" />
