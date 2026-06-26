@@ -37,7 +37,7 @@ export default function ChatInput({
         disabled={disabled}
         rows={1}
         placeholder={placeholder}
-        className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
+        className="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
       />
       <button
         type="button"

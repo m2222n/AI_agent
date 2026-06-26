@@ -4,6 +4,7 @@ import "./globals.css";
 import ChromeShell from "@/components/ChromeShell";
 import { AuthProvider } from "@/lib/AuthContext";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,7 +44,12 @@ export default function RootLayout({
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* FOUC 방지 — 첫 페인트 전에 저장된 테마를 html에 적용 */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <ChromeShell>{children}</ChromeShell>

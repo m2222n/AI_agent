@@ -95,7 +95,7 @@ export default function OutlookPage() {
                 "rounded-full px-3 py-1 text-xs",
                 horizon === h
                   ? "bg-blue-600 text-white"
-                  : "border border-gray-300 text-gray-600 hover:bg-gray-100",
+                  : "border border-gray-300 dark:border-gray-700 text-gray-600 hover:bg-gray-100",
               ].join(" ")}
             >
               {h}
@@ -136,7 +136,7 @@ export default function OutlookPage() {
               const sc = scenarios[k];
               const label = { bullish: "🔼 상승", neutral: "➖ 중립", bearish: "🔽 하락" }[k];
               return (
-                <div key={k} className="rounded-lg border border-gray-200 p-3 text-xs">
+                <div key={k} className="rounded-lg border border-gray-200 dark:border-gray-800 p-3 text-xs">
                   <div className="font-semibold">{label}</div>
                   <div className="mt-1 text-gray-500">
                     확률 {sc?.probability != null ? `${Math.round(sc.probability * 100)}%` : "-"}
@@ -175,7 +175,7 @@ export default function OutlookPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 px-3 py-2">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2">
       <div className="text-xs text-gray-500">{label}</div>
       <div className="text-sm font-semibold tabular-nums">{value}</div>
     </div>

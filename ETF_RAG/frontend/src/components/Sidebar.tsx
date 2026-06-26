@@ -222,7 +222,7 @@ export default function Sidebar({
         <select
           value={sector}
           onChange={(e) => onSectorChange(e.target.value)}
-          className="mb-2 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+          className="mb-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
         >
           <option value="">전체 업종</option>
           {data.sectors.map((s) => (
@@ -239,7 +239,7 @@ export default function Sidebar({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={`${tab === "etf" ? "ETF" : "주식"} 전체 검색…`}
-          className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+          className="mb-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
         />
       )}
 
@@ -312,7 +312,7 @@ export default function Sidebar({
   return (
     <>
       {/* 데스크톱: 고정 사이드바 (lg 이상) */}
-      <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-gray-200 p-3 text-sm lg:block">
+      <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-3 text-sm lg:block">
         {content}
       </aside>
 
@@ -327,7 +327,7 @@ export default function Sidebar({
             className="absolute inset-0 bg-black/40"
           />
           {/* 드로워 패널 (좌측 슬라이드) */}
-          <aside className="absolute left-0 top-0 h-full w-72 max-w-[85%] overflow-y-auto border-r border-gray-200 bg-white p-3 text-sm shadow-xl">
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[85%] overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 text-sm shadow-xl">
             <div className="mb-2 flex justify-end">
               <button
                 type="button"
