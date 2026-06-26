@@ -5,6 +5,7 @@ import { getSector } from "@/lib/api";
 import type { SectorResponse } from "@/lib/types";
 import ChartImage from "@/components/ChartImage";
 import DataRangeNote from "@/components/DataRangeNote";
+import { Loading, ErrorText } from "@/components/Feedback";
 
 function jo(v: number): string {
   const 조 = 1_0000_0000_0000;
@@ -75,10 +76,8 @@ export default function SectorPage() {
       <h1 className="mb-1 text-lg font-bold text-gray-900">🏭 섹터 분석</h1>
       <p className="mb-4 text-xs text-gray-500">업종별 등락률·시가총액·밸류에이션</p>
 
-      {loading && !data && (
-        <p className="mt-6 text-center text-sm text-gray-400">불러오는 중…</p>
-      )}
-      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+      {loading && !data && <Loading text="불러오는 중…" />}
+      {error && <ErrorText message={error} />}
 
       {data && (
         <div className="space-y-4">

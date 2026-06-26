@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm";
 import type { UiMessage } from "@/lib/types";
 import { questionTypeLabel } from "@/lib/labels";
 import StructuredDataView from "./StructuredData";
+import { Spinner } from "./Feedback";
 
 export default function ChatMessage({ message }: { message: UiMessage }) {
   const isUser = message.role === "user";
@@ -28,7 +29,10 @@ export default function ChatMessage({ message }: { message: UiMessage }) {
 
         {/* 스트리밍 중 상태줄 (도구 호출 등). 본문이 아직 없을 때만. */}
         {!isUser && message.status && !message.content && (
-          <div className="text-xs text-gray-500">{message.status}</div>
+          <div role="status" aria-live="polite" className="flex items-center gap-2 text-xs text-gray-500">
+            <Spinner className="h-3 w-3" />
+            <span>{message.status}</span>
+          </div>
         )}
 
         {isUser ? (

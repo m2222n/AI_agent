@@ -28,6 +28,7 @@ import type {
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import PortfolioPie from "@/components/PortfolioPie";
+import { Notice, EmptyState } from "@/components/Feedback";
 
 const won = (v: number) => `${Math.round(v).toLocaleString("ko-KR")}원`;
 function signColor(v: number): string {
@@ -304,11 +305,7 @@ export default function InvestPage() {
             예상 금액 약 {won(price.price * parseInt(qty, 10))}
           </p>
         )}
-        {msg && (
-          <p className={`mt-2 text-xs ${msg.k === "ok" ? "text-green-600" : "text-red-600"}`}>
-            {msg.t}
-          </p>
-        )}
+        {msg && <Notice message={msg.t} kind={msg.k} />}
       </section>
 
       {/* 보유 현황 */}
@@ -371,7 +368,7 @@ export default function InvestPage() {
           </div>
           </>
         ) : (
-          <p className="text-xs text-gray-400">보유 종목이 없어요. 위에서 매수해 보세요.</p>
+          <EmptyState icon="📦" message="보유 종목이 없어요. 위에서 매수해 보세요." />
         )}
       </section>
 
