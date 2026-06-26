@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { AGE_GROUPS } from "@/lib/auth";
 
 export default function LoginPage() {
   const { login, signup } = useAuth();
@@ -10,6 +11,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [ageGroup, setAgeGroup] = useState(""); // 선택
+  const [showFind, setShowFind] = useState(false); // ID/비번 찾기 안내
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +22,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       if (mode === "login") await login(email, password);
-      else await signup(email, password);
+      else await signup(email, password, ageGroup || undefined);
       router.push("/"); // 채팅으로
     } catch (err) {
       setError(
@@ -58,6 +61,23 @@ export default function LoginPage() {
           placeholder={mode === "signup" ? "비밀번호 (8자 이상)" : "비밀번호"}
           className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
         />
+        {mode === "signup" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500">
+              나이대 <span className="text-gray-400">(선택 — 맞춤 추천에 활용, 이름·성별은 받지 않아요)</span>
+            </span>
+            <select
+              value={ageGroup}
+              onChange={(e) => setAgeGroup(e.target.value)}
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">선택 안 함</option>
+              {AGE_GROUPS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+        )}
         {error && <p className="text-xs text-red-600">{error}</p>}
         <button
           type="submit"
@@ -68,18 +88,42 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <button
-        type="button"
-        onClick={() => {
-          setMode(mode === "login" ? "signup" : "login");
-          setError(null);
-        }}
-        className="mt-4 text-xs text-blue-600 hover:underline"
-      >
-        {mode === "login"
-          ? "계정이 없으신가요? 회원가입"
-          : "이미 계정이 있으신가요? 로그인"}
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setMode(mode === "login" ? "signup" : "login");
+            setError(null);
+            setShowFind(false);
+          }}
+          className="text-xs text-blue-600 hover:underline"
+        >
+          {mode === "login"
+            ? "계정이 없으신가요? 회원가입"
+            : "이미 계정이 있으신가요? 로그인"}
+        </button>
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => setShowFind((v) => !v)}
+            className="text-xs text-gray-500 hover:underline"
+          >
+            아이디·비밀번호 찾기
+          </button>
+        )}
+      </div>
+
+      {mode === "login" && showFind && (
+        <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
+          <p className="mb-1">
+            <b>아이디</b>: 가입하신 <b>이메일이 곧 아이디</b>예요. 이메일 주소로 로그인하세요.
+          </p>
+          <p>
+            <b>비밀번호</b>: 현재 이메일 재설정은 준비 중이에요. 로그인이 되는 상태라면{" "}
+            <b>계정 설정</b>에서 변경할 수 있고, 완전히 잊으셨다면 문의해 주세요.
+          </p>
+        </div>
+      )}
     </main>
   );
 }

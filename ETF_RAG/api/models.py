@@ -44,9 +44,14 @@ class ComparisonRequest(BaseModel):
 
 
 # ── 인증 ────────────────────────────────────────────────
+# 허용 나이대 버킷 (분류정보, 선택). 빈 문자열은 '미설정'으로 처리.
+AGE_GROUPS = ("10대", "20대", "30대", "40대", "50대", "60대", "70대 이상")
+
+
 class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
+    age_group: Optional[str] = None  # 선택 — AGE_GROUPS 중 하나(아니면 무시)
 
 
 class LoginRequest(BaseModel):
@@ -63,6 +68,7 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     nickname: str  # 미설정 시 이메일 local-part로 fallback (auth.py에서 채움)
+    age_group: Optional[str] = None  # 나이대(선택, 미설정 시 None)
 
 
 class PasswordChangeRequest(BaseModel):
@@ -73,6 +79,8 @@ class PasswordChangeRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     # 1~40자. 공백만 입력 방지는 라우터에서 strip 후 검증.
     nickname: str = Field(..., min_length=1, max_length=40)
+    # 나이대(선택). None=변경 안 함, "" 또는 미허용값=미설정으로 비움, 허용값=설정.
+    age_group: Optional[str] = None
 
 
 class AccountDeleteRequest(BaseModel):

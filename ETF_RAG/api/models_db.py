@@ -39,6 +39,9 @@ class User(Base):
     # 표시용 닉네임(선택). 로그인은 이메일로, 이건 화면 표시·가상투자 랭킹 등에 사용.
     # 기존 유저/미입력은 NULL → 응답 시 이메일 local-part로 fallback.
     nickname: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    # 나이대(선택). 분류정보(10대~70대 이상 7버킷, 식별정보 아님) — 맞춤 추천 등에 활용.
+    # 기존 유저/미입력은 NULL. 이름·성별 등 민감정보는 수집하지 않음(개인정보 최소화).
+    age_group: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )

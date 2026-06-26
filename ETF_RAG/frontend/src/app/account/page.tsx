@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-import { changePassword, deleteAccount, updateNickname } from "@/lib/auth";
+import { AGE_GROUPS, changePassword, deleteAccount, updateProfile } from "@/lib/auth";
 import { Notice } from "@/components/Feedback";
 
 export default function AccountPage() {
@@ -40,6 +40,7 @@ export default function AccountPage() {
 
       <NicknameSection
         current={user.nickname}
+        currentAge={user.age_group ?? ""}
         onSaved={refresh}
       />
       <PasswordSection />
@@ -79,23 +80,28 @@ const btnCls =
 
 function NicknameSection({
   current,
+  currentAge,
   onSaved,
 }: {
   current: string;
+  currentAge: string;
   onSaved: () => Promise<void>;
 }) {
   const [value, setValue] = useState(current);
+  const [age, setAge] = useState(currentAge);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ k: "ok" | "err"; t: string } | null>(null);
+
+  const changed = value.trim() !== current || age !== currentAge;
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
     setBusy(true);
     try {
-      await updateNickname(value.trim());
+      await updateProfile(value.trim(), age); // age "" → 미설정으로 비움
       await onSaved();
-      setMsg({ k: "ok", t: "닉네임을 변경했어요." });
+      setMsg({ k: "ok", t: "저장했어요." });
     } catch (err) {
       setMsg({ k: "err", t: err instanceof Error ? err.message : "오류" });
     } finally {
@@ -104,8 +110,8 @@ function NicknameSection({
   };
 
   return (
-    <Card title="닉네임" desc="화면에 표시되는 이름이에요. 로그인에는 영향 없어요.">
-      <form onSubmit={save} className="flex gap-2">
+    <Card title="프로필" desc="화면 표시 이름과 나이대(선택). 로그인에는 영향 없어요.">
+      <form onSubmit={save} className="flex flex-col gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -113,10 +119,20 @@ function NicknameSection({
           placeholder="닉네임"
           className={inputCls}
         />
+        <select
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          className={inputCls}
+        >
+          <option value="">나이대 선택 안 함</option>
+          {AGE_GROUPS.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
         <button
           type="submit"
-          disabled={busy || !value.trim() || value.trim() === current}
-          className={btnCls + " shrink-0"}
+          disabled={busy || !value.trim() || !changed}
+          className={btnCls}
         >
           저장
         </button>

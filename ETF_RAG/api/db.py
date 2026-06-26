@@ -50,6 +50,10 @@ def _migrate_add_columns() -> None:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN nickname VARCHAR(40)"))
         logger.info("마이그레이션: users.nickname 컬럼 추가")
+    if "age_group" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN age_group VARCHAR(10)"))
+        logger.info("마이그레이션: users.age_group 컬럼 추가")
 
     # paper_accounts.started_at (라운드 결산 기간 산정용). 기존 행은 created_at으로 채움.
     if "paper_accounts" in insp.get_table_names():
