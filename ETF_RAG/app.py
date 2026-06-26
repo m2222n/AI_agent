@@ -14,7 +14,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1
 
-from config import is_langsmith_enabled
+from config import is_langsmith_enabled, DB_PATH
 from src.data.db_downloader import ensure_db
 from src.data.loader import (
     load_etf_data as _load_etf_data,
@@ -54,8 +54,9 @@ def _get_deploy_data_version() -> str:
 @st.cache_resource(show_spinner="데이터베이스 준비 중... (최초 실행 시 1~2분)")
 def download_db():
     """Streamlit Cloud 시작 시 GitHub Release에서 DB 다운로드 (1회)."""
-    db_path = Path(__file__).parent / "src" / "data" / "etf_rag.db"
-    result = ensure_db(db_path)
+    # config.DB_PATH 사용 — ETF_DATA_DIR(영속 볼륨) 설정 시 그 경로로 일관 처리.
+    # (하드코딩 경로는 ETF_DATA_DIR을 무시해 _schema/deps와 불일치했음)
+    result = ensure_db(DB_PATH)
     logger.info(f"DB 다운로드 결과: {'성공' if result else '실패/스킵'}")
     return result
 

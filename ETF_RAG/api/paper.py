@@ -338,7 +338,12 @@ def dividend(
     items.sort(key=lambda x: x.amount, reverse=True)
 
     # 라운드당 1회 가드: 이미 이 라운드에서 정산했으면 지급 안 함(미리보기만)
-    already = acc.last_dividend_at is not None and acc.last_dividend_at >= acc.started_at
+    # started_at이 None인 경우(마이그레이션 직후 등) None 비교 TypeError 방어
+    already = (
+        acc.last_dividend_at is not None
+        and acc.started_at is not None
+        and acc.last_dividend_at >= acc.started_at
+    )
     if already:
         return DividendResponse(
             ok=True, paid=False, total=total, cash=acc.cash, items=items,
