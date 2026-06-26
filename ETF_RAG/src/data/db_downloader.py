@@ -6,10 +6,21 @@ DB가 이미 로컬에 있으면 건너뜀. 없으면 GitHub Release의 zstd 압
 """
 
 import logging
+import os
 import urllib.request
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+KST = timezone(timedelta(hours=9))
+
+# DB 최신 데이터가 이 일수(달력일)보다 오래되면 stale로 보고 Release에서 재다운로드.
+# 영속 볼륨 환경(Railway)에서 받은 DB가 굳어 날짜가 뒤처지던 문제 대응.
+# 3일: 평일 1~2일 지연은 통과, 영업일 누락(3일+)이면 갱신. 주말(금→월=3일)은
+# 경계라 드물게 재다운 가능하나 허용. 평소엔 재다운 안 함(콜드스타트 유지).
+# DB_MAX_STALE_DAYS=0이면 비활성.
+_STALE_DAYS_DEFAULT = 3
 
 # Public repo → 인증 불필요
 DB_RELEASE_URL = (
@@ -63,22 +74,64 @@ def _is_full_depth(db_path: Path) -> bool:
         return False
 
 
+def _max_stale_days() -> int:
+    """DB_MAX_STALE_DAYS 환경변수(없으면 기본 5, 0이면 비활성)."""
+    try:
+        return int(os.getenv("DB_MAX_STALE_DAYS", str(_STALE_DAYS_DEFAULT)))
+    except (TypeError, ValueError):
+        return _STALE_DAYS_DEFAULT
+
+
+def _is_fresh_enough(db_path: Path) -> bool:
+    """DB 최신 daily_prices.date가 stale 임계 안인지. 비활성(0)이면 항상 True.
+
+    영속 볼륨에 굳은 DB가 Release 갱신을 못 따라가는 문제 감지용.
+    """
+    max_days = _max_stale_days()
+    if max_days <= 0:
+        return True
+    import sqlite3
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT MAX(date) FROM daily_prices").fetchone()
+        finally:
+            con.close()
+        latest = row[0] if row else None
+        if not latest:
+            return False
+        latest_dt = datetime.strptime(str(latest), "%Y%m%d").date()
+        age = (datetime.now(KST).date() - latest_dt).days
+        if age > max_days:
+            logger.warning(f"DB 최신일 {latest} ({age}일 전) — stale 임계 {max_days}일 초과")
+            return False
+        return True
+    except Exception:  # noqa: BLE001 — 판단 불가 시 보수적으로 fresh 취급(재다운 안 함)
+        return True
+
+
 def ensure_db(db_path: Path) -> bool:
     """DB가 없으면 GitHub Release에서 다운로드. 성공 시 True, 실패/스킵 시 False.
 
     이미 존재하더라도 (1) 무결성 검사 — 손상(malformed)이면 재다운로드,
-    (2) 깊이 검사 — 일일수집만으로 쌓인 얕은 1년치 DB면 full Release로 교체.
+    (2) 깊이 검사 — 일일수집만으로 쌓인 얕은 1년치 DB면 full Release로 교체,
+    (3) 신선도 검사 — 최신일이 stale 임계(DB_MAX_STALE_DAYS, 기본 5일) 초과면
+        Release(매일 갱신)로 재다운로드. 영속 볼륨에서 DB가 굳는 문제 대응.
     """
     if db_path.exists():
         if _is_valid_sqlite(db_path):
-            if _is_full_depth(db_path):
+            if not _is_full_depth(db_path):
+                logger.warning(
+                    "기존 DB가 얕음(full 미만, 일일수집 누적 추정) — full Release로 교체"
+                )
+                db_path.unlink(missing_ok=True)
+            elif not _is_fresh_enough(db_path):
+                logger.warning("기존 DB가 오래됨(stale) — 최신 Release로 교체")
+                db_path.unlink(missing_ok=True)
+            else:
                 size_mb = db_path.stat().st_size / (1024 * 1024)
-                logger.info(f"DB 이미 존재(무결성·깊이 OK): {db_path} ({size_mb:.0f}MB)")
+                logger.info(f"DB 이미 존재(무결성·깊이·신선도 OK): {db_path} ({size_mb:.0f}MB)")
                 return True
-            logger.warning(
-                "기존 DB가 얕음(full 미만, 일일수집 누적 추정) — full Release로 교체"
-            )
-            db_path.unlink(missing_ok=True)
         else:
             logger.warning("기존 DB 손상 감지 — 삭제 후 재다운로드")
             db_path.unlink(missing_ok=True)
