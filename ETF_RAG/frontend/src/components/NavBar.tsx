@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const TABS = [
   { href: "/", label: "💬 채팅" },
@@ -53,7 +52,6 @@ export default function NavBar({ onMenuClick }: { onMenuClick?: () => void } = {
 
         {/* 인증 영역 (오른쪽) */}
         <div className="ml-auto flex shrink-0 items-center gap-2 pl-2">
-          <ThemeToggle />
           {loading ? null : user ? (
             <>
               <Link
