@@ -190,3 +190,25 @@ def test_ensure_db_skips_when_fresh_and_deep(tmp_path, monkeypatch):
         raise AssertionError("재다운하면 안 됨")
     monkeypatch.setattr("src.data.db_downloader._download", fake_download)
     assert ensure_db(db) is True
+
+
+def test_is_fresh_enough_boundary_exactly_threshold(tmp_path, monkeypatch):
+    """정확히 임계일(기본 3일) 전 데이터는 stale로 잡힌다(>= 경계)."""
+    from datetime import datetime, timezone, timedelta
+    from src.data.db_downloader import _is_fresh_enough
+    KST = timezone(timedelta(hours=9))
+    three_days_ago = (datetime.now(KST).date() - timedelta(days=3)).strftime("%Y%m%d")
+    db = tmp_path / "edge.db"
+    _make_db_with_date(db, three_days_ago)
+    assert _is_fresh_enough(db) is False  # 3 >= 3 → stale
+
+
+def test_is_fresh_enough_one_day_old_true(tmp_path):
+    """1일 전(평일 정상 지연)은 fresh."""
+    from datetime import datetime, timezone, timedelta
+    from src.data.db_downloader import _is_fresh_enough
+    KST = timezone(timedelta(hours=9))
+    one_day_ago = (datetime.now(KST).date() - timedelta(days=1)).strftime("%Y%m%d")
+    db = tmp_path / "y.db"
+    _make_db_with_date(db, one_day_ago)
+    assert _is_fresh_enough(db) is True
