@@ -53,9 +53,10 @@ def test_valid_sqlite_without_daily_prices_fails(tmp_path):
 
 
 def test_ensure_db_skips_when_valid_and_deep(tmp_path, monkeypatch):
-    """유효 + 깊이 충분(full)이면 다운로드 없이 True."""
+    """유효 + 깊이 충분(full)이면 다운로드 없이 True. (신선도 검사는 별도 — 여기선 비활성)"""
     db = tmp_path / "etf_rag.db"
     _make_valid_db(db)
+    monkeypatch.setenv("DB_MAX_STALE_DAYS", "0")  # 신선도 검사 끄고 깊이만 검증
 
     called = {"download": False}
 
@@ -127,3 +128,65 @@ def test_ensure_db_fails_if_downloaded_db_corrupt(tmp_path, monkeypatch):
     monkeypatch.setattr("src.data.db_downloader._decompress_zstd", _fake_decompress)
     assert ensure_db(db) is False
     assert not db.exists()
+
+
+# ── 신선도(stale) 검사 — 영속 볼륨 DB가 굳는 문제 대응 ──
+
+def _make_db_with_date(path: Path, date: str) -> None:
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE daily_prices (ticker TEXT, date TEXT, close INTEGER)")
+    con.execute("INSERT INTO daily_prices VALUES ('005930', ?, 70000)", (date,))
+    con.commit()
+    con.close()
+
+
+def test_is_fresh_enough_recent_true(tmp_path):
+    from datetime import datetime, timezone, timedelta
+    from src.data.db_downloader import _is_fresh_enough
+    KST = timezone(timedelta(hours=9))
+    today = datetime.now(KST).strftime("%Y%m%d")
+    db = tmp_path / "fresh.db"
+    _make_db_with_date(db, today)
+    assert _is_fresh_enough(db) is True
+
+
+def test_is_fresh_enough_old_false(tmp_path):
+    from src.data.db_downloader import _is_fresh_enough
+    db = tmp_path / "stale.db"
+    _make_db_with_date(db, "20200101")  # 수년 전
+    assert _is_fresh_enough(db) is False
+
+
+def test_is_fresh_enough_disabled_when_zero(tmp_path, monkeypatch):
+    from src.data.db_downloader import _is_fresh_enough
+    monkeypatch.setenv("DB_MAX_STALE_DAYS", "0")
+    db = tmp_path / "stale.db"
+    _make_db_with_date(db, "20200101")
+    assert _is_fresh_enough(db) is True  # 비활성이면 항상 fresh
+
+
+def test_ensure_db_redownloads_when_stale(tmp_path, monkeypatch):
+    """full depth지만 오래된 DB → stale 판정 → 재다운로드 경로."""
+    db = tmp_path / "etf_rag.db"
+    _make_db_with_date(db, "20200101")
+    monkeypatch.setattr("src.data.db_downloader._is_full_depth", lambda p: True)
+    called = {"download": False}
+    def fake_download(url, dest):
+        called["download"] = True
+        raise RuntimeError("다운로드 차단(테스트)")  # 실제 다운 막고 호출 여부만 확인
+    monkeypatch.setattr("src.data.db_downloader._download", fake_download)
+    ensure_db(db)
+    assert called["download"] is True  # stale이라 재다운 시도함
+
+
+def test_ensure_db_skips_when_fresh_and_deep(tmp_path, monkeypatch):
+    """full depth + 최신 → 재다운 안 함."""
+    from datetime import datetime, timezone, timedelta
+    KST = timezone(timedelta(hours=9))
+    db = tmp_path / "etf_rag.db"
+    _make_db_with_date(db, datetime.now(KST).strftime("%Y%m%d"))
+    monkeypatch.setattr("src.data.db_downloader._is_full_depth", lambda p: True)
+    def fake_download(url, dest):
+        raise AssertionError("재다운하면 안 됨")
+    monkeypatch.setattr("src.data.db_downloader._download", fake_download)
+    assert ensure_db(db) is True
