@@ -8,7 +8,7 @@ export function Spinner({ className = "" }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`inline-block animate-spin rounded-full border-2 border-gray-300 border-t-blue-500 ${className}`}
+      className={`inline-block animate-spin rounded-full border-2 border-gray-300 dark:border-gray-700 border-t-blue-500 ${className}`}
     />
   );
 }

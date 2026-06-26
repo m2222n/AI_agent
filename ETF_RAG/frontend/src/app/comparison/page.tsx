@@ -139,7 +139,7 @@ export default function ComparisonPage() {
               if (e.key === "Enter") applyCustom();
             }}
             placeholder="직접"
-            className="w-16 rounded-full border border-gray-300 px-2.5 py-1 text-xs focus:border-blue-500 focus:outline-none"
+            className="w-16 rounded-full border border-gray-300 dark:border-gray-700 px-2.5 py-1 text-xs focus:border-blue-500 focus:outline-none"
           />
           <span className="text-xs text-gray-500">년</span>
           <button

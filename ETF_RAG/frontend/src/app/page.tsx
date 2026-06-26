@@ -236,9 +236,9 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex h-full w-full max-w-3xl flex-col px-3 sm:px-4">
-      <header className="flex items-start justify-between border-b border-gray-200 py-3 sm:py-4">
+      <header className="flex items-start justify-between border-b border-gray-200 dark:border-gray-800 py-3 sm:py-4">
         <div>
-          <h1 className="text-base font-bold text-gray-900 sm:text-lg">
+          <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 sm:text-lg">
             📈 투자 AI 어시스턴트
           </h1>
           <p className="hidden text-xs text-gray-500 sm:block">
@@ -257,7 +257,7 @@ export default function Home() {
             type="button"
             onClick={handleReset}
             disabled={isLoading}
-            className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+            className="shrink-0 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
           >
             🗑️ 대화 초기화
           </button>
@@ -282,7 +282,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => lastUserQ && handleSend(lastUserQ)}
-                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                    className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
                   >
                     🔄 다시 시도
                   </button>
@@ -315,7 +315,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="sticky bottom-0 border-t border-gray-200 bg-white py-3 sm:py-4">
+      <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-3 sm:py-4">
         <ChatInput
           disabled={inputDisabled}
           onSend={handleSend}

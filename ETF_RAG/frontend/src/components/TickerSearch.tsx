@@ -66,10 +66,10 @@ export default function TickerSearch({
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => options.length && setOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
       />
       {open && options.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+        <ul className="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg">
           {options.map((opt) => (
             <li key={opt}>
               <button

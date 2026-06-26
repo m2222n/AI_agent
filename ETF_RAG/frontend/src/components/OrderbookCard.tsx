@@ -65,7 +65,7 @@ export default function OrderbookCard({ ticker }: { ticker: string }) {
   const asksTopDown = [...data.asks].reverse();
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-700">📋 호가 10단계</span>
         <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] text-red-600">

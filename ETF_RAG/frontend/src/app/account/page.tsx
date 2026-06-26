@@ -63,7 +63,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-5 rounded-xl border border-gray-200 p-4">
+    <section className="mb-5 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
       <h2 className="text-sm font-semibold text-gray-800">{title}</h2>
       {desc && <p className="mt-0.5 text-xs text-gray-500">{desc}</p>}
       <div className="mt-3">{children}</div>
@@ -73,7 +73,7 @@ function Card({
 
 
 const inputCls =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none";
+  "w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none";
 const btnCls =
   "rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50";
 

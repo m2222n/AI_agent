@@ -88,7 +88,7 @@ export default function SectorPage() {
             <select
               value={picked}
               onChange={(e) => onSector(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
             >
               <option value="">— 업종 상세 보기 —</option>
               {stats.map((s) => (

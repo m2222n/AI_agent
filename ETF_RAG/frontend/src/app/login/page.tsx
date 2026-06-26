@@ -47,7 +47,7 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="이메일"
-          className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
         />
         <input
           type="password"
@@ -56,7 +56,7 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder={mode === "signup" ? "비밀번호 (8자 이상)" : "비밀번호"}
-          className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
         />
         {error && <p className="text-xs text-red-600">{error}</p>}
         <button

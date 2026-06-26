@@ -139,7 +139,7 @@ function TechnicalInner() {
                 "rounded-full px-3 py-1 text-xs",
                 days === p.days
                   ? "bg-blue-600 text-white"
-                  : "border border-gray-300 text-gray-600 hover:bg-gray-100",
+                  : "border border-gray-300 dark:border-gray-700 text-gray-600 hover:bg-gray-100",
               ].join(" ")}
             >
               {p.label}
@@ -207,7 +207,7 @@ function TechnicalInner() {
 
           {/* 골든/데드 크로스 */}
           {crossLabels.length > 0 && (
-            <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs">
+            <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 px-3 py-2 text-xs">
               {crossLabels.map((c, i) => (
                 <span key={i} className="mr-3">
                   {c}
@@ -248,7 +248,7 @@ function TechnicalInner() {
               <button
                 type="button"
                 onClick={loadIntraday}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
               >
                 📈 장중 시세 보기
               </button>
@@ -299,7 +299,7 @@ function IndicatorCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-3">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-3">
       <div className="mb-1 text-xs font-semibold text-gray-700">{title}</div>
       <div className="space-y-1">{children}</div>
     </div>
@@ -317,7 +317,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 px-3 py-2">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2">
       <div className="text-xs text-gray-500">{label}</div>
       <div className="text-sm font-semibold tabular-nums">{value}</div>
     </div>

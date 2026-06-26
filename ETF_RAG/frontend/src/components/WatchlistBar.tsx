@@ -15,7 +15,7 @@ export default function WatchlistBar() {
         <Link
           key={t}
           href={`/technical?ticker=${encodeURIComponent(t)}`}
-          className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100"
+          className="rounded-full border border-gray-200 dark:border-gray-800 bg-gray-50 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100"
         >
           {t}
         </Link>

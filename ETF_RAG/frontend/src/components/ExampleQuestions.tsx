@@ -54,7 +54,7 @@ export default function ExampleQuestions({
             key={i}
             type="button"
             onClick={() => onPick(q)}
-            className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            className="rounded-full border border-gray-200 dark:border-gray-800 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700"
           >
             {q}
           </button>

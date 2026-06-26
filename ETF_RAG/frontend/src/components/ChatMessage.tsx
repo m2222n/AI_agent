@@ -16,8 +16,8 @@ export default function ChatMessage({ message }: { message: UiMessage }) {
           isUser
             ? "bg-blue-600 text-white"
             : message.isError
-              ? "bg-red-50 text-red-700 border border-red-200"
-              : "bg-gray-100 text-gray-900",
+              ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900"
+              : "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
         ].join(" ")}
       >
         {!isUser && (message.questionType || message.model) && (

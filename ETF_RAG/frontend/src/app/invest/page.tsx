@@ -233,7 +233,7 @@ export default function InvestPage() {
       )}
 
       {/* 매수/매도 */}
-      <section className="mb-5 rounded-xl border border-gray-200 p-4">
+      <section className="mb-5 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
         <h2 className="mb-2 text-sm font-semibold text-gray-800">주문</h2>
         <TickerSearch
           onSelect={onSelectTicker}
@@ -266,7 +266,7 @@ export default function InvestPage() {
               type="button"
               onClick={() => setQtyByRatio(r)}
               disabled={!price || price.price <= 0}
-              className="flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+              className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
             >
               {r === 1 ? "100%" : `${r * 100}%`}
             </button>
@@ -280,7 +280,7 @@ export default function InvestPage() {
             value={qty}
             onChange={(e) => setQty(e.target.value)}
             placeholder="수량"
-            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-28 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
           <button
             type="button"
@@ -453,7 +453,7 @@ export default function InvestPage() {
               type="button"
               onClick={exportCsv}
               title="거래 내역을 CSV 파일로 내려받기"
-              className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded-lg border border-gray-300 dark:border-gray-700 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
               ⬇ CSV 내보내기
             </button>
@@ -503,7 +503,7 @@ export default function InvestPage() {
           <h2 className="mb-2 text-sm font-semibold text-gray-800">📚 지난 성적</h2>
           <div className="space-y-2">
             {pastRounds.map((rd) => (
-              <details key={rd.round_no} className="rounded-xl border border-gray-200 p-3">
+              <details key={rd.round_no} className="rounded-xl border border-gray-200 dark:border-gray-800 p-3">
                 <summary className="cursor-pointer text-xs">
                   <b>R{rd.round_no}</b>{" "}
                   <span className="text-gray-400">
@@ -555,7 +555,7 @@ export default function InvestPage() {
         type="button"
         onClick={() => { setResetOpen(true); setResetInput(""); }}
         disabled={busy}
-        className="rounded-lg border border-gray-300 px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+        className="rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40"
       >
         🔄 계좌 초기화 (새 라운드 시작)
       </button>
@@ -569,7 +569,7 @@ export default function InvestPage() {
             onClick={() => setResetOpen(false)}
             className="absolute inset-0 bg-black/40"
           />
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <div className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-xl">
             <h3 className="text-sm font-bold text-gray-900">계좌 초기화</h3>
             <p className="mt-2 text-xs leading-relaxed text-gray-600">
               현재 라운드를 <b>결산해 &lsquo;지난 성적&rsquo;에 기록</b>하고, 보유 종목·거래
@@ -583,7 +583,7 @@ export default function InvestPage() {
               onKeyDown={(e) => { if (e.key === "Enter") doReset(); }}
               placeholder="초기화"
               autoFocus
-              className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="mt-3 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
             <div className="mt-3 flex gap-2">
               <button
@@ -621,7 +621,7 @@ function Stat({
   sub?: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 px-3 py-2">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-3 py-2">
       <div className="text-[11px] text-gray-500">{label}</div>
       <div className={`text-sm font-semibold tabular-nums ${color}`}>{value}</div>
       {sub ? <div className="text-[10px] text-gray-400">{sub}</div> : null}

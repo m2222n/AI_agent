@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+/* 다크모드는 OS 자동(prefers-color-scheme) 아닌 .dark 클래스 토글 방식.
+   Tailwind v4 기본은 미디어쿼리라 custom-variant로 class 기반으로 바꾼다. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0f1115;
+  --foreground: #e6e8eb;
 }
 
 @theme inline {
@@ -11,8 +20,6 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-
-/* 채팅 UI는 고정 라이트 테마 (말풍선 색이 명시적이라 dark flip 시 충돌) */
 
 body {
   background: var(--background);
@@ -124,4 +131,31 @@ body {
 .comparison-table thead th {
   background: #f3f4f6;
   font-weight: 600;
+}
+
+/* ── 다크모드 보정: markdown/표의 하드코딩 색을 어두운 표면에 맞춤 ── */
+.dark .markdown-body code,
+.dark .markdown-body pre {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dark .markdown-body th,
+.dark .markdown-body td {
+  border-color: #374151;
+}
+.dark .markdown-body th {
+  background: #1f2937;
+}
+.dark .markdown-body a {
+  color: #60a5fa;
+}
+.dark .markdown-body blockquote {
+  border-left-color: #374151;
+  color: #9ca3af;
+}
+.dark .comparison-table th,
+.dark .comparison-table td {
+  border-color: #374151;
+}
+.dark .comparison-table thead th {
+  background: #1f2937;
 }

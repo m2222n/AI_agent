@@ -91,7 +91,7 @@ export default function PriceCard({ ticker }: { ticker: string }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-400">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 px-4 py-3 text-xs text-gray-400">
         시세 불러오는 중…
       </div>
     );
@@ -117,7 +117,7 @@ export default function PriceCard({ ticker }: { ticker: string }) {
   const headLabel = isLivePrice ? "현재 시세" : "최근 종가";
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[11px] font-medium text-gray-500">{headLabel}</span>
         <span
