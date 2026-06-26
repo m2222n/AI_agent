@@ -157,6 +157,34 @@ export default function InvestPage() {
     }
   };
 
+  // 거래내역 CSV 다운로드 (클라이언트 측, 백엔드 불필요). Excel 한글 위해 BOM.
+  const exportCsv = () => {
+    if (!trades.length) return;
+    const esc = (v: string | number | null) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = ["일시", "종목", "종목코드", "구분", "수량", "단가", "금액", "실현손익"];
+    const rows = trades.map((t) => [
+      t.created_at?.replace("T", " ").slice(0, 19) ?? "",
+      t.name ?? t.ticker,
+      t.ticker,
+      t.side === "buy" ? "매수" : "매도",
+      t.qty,
+      Math.round(t.price),
+      t.amount,
+      t.realized_pnl ?? "",
+    ]);
+    const csv = [header, ...rows].map((r) => r.map(esc).join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `가상투자_거래내역_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const doDividend = async () => {
     setBusy(true);
     setMsg(null);
@@ -319,7 +347,14 @@ export default function InvestPage() {
               <tbody>
                 {pf.holdings.map((h) => (
                   <tr key={h.ticker}>
-                    <td className="text-left">{h.name}</td>
+                    <td className="text-left">
+                      {h.name}
+                      {h.holding_days != null && (
+                        <span className="block text-[10px] text-gray-400">
+                          {h.since} · {h.holding_days}일째
+                        </span>
+                      )}
+                    </td>
                     <td className="text-right tabular-nums">{h.qty.toLocaleString("ko-KR")}</td>
                     <td className="text-right tabular-nums">{Math.round(h.avg_price).toLocaleString("ko-KR")}</td>
                     <td className="text-right tabular-nums">{h.current_price.toLocaleString("ko-KR")}</td>
@@ -415,7 +450,17 @@ export default function InvestPage() {
       {/* 거래 내역 */}
       {trades.length > 0 && (
         <section className="mb-5">
-          <h2 className="mb-2 text-sm font-semibold text-gray-800">거래 내역</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-800">거래 내역</h2>
+            <button
+              type="button"
+              onClick={exportCsv}
+              title="거래 내역을 CSV 파일로 내려받기"
+              className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            >
+              ⬇ CSV 내보내기
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="comparison-table text-xs">
               <thead>
@@ -426,6 +471,7 @@ export default function InvestPage() {
                   <th className="text-right">수량</th>
                   <th className="text-right">단가</th>
                   <th className="text-right">금액</th>
+                  <th className="text-right">실현손익</th>
                 </tr>
               </thead>
               <tbody>
@@ -441,6 +487,11 @@ export default function InvestPage() {
                     <td className="text-right tabular-nums">{t.qty.toLocaleString("ko-KR")}</td>
                     <td className="text-right tabular-nums">{Math.round(t.price).toLocaleString("ko-KR")}</td>
                     <td className="text-right tabular-nums">{t.amount.toLocaleString("ko-KR")}</td>
+                    <td className={`text-right tabular-nums ${t.realized_pnl == null ? "text-gray-300" : signColor(t.realized_pnl)}`}>
+                      {t.realized_pnl == null
+                        ? "-"
+                        : `${t.realized_pnl > 0 ? "+" : ""}${t.realized_pnl.toLocaleString("ko-KR")}`}
+                    </td>
                   </tr>
                 ))}
               </tbody>

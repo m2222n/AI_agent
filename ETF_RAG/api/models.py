@@ -97,6 +97,8 @@ class HoldingItem(BaseModel):
     pnl: int                  # 평가손익 = eval - cost
     pnl_pct: float            # 평가수익률 %
     price_source: str         # "kis"|"yfinance"|"close"
+    since: Optional[str] = None       # 현재 보유 시작일 YYYY-MM-DD (재진입 시 마지막 진입일)
+    holding_days: Optional[int] = None  # 보유 일수(since~오늘)
 
 
 class PortfolioResponse(BaseModel):

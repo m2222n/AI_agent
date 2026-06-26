@@ -7,7 +7,9 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import delete, func as safunc, select
@@ -77,8 +79,36 @@ def _holdings(db: Session, user_id: int):
     ))
 
 
+def _holding_since_map(db: Session, user_id: int) -> dict:
+    """종목별 '현재 보유 구간의 진입일' {ticker: date(KST)}.
+
+    거래를 시간순으로 누적 수량을 따라가다가, 수량이 0→양수가 되는 마지막
+    시점이 현재 보유의 시작이다(전량 매도 후 재매수 시 재진입일 반영).
+    """
+    since: dict = {}
+    running: dict = {}
+    rows = db.scalars(
+        select(PaperTrade).where(PaperTrade.user_id == user_id)
+        .order_by(PaperTrade.created_at.asc(), PaperTrade.id.asc())
+    )
+    for t in rows:
+        prev = running.get(t.ticker, 0)
+        if t.side == "buy":
+            if prev <= 0:  # 신규 진입(0에서 양수로)
+                d = t.created_at.astimezone(KST) if t.created_at else None
+                since[t.ticker] = d.strftime("%Y-%m-%d") if d else None
+            running[t.ticker] = prev + t.qty
+        else:  # sell
+            running[t.ticker] = prev - t.qty
+            if running[t.ticker] <= 0:
+                since.pop(t.ticker, None)  # 전량 청산 → 진입일 리셋
+    return since
+
+
 def _build_portfolio(db: Session, user_id: int) -> PortfolioResponse:
     acc = _get_or_create_account(db, user_id)
+    since_map = _holding_since_map(db, user_id)
+    today_kst = datetime.now(KST).date()
     items = []
     holdings_value = 0
     for h in _holdings(db, user_id):
@@ -92,12 +122,21 @@ def _build_portfolio(db: Session, user_id: int) -> PortfolioResponse:
         pnl = eval_value - cost_value
         pnl_pct = (pnl / cost_value * 100.0) if cost_value > 0 else 0.0
         holdings_value += eval_value
+        since = since_map.get(h.ticker)
+        holding_days = None
+        if since:
+            try:
+                d0 = datetime.strptime(since, "%Y-%m-%d").date()
+                holding_days = (today_kst - d0).days
+            except ValueError:
+                holding_days = None
         items.append(HoldingItem(
             ticker=h.ticker, name=p["name"], qty=h.qty,
             avg_price=round(h.avg_price, 2), current_price=cur,
             eval_value=eval_value, cost_value=cost_value,
             pnl=pnl, pnl_pct=round(pnl_pct, 2),
             price_source=p.get("source", "close"),
+            since=since, holding_days=holding_days,
         ))
     items.sort(key=lambda x: x.eval_value, reverse=True)
     total_value = acc.cash + holdings_value
@@ -113,8 +152,7 @@ def _build_portfolio(db: Session, user_id: int) -> PortfolioResponse:
 
 def _today_kst() -> str:
     """KST 기준 YYYYMMDD (수집/거래일 기준 통일)."""
-    from datetime import timedelta
-    return (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%Y%m%d")
+    return datetime.now(KST).strftime("%Y%m%d")
 
 
 def _user_total_value(db: Session, user_id: int, price_fn) -> int:

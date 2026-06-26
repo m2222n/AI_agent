@@ -250,6 +250,8 @@ export interface PaperHolding {
   pnl: number;
   pnl_pct: number;
   price_source: string;
+  since?: string | null;        // 보유 시작일 YYYY-MM-DD
+  holding_days?: number | null; // 보유 일수
 }
 export interface PaperPortfolio {
   cash: number;
