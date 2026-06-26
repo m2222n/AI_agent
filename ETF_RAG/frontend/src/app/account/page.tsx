@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { changePassword, deleteAccount, updateNickname } from "@/lib/auth";
+import { Notice } from "@/components/Feedback";
 
 export default function AccountPage() {
   const { user, loading, logout, refresh } = useAuth();
@@ -70,15 +71,6 @@ function Card({
   );
 }
 
-function Notice({ msg, kind }: { msg: string; kind: "ok" | "err" }) {
-  return (
-    <p
-      className={`mt-2 text-xs ${kind === "ok" ? "text-green-600" : "text-red-600"}`}
-    >
-      {msg}
-    </p>
-  );
-}
 
 const inputCls =
   "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none";
@@ -129,7 +121,7 @@ function NicknameSection({
           저장
         </button>
       </form>
-      {msg && <Notice msg={msg.t} kind={msg.k} />}
+      {msg && <Notice message={msg.t} kind={msg.k} />}
     </Card>
   );
 }
@@ -201,7 +193,7 @@ function PasswordSection() {
           비밀번호 변경
         </button>
       </form>
-      {msg && <Notice msg={msg.t} kind={msg.k} />}
+      {msg && <Notice message={msg.t} kind={msg.k} />}
     </Card>
   );
 }
@@ -270,7 +262,7 @@ function DeleteSection({ onDeleted }: { onDeleted: () => void }) {
           </div>
         </form>
       )}
-      {err && <Notice msg={err} kind="err" />}
+      {err && <Notice message={err} kind="err" />}
     </Card>
   );
 }

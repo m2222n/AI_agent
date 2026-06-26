@@ -7,6 +7,7 @@ import type { TechnicalResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import WatchlistStar from "@/components/WatchlistStar";
 import DataRangeNote from "@/components/DataRangeNote";
+import { Loading, ErrorText } from "@/components/Feedback";
 import PriceCard from "@/components/PriceCard";
 import OrderbookCard from "@/components/OrderbookCard";
 
@@ -147,10 +148,8 @@ function TechnicalInner() {
         </div>
       )}
 
-      {loading && (
-        <p className="mt-6 text-center text-sm text-gray-400">분석 중…</p>
-      )}
-      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+      {loading && <Loading text="분석 중…" />}
+      {error && <ErrorText message={error} />}
 
       {data && !loading && (
         <div className="mt-5">

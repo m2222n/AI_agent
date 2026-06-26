@@ -6,6 +6,7 @@ import type { FinancialResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import DataRangeNote from "@/components/DataRangeNote";
+import { Loading, ErrorText } from "@/components/Feedback";
 import WatchlistStar from "@/components/WatchlistStar";
 
 // 억원 단위
@@ -125,8 +126,8 @@ export default function FinancialPage() {
         </span>
       </div>
 
-      {loading && <p className="mt-6 text-center text-sm text-gray-400">조회 중…</p>}
-      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+      {loading && <Loading text="조회 중…" />}
+      {error && <ErrorText message={error} />}
 
       {data && !loading && (
         <div className="mt-5">

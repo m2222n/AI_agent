@@ -5,6 +5,7 @@ import { getOutlook } from "@/lib/api";
 import type { OutlookResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
 import DataRangeNote from "@/components/DataRangeNote";
+import { Loading, ErrorText } from "@/components/Feedback";
 import WatchlistStar from "@/components/WatchlistStar";
 
 const HORIZONS = ["1m", "3m", "6m", "1y"];
@@ -103,8 +104,8 @@ export default function OutlookPage() {
         </div>
       )}
 
-      {loading && <p className="mt-6 text-center text-sm text-gray-400">분석 중…</p>}
-      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+      {loading && <Loading text="분석 중…" />}
+      {error && <ErrorText message={error} />}
 
       {data && !loading && (
         <div className="mt-5 space-y-4">

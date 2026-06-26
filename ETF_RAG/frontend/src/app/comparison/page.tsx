@@ -12,6 +12,7 @@ import TickerSearch from "@/components/TickerSearch";
 import ChartImage from "@/components/ChartImage";
 import ComparisonTable from "@/components/ComparisonTable";
 import DataRangeNote from "@/components/DataRangeNote";
+import { Loading, ErrorText } from "@/components/Feedback";
 import WatchlistStar from "@/components/WatchlistStar";
 
 // 상대 수익률 차트 기간 (1주=5거래일, 1개월=20, 3개월=60 ...)
@@ -152,8 +153,8 @@ export default function ComparisonPage() {
         </span>
       </div>
 
-      {loading && <p className="mt-6 text-center text-sm text-gray-400">비교 중…</p>}
-      {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
+      {loading && <Loading text="비교 중…" />}
+      {error && <ErrorText message={error} />}
 
       {data && !loading && (
         <div className="mt-5">
