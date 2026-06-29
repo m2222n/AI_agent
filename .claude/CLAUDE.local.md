@@ -2557,9 +2557,16 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
   - 프론트: 회원가입 폼 나이대 select(선택), 계정설정 '프로필'(닉네임+나이대 통합). `updateNickname`→`updateProfile(nickname, ageGroup)` 확장(+하위호환 별칭). 테스트 +4.
 - **ID/비밀번호 찾기 = 안내 방식(메일 인프라 없이)**: 이 서비스는 **이메일=아이디**라 ID찾기는 기능 아닌 안내로 충분. 비번 재설정 메일은 SMTP 인프라 필요→보류 유지. 로그인 화면에 "아이디·비밀번호 찾기" 토글 안내(ID=이메일 / 비번=로그인 시 계정설정 변경, 분실 시 문의). **메일 인프라(Resend/SendGrid free)는 사용자가 원하면 후속.**
 
+## 임베딩 비교 정식화 + RAG CI 게이트 (2026-06-29, PR #102)
+상세: `memory/project_ai_agent_embedding_ragas_ci.md`.
+- **임베딩 비교**: `exp_embedding_ab.py`에 BGE-M3(한국어 특화 로컬) 추가, 리포트 `eval/EMBEDDING_COMPARISON.md`. 실측 dense_only MRR small 0.49/large 0.87(압도)/bge-m3 0.58. **full 파이프라인 셋 다 천장 1.0 → 현행 small 유지**(하이브리드가 임베딩 약점 메움). dense↑(PDF) 시 large. 함정: torch<2.6 .bin 차단→safetensors revision 고정, MPS OOM→cpu.
+- **RAG CI 게이트**: `run_eval.py --min-hit-rate`(미달 exit1) + ci.yml `rag-eval` job(OPENAI_API_KEY secret 있을때만, 없으면 skip→green). `--no-llm --min-hit-rate 0.90`로 검색 회귀 감지. RAGAS full은 CI 제외(유료·비결정). PR #102 CI에서 rag-eval skip→SUCCESS 확인. **사용자: OPENAI_API_KEY secret 등록 시 게이트 자동 활성화.**
+- **어필**: 측정 기반 RAG 엔지니어링(임베딩 정량 비교 + 검색 품질 자동 회귀 방어).
+
 ---
 
-_Last Updated: 2026-06-26 세션후반2 (PR #100·#101 추가 — 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 #100 / 나이대(선택, 식별X·분류정보) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 전체 873+프론트17)_
+_Last Updated: 2026-06-29 (PR #102 — 임베딩 비교 정식화(BGE-M3 실측: full 천장→small 유지, dense는 large 압도) + RAG 검색 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY 있을때만). 백엔드 873)_
+_2026-06-26 세션후반2 (PR #100·#101 추가 — 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 #100 / 나이대(선택, 식별X·분류정보) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 전체 873+프론트17)_
 _2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403 백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문 / UX 공통컴포넌트 / Vitest 도입+다크모드 롤백 / **데이터 수집 누락 2건 해결**(프로덕션 DB stale 신선도검사 #98 + 검증 ETF/주식 분리 #99). 전체 869+프론트17. 데이터: 외부수집 간헐실패는 불가피하나 검증이 부분누락 잡아 자동복구·프로덕션은 collect_full 검증으로 보호)_
 _2026-06-26 (ToDo 1~10 일괄 완료 PR #88~#92 — env진단·KOSDAQ백필(로그인누락)·관심종목⭐확대·가상투자 고도화(파이/통계/배당)·RAGAS재측정 F0.988·코드점검 실버그2건. MEMORY 43KB→8KB 다이어트. 전체 851. 후원/블로그는 사용자 요청 시까지 보류)_
 _2026-06-25 (프로덕션 라이브 점검 전부 정상 + 코드 점검 라운드: 탈퇴 가상투자 cascade 누락 실버그 #86 수정 + realtime db_market_map 재시도 #87 머지(테스트 7개). 에이전트 보고 8건 중 7건 LLM 오판/단일워커로 기각. 전체 845. 사용자 지시로 후원/블로그 보류, ToDo 1~10 순차 개발 착수)_
