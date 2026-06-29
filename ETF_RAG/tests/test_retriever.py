@@ -352,3 +352,55 @@ def test_bm25_cache_corrupted_file(tmp_path):
     with patch("src.rag.retriever.BM25_CACHE_DIR", tmp_path):
         result = _load_bm25_cache("test_hash")
     assert result is None
+
+
+# ── PDF 투자설명서 청크 동반 검색 ───────────────────────────
+
+_PDF_DOCS = SAMPLE_DOCS + [
+    Document(
+        page_content="KODEX 200 투자설명서. 총보수 연 0.15%. 위험등급 2등급. 분배금 연 1회.",
+        metadata={"ticker": "069500", "name": "KODEX200", "source": "pdf",
+                  "doc_type": "투자설명서", "file_name": "069500_KODEX200_투자설명서.pdf"},
+    ),
+]
+
+
+def test_pdf_chunk_indexed_separately():
+    """PDF 청크는 _pdf_by_ticker에 분리 보관, 이름/티커 정본을 안 덮어씀."""
+    r = HybridRetriever(MagicMock(), _PDF_DOCS)
+    # 069500 정본(구조화)은 KODEX 200(공백 있는 이름), PDF는 _pdf_by_ticker에
+    assert r._ticker_index["069500"] == 0  # 구조화 문서가 정본
+    assert 3 in r._pdf_by_ticker.get("069500", [])  # PDF 청크 인덱스
+
+
+def test_name_match_includes_pdf_chunk():
+    """종목 이름 매칭 시 같은 ticker의 PDF 청크도 함께 반환(총보수 등 PDF 전용 정보)."""
+    r = HybridRetriever(MagicMock(), _PDF_DOCS)
+    matched = r._match_etf_by_name("KODEX 200 총보수 알려줘")
+    sources = [d.metadata.get("source") for d, _ in matched]
+    assert "pdf" in sources  # PDF 청크 동반
+    # PDF 본문(총보수)이 매칭 결과에 포함
+    assert any("총보수" in d.page_content for d, _ in matched)
+
+
+def test_name_match_no_pdf_when_no_pdf_doc():
+    """PDF 없는 구성에선 기존 동작 그대로(회귀 없음)."""
+    r = HybridRetriever(MagicMock(), SAMPLE_DOCS)
+    matched = r._match_etf_by_name("KODEX 200")
+    assert all(d.metadata.get("source") != "pdf" for d, _ in matched)
+    assert r._pdf_by_ticker == {}
+
+
+# ── pdf_loader 파일명 메타 추출 ───────────────────────────
+
+def test_pdf_filename_metadata():
+    from src.data.pdf_loader import _extract_file_metadata
+    m = _extract_file_metadata("069500_KODEX200_투자설명서")
+    assert m == {"ticker": "069500", "name": "KODEX200", "doc_type": "투자설명서"}
+
+
+def test_pdf_filename_metadata_no_ticker():
+    from src.data.pdf_loader import _extract_file_metadata
+    # 6자리 티커 패턴 아니면 ticker 미설정
+    m = _extract_file_metadata("운용보고서_2026")
+    assert "ticker" not in m
