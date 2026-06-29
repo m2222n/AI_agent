@@ -48,24 +48,60 @@ EVAL_DIR = Path(__file__).parent
 DATASET_PATH = EVAL_DIR / "eval_dataset.json"
 RESULTS_DIR = EVAL_DIR / "results"
 
+# 비교 대상 모델 정의. provider로 OpenAI / HuggingFace(로컬) 분기.
+# bge-m3는 한국어 포함 다국어 특화(1024차원) — 로컬 모델이라 선택적 설치.
 MODELS = {
-    "small": "text-embedding-3-small",  # 현행 (1536차원)
-    "large": "text-embedding-3-large",  # 비교 대상 (3072차원)
+    "small":  {"provider": "openai", "name": "text-embedding-3-small"},  # 현행 (1536)
+    "large":  {"provider": "openai", "name": "text-embedding-3-large"},  # OpenAI 상위 (3072)
+    # 한국어 특화 로컬(1024). revision: safetensors 포함 커밋 고정(torch<2.6 .bin 차단 회피).
+    "bge-m3": {"provider": "hf", "name": "BAAI/bge-m3",
+               "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"},
 }
 
 # dense 검색이 변별력을 갖는 "어려운" 유형 — 종목명이 명시 안 돼 직접 매칭이 안 먹는 질문군
 HARD_TYPES = {"recommend", "risk", "general"}
 
 
-def _patch_embeddings(model_name: str):
-    """get_embeddings()를 지정 OpenAI 모델로 런타임 치환. 본체 파일 불변."""
-    from langchain_openai import OpenAIEmbeddings
-    vs_mod.get_embeddings = lambda: OpenAIEmbeddings(model=model_name)
+def _hf_available() -> bool:
+    """BGE-M3 실행에 필요한 langchain-huggingface + sentence-transformers 설치 여부."""
+    try:
+        import langchain_huggingface  # noqa: F401
+        import sentence_transformers  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _patch_embeddings(tag: str):
+    """get_embeddings()를 지정 모델로 런타임 치환. 본체 파일 불변.
+
+    OpenAI는 API, HuggingFace(bge-m3)는 로컬 sentence-transformers.
+    """
+    spec = MODELS[tag]
+    if spec["provider"] == "openai":
+        from langchain_openai import OpenAIEmbeddings
+        vs_mod.get_embeddings = lambda: OpenAIEmbeddings(model=spec["name"])
+    else:  # hf — 로컬 임베딩 (정규화 권장: bge 계열은 cosine 사용)
+        from langchain_huggingface import HuggingFaceEmbeddings
+        # torch<2.6은 .bin(torch.load) 로드가 CVE-2025-32434로 차단됨.
+        # Python 3.9는 torch 2.2.2가 최대라 업그레이드 불가 → safetensors가 포함된
+        # revision을 명시해 .bin 경로를 회피한다. (BGE-M3 safetensors 커밋)
+        rev = spec.get("revision")
+        # device="cpu": Mac MPS(GPU) OOM 회피(대량 문서 임베딩 시). 느리지만 안정.
+        # batch_size 작게 + normalize(cosine).
+        mk = {"device": "cpu"}
+        if rev:
+            mk["revision"] = rev
+        vs_mod.get_embeddings = lambda: HuggingFaceEmbeddings(
+            model_name=spec["name"],
+            model_kwargs=mk,
+            encode_kwargs={"normalize_embeddings": True, "batch_size": 16},
+        )
 
 
 def _build_retrievers(model_tag: str):
     """모델별 prefix로 격리된 retriever 구축 (ETF + 주식)."""
-    _patch_embeddings(MODELS[model_tag])
+    _patch_embeddings(model_tag)
 
     etf_docs = create_documents(load_etf_data(), include_pdfs=False)
     stock_docs = create_stock_documents(load_stock_data())
@@ -157,10 +193,18 @@ def run(quick=False):
         dataset = [d for d in dataset if d.get("asset_type", "etf") == "etf"]
     logger.info(f"데이터셋 {len(dataset)}개 (quick={quick})")
 
-    summary = {"config": {}, "models": {}}
+    summary = {"config": {}, "models": {}, "skipped": []}
     orig_hybrid = copy.deepcopy(config.HYBRID_SEARCH)
 
-    for tag in ("small", "large"):
+    # 실행할 모델: OpenAI 2종은 항상, bge-m3는 의존성 있을 때만(없으면 skip 기록)
+    tags = ["small", "large"]
+    if _hf_available():
+        tags.append("bge-m3")
+    else:
+        summary["skipped"].append("bge-m3 (langchain-huggingface/sentence-transformers 미설치)")
+        logger.warning("bge-m3 skip — `pip install langchain-huggingface sentence-transformers`")
+
+    for tag in tags:
         etf_r, stock_r = _build_retrievers(tag)
         model_result = {}
 
@@ -184,17 +228,22 @@ def run(quick=False):
         summary["models"][tag] = model_result
         logger.info(f"[{tag}] full={model_result['full']} dense_only={model_result['dense_only']}")
 
-    # delta (large - small), dense-only 기준 (임베딩 변별이 가장 잘 드러나는 모드)
-    s, l = summary["models"]["small"]["dense_only"], summary["models"]["large"]["dense_only"]
-    if s and l:
-        summary["delta_dense_only"] = {
-            kk: round(l[kk] - s[kk], 4) for kk in ("mrr", "hit@1", "hit@3", "hit@5")
-        }
+    # delta — small(현행) 대비 각 모델, dense-only 기준(임베딩 순수 변별이 드러나는 모드)
+    base = summary["models"]["small"]["dense_only"]
+    summary["delta_vs_small_dense_only"] = {}
+    for tag in tags:
+        if tag == "small":
+            continue
+        cmp = summary["models"][tag]["dense_only"]
+        if base and cmp:
+            summary["delta_vs_small_dense_only"][tag] = {
+                kk: round(cmp[kk] - base[kk], 4) for kk in ("mrr", "hit@1", "hit@3", "hit@5")
+            }
     summary["config"] = {
         "dataset_size": len(dataset),
-        "models": MODELS,
+        "models": {t: MODELS[t]["name"] for t in tags},
         "modes": ["full (실서비스)", "dense_only (직접매칭off + sparse=0)"],
-        "note": "Hit@5 천장 효과 → dense_only MRR/Hit@1로 판정",
+        "note": "Hit@5 천장 효과 → dense_only MRR/Hit@1로 판정. bge-m3는 한국어 특화 비교용.",
     }
     return summary
 
@@ -213,16 +262,17 @@ def main():
     out.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print("\n" + "=" * 60)
-    print("임베딩 A/B 결과 (text-embedding-3 small vs large)")
+    print("임베딩 비교 결과 (OpenAI small/large vs BGE-M3)")
     print("=" * 60)
-    for tag in ("small", "large"):
-        m = summary["models"][tag]
-        print(f"\n[{tag}]  ({m['elapsed_sec']}s)")
+    for tag, m in summary["models"].items():
+        print(f"\n[{tag}] {summary['config']['models'].get(tag, '')}  ({m['elapsed_sec']}s)")
         print(f"  full       : {m['full']}")
         print(f"  dense_only : {m['dense_only']}")
         print(f"  dense_hard : {m['dense_only_hard']}")
-    if "delta_dense_only" in summary:
-        print(f"\nΔ (large - small, dense_only): {summary['delta_dense_only']}")
+    for tag, d in summary.get("delta_vs_small_dense_only", {}).items():
+        print(f"\nΔ ({tag} - small, dense_only): {d}")
+    for s in summary.get("skipped", []):
+        print(f"\n⏭  skip: {s}")
     print(f"\n결과 저장: {out}")
 
 

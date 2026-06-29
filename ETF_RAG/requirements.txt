@@ -42,3 +42,9 @@ pytest>=7.0.0,<9.0
 # 유지를 위해 기본 미포함 — 쓰려면 주석 해제(transformers+torch ~수백MB).
 # transformers>=4.30,<5
 # torch>=2.0,<3
+
+# --- 임베딩 비교 실험 (선택, 배포 불필요) ---
+# eval/exp_embedding_ab.py 에서 BGE-M3(한국어 특화 로컬 임베딩)를 OpenAI와 비교할 때만 필요.
+# 미설치 시 실험은 bge-m3를 자동 skip(OpenAI small/large만 비교). 모델 ~2GB.
+# langchain-huggingface>=0.1,<1
+# sentence-transformers>=2.2,<4

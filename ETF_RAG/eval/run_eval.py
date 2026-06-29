@@ -579,13 +579,17 @@ def main():
 
     # --sample N 옵션: RAGAS 평가 시 샘플 수 제한 (비용 절감)
     # --types a,b,c 옵션: 특정 question_type만 평가 (신규 도구 집중 평가용)
+    # --min-hit-rate X: retrieval Hit Rate가 X 미만이면 exit 1 (CI 게이트용, 0~1)
     sample_size = None
     types = None
+    min_hit_rate = None
     for i, arg in enumerate(sys.argv):
         if arg == "--sample" and i + 1 < len(sys.argv):
             sample_size = int(sys.argv[i + 1])
         if arg == "--types" and i + 1 < len(sys.argv):
             types = [t.strip() for t in sys.argv[i + 1].split(",") if t.strip()]
+        if arg == "--min-hit-rate" and i + 1 < len(sys.argv):
+            min_hit_rate = float(sys.argv[i + 1])
 
     logger.info("평가 데이터셋 로드...")
     dataset = load_eval_dataset(types=types)
@@ -632,6 +636,16 @@ def main():
     output_path, summary = save_results(retrieval_results, ragas_results)
     print_summary(summary)
     logger.info(f"\n결과 저장: {output_path}")
+
+    # CI 게이트 — retrieval Hit Rate가 임계 미만이면 실패 처리(검색 품질 회귀 감지)
+    if min_hit_rate is not None:
+        hit_rate = summary["retrieval"]["hit_rate"]
+        if hit_rate < min_hit_rate:
+            print(
+                f"\n❌ 게이트 실패: Hit Rate {hit_rate:.1%} < 임계 {min_hit_rate:.1%}"
+            )
+            sys.exit(1)
+        print(f"\n✅ 게이트 통과: Hit Rate {hit_rate:.1%} ≥ 임계 {min_hit_rate:.1%}")
 
 
 if __name__ == "__main__":
