@@ -39,6 +39,7 @@ from src.data.chart_generator import (
     generate_sector_overview_chart,
     generate_sector_detail_chart,
     generate_sector_trend_chart,
+    generate_news_sentiment_chart,
 )
 from src.data.database import (
     get_connection,
@@ -346,6 +347,39 @@ async def sector(
     result = await run_in_threadpool(_sector_blocking, sector, period)
     if result is None:
         raise HTTPException(404, "섹터 데이터를 찾을 수 없습니다.")
+    return result
+
+
+# ── 뉴스 감성 + 시계열 ──────────────────────────────────────────────
+def _news_blocking(query: str, max_articles: int) -> Optional[dict]:
+    """종목 뉴스 수집 + 감성 분석 + 일별 감성 시계열 차트.
+
+    구조화 데이터로 종목명 해석 후 get_stock_news_summary 호출.
+    감성 시계열은 기사별 (발행일 + 감성)을 날짜별로 집계(별도 스냅샷 불필요).
+    """
+    from src.data.news import get_stock_news_summary, build_sentiment_timeseries
+
+    data = _find_structured_data(query)
+    name = data.get("name") if data else query
+
+    result = get_stock_news_summary(name, max_articles=max_articles)
+    articles = result.get("articles", [])
+    series = build_sentiment_timeseries(articles)
+    result["timeseries"] = series
+    result["chart_b64"] = generate_news_sentiment_chart(series, name) if series else None
+    result["name"] = name
+    result["ticker"] = data.get("ticker") if data else None
+    return result
+
+
+@router.get("/news", response_model=None)
+async def news(
+    ticker: str = Query(..., min_length=1),
+    max_articles: int = Query(10, ge=3, le=20),
+):
+    result = await run_in_threadpool(_news_blocking, ticker, max_articles)
+    if result is None:
+        raise HTTPException(404, "종목을 찾을 수 없습니다.")
     return result
 
 

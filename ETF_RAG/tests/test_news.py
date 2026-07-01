@@ -321,3 +321,45 @@ def test_fetch_feed_fallback_on_certifi_failure(mock_urlopen):
 
     # fallback은 URL 문자열로 feedparser.parse 호출
     mock_parse.assert_called_once_with("https://news.google.com/rss/search?q=x")
+
+
+# ── 감성 시계열 집계 ──────────────────────────────────────
+
+def test_build_sentiment_timeseries_basic():
+    from src.data.news import build_sentiment_timeseries
+    arts = [
+        {"published": "2026-06-30 09:00", "sentiment": "긍정"},
+        {"published": "2026-06-30 15:00", "sentiment": "부정"},
+        {"published": "2026-06-30 18:00", "sentiment": "긍정"},
+        {"published": "2026-07-01 10:00", "sentiment": "중립"},
+    ]
+    s = build_sentiment_timeseries(arts)
+    assert [r["date"] for r in s] == ["2026-06-30", "2026-07-01"]  # 날짜 오름차순
+    d0 = s[0]
+    assert d0["positive"] == 2 and d0["negative"] == 1 and d0["total"] == 3
+    assert d0["score"] == round((2 - 1) / 3, 3)  # (긍-부)/전체
+    assert s[1]["score"] == 0.0  # 중립만
+
+
+def test_build_sentiment_timeseries_skips_undated():
+    from src.data.news import build_sentiment_timeseries
+    arts = [
+        {"published": "", "sentiment": "긍정"},
+        {"published": "날짜아님", "sentiment": "부정"},
+        {"published": "2026-06-30 09:00", "sentiment": "긍정"},
+    ]
+    s = build_sentiment_timeseries(arts)
+    assert len(s) == 1 and s[0]["date"] == "2026-06-30"
+
+
+def test_build_sentiment_timeseries_empty():
+    from src.data.news import build_sentiment_timeseries
+    assert build_sentiment_timeseries([]) == []
+
+
+def test_news_sentiment_chart_needs_two_days():
+    """하루치뿐이면 시계열 차트 None(의미 없음)."""
+    from src.data.chart_generator import generate_news_sentiment_chart
+    one = [{"date": "2026-06-30", "positive": 1, "negative": 0, "neutral": 0,
+            "total": 1, "score": 1.0}]
+    assert generate_news_sentiment_chart(one, "삼성전자") is None

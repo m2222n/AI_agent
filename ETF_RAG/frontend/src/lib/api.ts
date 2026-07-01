@@ -15,6 +15,7 @@ import type {
   ComparisonResponse,
   OutlookResponse,
   SectorResponse,
+  NewsResponse,
   MoversResponse,
   OverviewResponse,
   VisitorResponse,
@@ -278,6 +279,16 @@ export async function getSector(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`sector ${res.status}`);
   return (await res.json()) as SectorResponse;
+}
+
+/** 뉴스 감성 + 일별 시계열 차트. 404면 null. */
+export async function getNews(ticker: string): Promise<NewsResponse | null> {
+  const url = new URL(`${API_BASE}/tabs/news`);
+  url.searchParams.set("ticker", ticker);
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`news ${res.status}`);
+  return (await res.json()) as NewsResponse;
 }
 
 /** 사이드바 개요 — 데이터 현황 + ETF/주식 TOP. sector 지정 시 해당 업종 종목만. 실패 시 null. */
