@@ -11,6 +11,7 @@ const TABS = [
   { href: "/comparison", label: "⚖️ 비교" },
   { href: "/outlook", label: "🔮 전망" },
   { href: "/sector", label: "🏭 섹터" },
+  { href: "/news", label: "📰 뉴스" },
   { href: "/invest", label: "💰 가상투자" },
 ];
 

@@ -315,3 +315,46 @@ def get_stock_news_summary(
         articles = articles[:max_articles]
 
     return analyze_sentiment_batch(articles, stock_name)
+
+
+# ── 감성 시계열 집계 ──────────────────────────────────────
+
+def build_sentiment_timeseries(articles: list[dict]) -> list[dict]:
+    """기사별 (발행일 + 감성)을 날짜별로 집계한 시계열.
+
+    Google News RSS는 최근 ~7일치를 주므로 시계열도 그 범위. 별도 스냅샷
+    누적 없이 기사에 이미 있는 published/sentiment로 집계한다.
+
+    Args:
+        articles: analyze_sentiment_batch가 채운 [{published, sentiment, ...}]
+
+    Returns:
+        날짜 오름차순 [{date: "YYYY-MM-DD", positive, negative, neutral, total,
+                       score: float}]. score = (긍정-부정)/전체, -1~+1.
+    """
+    by_date: dict = {}
+    for a in articles or []:
+        pub = a.get("published", "")
+        # "YYYY-MM-DD HH:MM" 또는 "YYYY-MM-DD..." → 앞 10자
+        date = pub[:10] if len(pub) >= 10 and pub[4] == "-" else ""
+        if not date:
+            continue
+        sent = a.get("sentiment", "중립")
+        d = by_date.setdefault(date, {"positive": 0, "negative": 0, "neutral": 0})
+        if sent == "긍정":
+            d["positive"] += 1
+        elif sent == "부정":
+            d["negative"] += 1
+        else:  # 중립/분석 불가 등
+            d["neutral"] += 1
+
+    series = []
+    for date in sorted(by_date):
+        d = by_date[date]
+        total = d["positive"] + d["negative"] + d["neutral"]
+        score = round((d["positive"] - d["negative"]) / total, 3) if total else 0.0
+        series.append({
+            "date": date, "positive": d["positive"], "negative": d["negative"],
+            "neutral": d["neutral"], "total": total, "score": score,
+        })
+    return series

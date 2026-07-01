@@ -25,6 +25,9 @@ from src.data.chart_generator.sector import (
     generate_sector_detail_chart,
     generate_sector_trend_chart,
 )
+from src.data.chart_generator.news import (
+    generate_news_sentiment_chart,
+)
 
 __all__ = [
     "generate_technical_chart",
@@ -37,4 +40,5 @@ __all__ = [
     "generate_sector_overview_chart",
     "generate_sector_detail_chart",
     "generate_sector_trend_chart",
+    "generate_news_sentiment_chart",
 ]

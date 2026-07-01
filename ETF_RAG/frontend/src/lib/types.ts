@@ -179,6 +179,37 @@ export interface SectorResponse {
   trend_constituents?: number;
 }
 
+export interface NewsArticle {
+  title: string;
+  link: string;
+  source: string;
+  published: string;
+  summary: string;
+  sentiment: string; // 긍정 | 부정 | 중립 | 분석 불가
+}
+export interface NewsSentimentPoint {
+  date: string;
+  positive: number;
+  negative: number;
+  neutral: number;
+  total: number;
+  score: number; // (긍정-부정)/전체, -1~+1
+}
+export interface NewsResponse {
+  name: string;
+  ticker: string | null;
+  overall_sentiment: string;
+  positive_count: number;
+  negative_count: number;
+  neutral_count: number;
+  key_topics: string[];
+  summary: string;
+  sentiment_source?: string;
+  articles: NewsArticle[];
+  timeseries: NewsSentimentPoint[];
+  chart_b64: string | null;
+}
+
 // ── SSE structured_data 변형 (data를 JSON.parse한 결과) ──
 export interface ComparisonItem {
   name: string;
