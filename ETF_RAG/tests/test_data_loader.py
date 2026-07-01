@@ -89,7 +89,7 @@ def test_collected_documents(collected_file):
          patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     assert len(docs) == 2
     doc = docs[0]
@@ -105,7 +105,7 @@ def test_collected_doc_without_holdings(collected_file):
          patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     doc = docs[1]  # 단기채권 (holdings 비어 있음)
     assert "정보 없음" in doc.page_content
@@ -116,7 +116,7 @@ def test_collected_doc_has_returns(collected_file):
          patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     doc = docs[0]  # KODEX 200 (returns 있음)
     assert "수익률:" in doc.page_content
@@ -217,7 +217,7 @@ def test_hardcoded_documents():
          patch("src.data.loader.get_deploy_etf_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     assert len(docs) == 8
     doc = docs[0]
@@ -232,7 +232,7 @@ def test_hardcoded_documents_have_metadata():
          patch("src.data.loader.get_deploy_etf_path", return_value=None):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     for doc in docs:
         assert "name" in doc.metadata
@@ -429,6 +429,6 @@ def test_etf_document_has_asset_type(collected_file):
          patch("src.data.loader.get_latest_collected_path", return_value=collected_file):
         from src.data.loader import load_etf_data, create_documents
         data = load_etf_data()
-        docs = create_documents(data)
+        docs = create_documents(data, include_pdfs=False)
 
     assert docs[0].metadata["asset_type"] == "etf"

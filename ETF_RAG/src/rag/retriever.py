@@ -114,9 +114,16 @@ class HybridRetriever:
         # ETF 이름 → Document 인덱스 매핑 (정확 매칭용)
         self._name_index: Dict[str, int] = {}
         self._ticker_index: Dict[str, int] = {}
+        # ticker → PDF 청크 인덱스들 (투자설명서 등 — 종목 매칭 시 함께 끌어올림)
+        self._pdf_by_ticker: Dict[str, List[int]] = {}
         for i, doc in enumerate(documents):
             name = doc.metadata.get("name", "")
             ticker = doc.metadata.get("ticker", "")
+            if doc.metadata.get("source") == "pdf":
+                # PDF 청크는 이름/티커 정본 인덱스를 덮어쓰지 않게 분리 보관.
+                if ticker:
+                    self._pdf_by_ticker.setdefault(ticker, []).append(i)
+                continue
             if name:
                 name_lower = name.lower()
                 self._name_index[name_lower] = i
@@ -238,8 +245,15 @@ class HybridRetriever:
 
             matched.extend(kw_matched.values())
 
+        # 매칭된 종목에 PDF 투자설명서 청크가 있으면 함께 포함(총보수·위험등급·운용
+        # 전략 등 정형 데이터에 없는 정보는 PDF에만 있어, 같이 끌어올려야 검색됨).
+        if matched and self._pdf_by_ticker:
+            for ticker in list(seen_tickers):
+                for pdf_idx in self._pdf_by_ticker.get(ticker, []):
+                    matched.append((self.documents[pdf_idx], 0.9))
+
         if matched:
-            logger.info(f"ETF 이름 매칭: {[d.metadata['name'] for d, _ in matched]}")
+            logger.info(f"ETF 이름 매칭: {[d.metadata.get('name', '?') for d, _ in matched]}")
 
         return matched
 
