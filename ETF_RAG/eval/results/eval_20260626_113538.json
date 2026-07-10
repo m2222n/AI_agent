@@ -1,0 +1,417 @@
+{
+  "timestamp": "20260626_113538",
+  "total_questions": 14,
+  "retrieval": {
+    "hit_rate": 1.0,
+    "avg_precision": 0.333,
+    "avg_recall": 1.0,
+    "by_type": {
+      "forecast": {
+        "hit_rate": 1.0,
+        "total": 8,
+        "hits": 8
+      },
+      "news": {
+        "hit_rate": 1.0,
+        "total": 6,
+        "hits": 6
+      }
+    },
+    "by_asset": {
+      "stock": {
+        "hit_rate": 1.0,
+        "total": 14,
+        "hits": 14
+      }
+    }
+  },
+  "retrieval_details": [
+    {
+      "question": "삼성전자 1개월 가격 전망 알려줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "005930",
+        "009155",
+        "017900"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "SK하이닉스 3개월 뒤 주가 어떻게 될까?",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "000660",
+      "retrieved_tickers": [
+        "000660",
+        "034730",
+        "005389"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "현대차 향후 6개월 전망 분석해줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "005380",
+      "retrieved_tickers": [
+        "005380",
+        "100790",
+        "001500"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "NAVER 주가 1년 전망 예측",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "035420",
+      "retrieved_tickers": [
+        "035420",
+        "009450",
+        "006805"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "기아 목표가 전망 알려줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "000270",
+      "retrieved_tickers": [
+        "000270",
+        "025560",
+        "006805"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "LG화학 앞으로 오를까 내릴까?",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "051910",
+      "retrieved_tickers": [
+        "051910",
+        "003550",
+        "051915"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "카카오 단기 가격 전망 분석",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "035720",
+      "retrieved_tickers": [
+        "035720",
+        "348340",
+        "377300"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "POSCO홀딩스 3개월 가격 예측해줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "expected_ticker": "005490",
+      "retrieved_tickers": [
+        "005490",
+        "042420",
+        "383800"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "삼성전자 최근 뉴스 분위기 어때?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "005930",
+      "retrieved_tickers": [
+        "005930",
+        "005935",
+        "018260"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "SK하이닉스 뉴스 여론 분석해줘",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "000660",
+      "retrieved_tickers": [
+        "000660",
+        "034730",
+        "044450"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "현대차 관련 최근 뉴스 감성 어때?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "005380",
+      "retrieved_tickers": [
+        "005380",
+        "001500",
+        "004020"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "NAVER 뉴스 흐름 요약해줘",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "035420",
+      "retrieved_tickers": [
+        "035420",
+        "389650",
+        "007340"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "카카오 요즘 뉴스 분위기 긍정적이야?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "035720",
+      "retrieved_tickers": [
+        "035720",
+        "348340",
+        "377300"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    },
+    {
+      "question": "LG에너지솔루션 뉴스 감성 분석",
+      "question_type": "news",
+      "asset_type": "stock",
+      "expected_ticker": "373220",
+      "retrieved_tickers": [
+        "373220",
+        "003550",
+        "037560"
+      ],
+      "hit": true,
+      "precision": 0.333,
+      "recall": 1.0,
+      "num_sources": 3
+    }
+  ],
+  "ragas": {
+    "faithfulness": 0.988,
+    "answer_relevancy": 0.711,
+    "context_recall": 1.0,
+    "faithfulness_rag_only": 0.988,
+    "context_recall_rag_only": 1.0
+  },
+  "ragas_per_question": [
+    {
+      "question": "삼성전자 1개월 가격 전망 알려줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 818,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "삼성전자의 1개월 가격 전망 분석 결과입니다.\n\n1. **현재가**: 346,750원\n\n2. **종합 판단**: 강세 전망 (점수: +0.492, 신뢰도: B등급)\n\n3. **시나리오별 확률**:\n   - 📈 상승: 56% (목표 +34.9%) — 기술적 모멘텀과 펀더멘털 지지 시\n   - ➡️ 횡보: 30% (예상 +8.7%)\n   - 📉 하락: 14% ",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.899,
+      "context_recall": 1.0
+    },
+    {
+      "question": "SK하이닉스 3개월 뒤 주가 어떻게 될까?",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 772,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "SK하이닉스(티커: 000660)의 3개월 후 주가 전망입니다.\n\n1. **현재가**: 2,804,000원\n\n2. **종합 판단**: 약한 강세 (점수: +0.236, 신뢰도: B등급)\n\n3. **시나리오별 확률**:\n   - 📈 **상승**: 51% (목표 +134.9%) — 기술적 모멘텀과 펀더멘털이 지지할 경우\n   - ➡️ **횡보**: 30% (예",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.827,
+      "context_recall": 1.0
+    },
+    {
+      "question": "현대차 향후 6개월 전망 분석해줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 864,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "현대차(005380)의 향후 6개월 전망 분석 결과입니다.\n\n1. **현재가**: 493,500원\n\n2. **종합 판단**: 중립 (점수: -0.093, 신뢰도: B등급)\n\n3. **시나리오별 확률**:\n   - 📈 상승: 33% (목표 +149.1%) — 시장 전반 강세 시\n   - ➡️ 횡보: 30% (예상 +31.6%)\n   - 📉 하락: 37% (목",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.885,
+      "context_recall": 1.0
+    },
+    {
+      "question": "NAVER 주가 1년 전망 예측",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 806,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "NAVER(035420)의 1년 전망 예측 결과입니다.\n\n1. **종합 판단**: 약한 강세 (점수: +0.142, 신뢰도: C등급)\n\n2. **시나리오별 확률**:\n   - 📈 상승: 40% (목표 +46.7%) — 시장 전반이 강세일 경우\n   - ➡️ 횡보: 30% (예상 -4.5%)\n   - 📉 하락: 30% (목표 -52.4%) — 외부 충격이나 ",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.832,
+      "context_recall": 1.0
+    },
+    {
+      "question": "기아 목표가 전망 알려줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 839,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "기아(000270)의 1개월 목표가 전망입니다.\n\n1. **현재가**: 138,200원\n\n2. **종합 판단**: 약한 약세 (점수: -0.203, 신뢰도: C등급)\n\n3. **시나리오별 확률**:\n   - 📈 상승: 30% (목표 +20.8%) — 시장 전반 강세 시\n   - ➡️ 횡보: 30% (예상 +2.5%)\n   - 📉 하락: 40% (목표 -10",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.729,
+      "context_recall": 1.0
+    },
+    {
+      "question": "LG화학 앞으로 오를까 내릴까?",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 764,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "LG화학의 가격 전망 분석 결과입니다.\n\n1. **종합 판단**: 약한 약세 (점수: -0.282, 신뢰도: B등급)\n\n2. **시나리오별 확률**:\n   - 📈 상승: 22% (목표 +37.0%) — 시장 전반 강세 시\n   - ➡️ 횡보: 30% (예상 +1.2%)\n   - 📉 하락: 48% (목표 -17.6%) — 기술적 약세 전환 시\n\n3. **기술",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "카카오 단기 가격 전망 분석",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 926,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "카카오(035720)의 1개월 가격 전망 분석 결과입니다.\n\n1. **현재가**: 33,800원\n\n2. **종합 판단**: 약한 약세 (점수: -0.230, 신뢰도: C등급)\n\n3. **시나리오별 확률**:\n   - 📈 상승: 30% (목표 +33.5%) — 시장 전반 강세 시\n   - ➡️ 횡보: 30% (예상 +1.4%)\n   - 📉 하락: 40% (목",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.752,
+      "context_recall": 1.0
+    },
+    {
+      "question": "POSCO홀딩스 3개월 가격 예측해줘",
+      "question_type": "forecast",
+      "asset_type": "stock",
+      "answer_length": 846,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "POSCO홀딩스(005490)의 3개월 가격 예측 결과입니다.\n\n1. **현재가**: 309,500원\n\n2. **종합 판단**: 약한 약세 (점수: -0.198, 신뢰도: C등급)\n\n3. **시나리오별 확률**:\n   - 📈 상승: 34% (목표 +26.6%) — 시장 전반 강세 시\n   - ➡️ 횡보: 30% (예상 +3.9%)\n   - 📉 하락: 36%",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.928,
+      "context_recall": 1.0
+    },
+    {
+      "question": "삼성전자 최근 뉴스 분위기 어때?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 528,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "삼성전자의 최근 뉴스 분위기는 전반적으로 긍정적입니다. 긍정적인 기사가 5건, 중립적인 기사가 3건 있으며, 부정적인 기사는 없습니다. \n\n주요 키워드로는 **자사주 매입**, **주가 상승**, **반도체**, **마이크론** 등이 언급되고 있습니다. 특히 삼성전자의 자사주 매입 계획과 반도체 시장의 긍정적인 전망이 주가 상승에 기여하고 있는 것으로 보입",
+      "faithfulness": 0.923,
+      "answer_relevancy": 0.0,
+      "context_recall": 1.0
+    },
+    {
+      "question": "SK하이닉스 뉴스 여론 분석해줘",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 1008,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "SK하이닉스에 대한 최근 뉴스 여론 분석 결과입니다.\n\n### 전체 감성\n- **긍정**: 5건\n- **부정**: 0건\n- **중립**: 3건\n\n### 주요 키워드\n- 미국 ADR 상장\n- 주가 재평가\n- 반도체 주식\n- 유상증자\n- 김문수 100배 수익\n\n### 뉴스 흐름 요약\nSK하이닉스는 미국에서 ADR 상장을 추진하며 주가 재평가를 기대하고 있습니다",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.841,
+      "context_recall": 1.0
+    },
+    {
+      "question": "현대차 관련 최근 뉴스 감성 어때?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 696,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "현대차 관련 최근 뉴스 감성 분석 결과는 다음과 같습니다.\n\n**전체 감성:** 🔴 부정\n- 긍정: 2건\n- 부정: 5건\n- 중립: 1건\n\n**주요 키워드:** \n- 주가 하락\n- 임원 주식 배분\n- 슈퍼리치 투자\n- 노조 파업\n- 주가 전망\n\n**뉴스 흐름 요약:** 최근 현대차에 대한 뉴스는 주가 하락과 임원 주식 배분에 대한 논란이 주를 이루고 있으며",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.89,
+      "context_recall": 1.0
+    },
+    {
+      "question": "NAVER 뉴스 흐름 요약해줘",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 654,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "NAVER에 대한 최근 뉴스 흐름 요약입니다.\n\n**전체 감성:** 부정적\n- 긍정: 0건\n- 부정: 5건\n- 중립: 3건\n\n**주요 키워드:** 주식, AI, 코스피, 마이크론, 실적\n\n**뉴스 흐름 요약:**\n최근 뉴스에서는 주식 시장의 하락과 AI 관련 주식의 불안정성이 강조되고 있으며, 마이크론의 실적 발표가 주목받고 있습니다. 전반적으로 부정적인 ",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.641,
+      "context_recall": 1.0
+    },
+    {
+      "question": "카카오 요즘 뉴스 분위기 긍정적이야?",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 371,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "카카오에 대한 최근 뉴스 분위기는 긍정적입니다. 전체적으로 긍정적인 기사가 8건 있으며, 부정적인 기사는 없습니다. 주요 키워드로는 카카오페이, 카카오페이증권, 완전자회사, 주식 추가취득, 경영 효율성 등이 언급되고 있습니다.\n\n특히 카카오페이가 카카오페이증권의 주식을 추가 취득하여 완전자회사로 전환하며 경영 효율성을 높이고 있다는 소식이 있습니다. 또한,",
+      "faithfulness": 0.909,
+      "answer_relevancy": 0.823,
+      "context_recall": 1.0
+    },
+    {
+      "question": "LG에너지솔루션 뉴스 감성 분석",
+      "question_type": "news",
+      "asset_type": "stock",
+      "answer_length": 475,
+      "model": "gpt-4o-mini",
+      "has_context": true,
+      "answer_preview": "LG에너지솔루션에 대한 최근 뉴스 감성 분석 결과입니다.\n\n- **전체 감성:** ⚪ 중립\n  - 긍정: 0건\n  - 부정: 0건\n  - 중립: 3건\n\n- **주요 키워드:** LG에너지솔루션, 투자분석, 개별주식, 위클리옵션, 상장 연기\n\n- **뉴스 흐름 요약:** 최근 LG에너지솔루션 관련 뉴스는 투자 분석과 개별주식 위클리옵션 상장 연기에 대한 내용",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.905,
+      "context_recall": 1.0
+    }
+  ]
+}

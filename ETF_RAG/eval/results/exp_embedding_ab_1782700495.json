@@ -1,0 +1,125 @@
+{
+  "config": {
+    "dataset_size": 62,
+    "models": {
+      "small": "text-embedding-3-small",
+      "large": "text-embedding-3-large",
+      "bge-m3": "BAAI/bge-m3"
+    },
+    "modes": [
+      "full (실서비스)",
+      "dense_only (직접매칭off + sparse=0)"
+    ],
+    "note": "Hit@5 천장 효과 → dense_only MRR/Hit@1로 판정. bge-m3는 한국어 특화 비교용."
+  },
+  "models": {
+    "small": {
+      "full": {
+        "n": 42,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "full_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "dense_only": {
+        "n": 42,
+        "mrr": 0.4948,
+        "hit@1": 0.4286,
+        "hit@3": 0.5238,
+        "hit@5": 0.619
+      },
+      "dense_only_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "elapsed_sec": 38.5
+    },
+    "large": {
+      "full": {
+        "n": 42,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "full_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "dense_only": {
+        "n": 42,
+        "mrr": 0.8738,
+        "hit@1": 0.8571,
+        "hit@3": 0.881,
+        "hit@5": 0.9048
+      },
+      "dense_only_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "elapsed_sec": 58.9
+    },
+    "bge-m3": {
+      "full": {
+        "n": 42,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "full_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "dense_only": {
+        "n": 42,
+        "mrr": 0.5762,
+        "hit@1": 0.5714,
+        "hit@3": 0.5714,
+        "hit@5": 0.5952
+      },
+      "dense_only_hard": {
+        "n": 3,
+        "mrr": 1.0,
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0
+      },
+      "elapsed_sec": 47.0
+    }
+  },
+  "skipped": [],
+  "delta_vs_small_dense_only": {
+    "large": {
+      "mrr": 0.379,
+      "hit@1": 0.4285,
+      "hit@3": 0.3572,
+      "hit@5": 0.2858
+    },
+    "bge-m3": {
+      "mrr": 0.0814,
+      "hit@1": 0.1428,
+      "hit@3": 0.0476,
+      "hit@5": -0.0238
+    }
+  }
+}
