@@ -67,6 +67,21 @@ jobs:
             echo "Total coverage: ${TOTAL}%"
           fi
 
+      # Alembic drift 게이트 — 모델 정의와 마이그레이션 리비전이 일치하는지.
+      # 빈 sqlite에 upgrade head 후 alembic check가 diff를 감지하면 실패
+      # (= 모델은 바꿨는데 리비전 안 만든 drift). 테스트는 create_all을 쓰므로
+      # 이 게이트가 "테스트 경로 == 프로덕션 마이그레이션 경로" 정합을 보장한다.
+      - name: Alembic migration drift check
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ETF_RAG
+          OPENAI_API_KEY: "sk-test-dummy-key-for-ci"
+          DATABASE_URL: "sqlite:////tmp/ci_alembic.db"
+        run: |
+          cd ETF_RAG
+          rm -f /tmp/ci_alembic.db
+          alembic upgrade head
+          alembic check
+
   # RAG 검색 품질 게이트 — retrieval Hit Rate가 임계 미만이면 실패(검색 회귀 감지).
   # OPENAI_API_KEY는 FAISS 인덱싱(임베딩)에 필요 → secret 있을 때만 실행, 없으면 skip.
   # RAGAS full(답변 품질)은 비용·비결정성으로 CI 제외 — 로컬에서 run_eval.py로 측정.

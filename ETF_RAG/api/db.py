@@ -8,14 +8,19 @@ FastAPI는 non-async(def) 핸들러를 threadpool에서 실행하므로 blocking
 """
 
 import logging
+import os
+from pathlib import Path
 from typing import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
+
+# alembic.ini는 프로젝트 루트(api/의 부모). 부팅 시 프로그램적으로 마이그레이션 실행.
+_ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
 
 # sqlite는 커넥션 생성 스레드에서만 사용 가능 — FastAPI threadpool(다중 스레드) 위해 해제.
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -28,52 +33,58 @@ class Base(DeclarativeBase):
 
 
 def init_models() -> None:
-    """테이블이 없으면 생성. 멱등 — API_SKIP_INIT과 무관하게 매 부팅 호출(테이블만, 싸다)."""
+    """사용자 DB 스키마 준비. 멱등 — API_SKIP_INIT과 무관하게 매 부팅 호출.
+
+    테스트(API_SKIP_INIT=1)는 Alembic을 타지 않고 create_all만 한다(픽스처가
+    인메모리 엔진에 이미 create_all 하므로 무해·빠름, 894 테스트 경로 불변).
+    프로덕션은 Alembic으로 마이그레이션(run_migrations). 어느 경로든 실패 시
+    create_all fallback으로 최소한 테이블은 보장(가용성 우선, 현행 철학).
+    """
     from api import models_db  # noqa: F401 — 모델 등록(임포트 부수효과)
-    Base.metadata.create_all(engine)
-    _migrate_add_columns()
-    logger.info("사용자 DB 테이블 준비 완료 (%s)", engine.url.drivername)
+
+    if os.getenv("API_SKIP_INIT") == "1":
+        Base.metadata.create_all(engine)
+        logger.info("사용자 DB 테이블 준비 완료 (create_all, 테스트 경로)")
+        return
+
+    try:
+        run_migrations()
+        logger.info("사용자 DB 마이그레이션 완료 (%s)", engine.url.drivername)
+    except Exception:  # noqa: BLE001 — 마이그레이션 실패해도 테이블은 보장
+        logger.error("Alembic 마이그레이션 실패 — create_all fallback", exc_info=True)
+        Base.metadata.create_all(engine)
 
 
-def _migrate_add_columns() -> None:
-    """create_all은 기존 테이블에 신규 컬럼을 추가하지 못함(Alembic 미도입).
-    이미 users 테이블이 있는 환경(기존 가입자 보유 DB)을 위한 경량 멱등 마이그레이션.
-    sqlite/postgres 모두 ADD COLUMN IF NOT EXISTS를 지원하지 않는 경우가 있어
-    inspector로 존재 여부를 먼저 확인한다."""
-    from sqlalchemy import inspect, text
+def run_migrations() -> None:
+    """Alembic으로 스키마를 head까지 올린다. 재바인딩된 db.engine을 그대로 사용.
+
+    부팅 시점의 DB 상태에 따라 분기:
+    - alembic_version 존재 → upgrade head (정상 경로, 이후 매 배포)
+    - users만 존재(기존 라이브 DB) → stamp head (DDL 0건, 버전만 각인 — 최초 1회)
+    - 빈 DB → upgrade head (처음부터 전체 스키마 생성, 신규 환경)
+
+    Alembic이 자체 엔진을 만들지 않도록 config.attributes["connection"]에 현재
+    엔진 커넥션을 주입한다(테스트의 StaticPool 인메모리 엔진과 연결 유지 목적).
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(str(_ALEMBIC_INI))
+    cfg.set_main_option("sqlalchemy.url", str(engine.url))
 
     insp = inspect(engine)
-    if "users" not in insp.get_table_names():
-        return  # create_all이 방금 최신 스키마로 생성 → 보정 불필요
-    cols = {c["name"] for c in insp.get_columns("users")}
-    if "nickname" not in cols:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN nickname VARCHAR(40)"))
-        logger.info("마이그레이션: users.nickname 컬럼 추가")
-    if "age_group" not in cols:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN age_group VARCHAR(10)"))
-        logger.info("마이그레이션: users.age_group 컬럼 추가")
+    tables = set(insp.get_table_names())
 
-    # paper_accounts.started_at (라운드 결산 기간 산정용). 기존 행은 created_at으로 채움.
-    if "paper_accounts" in insp.get_table_names():
-        pa_cols = {c["name"] for c in insp.get_columns("paper_accounts")}
-        if "started_at" not in pa_cols:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE paper_accounts ADD COLUMN started_at TIMESTAMP"
-                ))
-                conn.execute(text(
-                    "UPDATE paper_accounts SET started_at = created_at "
-                    "WHERE started_at IS NULL"
-                ))
-            logger.info("마이그레이션: paper_accounts.started_at 컬럼 추가")
-        if "last_dividend_at" not in pa_cols:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE paper_accounts ADD COLUMN last_dividend_at TIMESTAMP"
-                ))
-            logger.info("마이그레이션: paper_accounts.last_dividend_at 컬럼 추가")
+    with engine.connect() as conn:
+        cfg.attributes["connection"] = conn
+        if "alembic_version" in tables:
+            command.upgrade(cfg, "head")
+        elif "users" in tables:
+            # 기존 라이브 DB: 스키마는 이미 최신, 버전만 각인(마이그레이션 SQL 미실행).
+            command.stamp(cfg, "head")
+            logger.info("기존 DB 감지 — alembic stamp head (DDL 없음)")
+        else:
+            command.upgrade(cfg, "head")
 
 
 def get_db() -> Iterator[Session]:

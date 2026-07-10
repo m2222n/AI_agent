@@ -35,7 +35,11 @@ HTTP로만 결합된 **독립 2서비스**다. 기존 Streamlit 앱은 그대로
    - 선택: `SUPABASE_URL` + `SUPABASE_KEY` (방문자 카운터 — 미설정 시 카운터 숨김). Streamlit과 같은 `visitor_stats` 테이블 공유.
    - 선택: `COHERE_API_KEY`, `DART_API_KEY`, `LANGCHAIN_*`, `VECTOR_DB_BACKEND`, `PINECONE_*`
    - `PORT` — Railway가 자동 주입 (Dockerfile CMD가 `${PORT}` 확장).
-   - 인증 테이블은 부팅 시 `init_models()`가 자동 생성(create_all). 마이그레이션 도구(Alembic)는 후속.
+   - 인증/유저 DB 스키마는 부팅 시 `init_models()`가 Alembic으로 마이그레이션(`run_migrations`).
+     기존 라이브 DB(가입자 보유)는 최초 배포 시 `stamp head`(DDL 0건, 데이터 무손상)로 버전만 각인,
+     이후 배포부터 `upgrade head`. 테스트(`API_SKIP_INIT=1`)는 Alembic 없이 `create_all`.
+     마이그레이션 실패 시 `create_all` fallback(가용성 우선). 스키마 변경 시 `alembic revision
+     --autogenerate` → CI drift 게이트(`alembic check`)가 리비전 누락을 감지.
 3. 배포 → **첫 부팅 동작**: lifespan `run_init()`이 DB 다운로드(3~5분) + FAISS 인덱스 빌드(~90s).
    그동안 `/health`는 `{ready:false}`, 완료되면 `{ready:true}`. 이후 부팅은 (볼륨 있으면) 빠름.
 4. 백엔드 **public URL** 확보 (예: `https://etf-backend-production.up.railway.app`).

@@ -31,6 +31,7 @@ httpx>=0.27.0,<1.0
 websockets>=12.0,<16  # KIS WebSocket 실시간 체결 (kis_ws.py)
 pywebpush>=2.0,<3  # 웹 푸시 알림 (VAPID)
 sqlalchemy>=2.0,<3
+alembic>=1.13,<2  # 사용자 DB 스키마 마이그레이션 (api/db.py run_migrations)
 psycopg2-binary>=2.9,<3
 PyJWT>=2.8,<3
 bcrypt>=4.0,<6
