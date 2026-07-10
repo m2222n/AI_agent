@@ -15,8 +15,12 @@ import threading
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
+from api.db import get_db
 from api.deps import run_init, verify_cron_token, _DB_PATH
+from api.models_db import PaperAccount, User
 from src.data.db_downloader import ensure_db
 from src.data import technical
 
@@ -79,3 +83,49 @@ def refresh_db(_: None = Depends(verify_cron_token)) -> RefreshDbResponse:
         return RefreshDbResponse(ok=True, refreshed=True, detail="최신 DB로 교체 완료")
     finally:
         _refresh_lock.release()
+
+
+class AdminStatsResponse(BaseModel):
+    total_users: int          # 총 가입자 수
+    users_with_nickname: int  # 닉네임 설정한 유저 수
+    age_groups: dict          # 나이대별 가입자 수 ({"20대": 3, ...}), 미입력은 "미입력"
+    paper_players: int        # 가상투자 계좌를 만든 유저 수
+    visitors_total: int       # 누적 방문 수(방문자 카운터, 방문≠가입)
+
+
+@router.get("/stats", response_model=AdminStatsResponse)
+def admin_stats(
+    _: None = Depends(verify_cron_token),
+    db: Session = Depends(get_db),
+) -> AdminStatsResponse:
+    """관리자용 가입자/방문자 통계. X-Cron-Token 보호(아무나 가입자 수를 못 보게).
+
+    가입자 수는 users 테이블 count. 나이대 분포는 age_group 그룹 count(NULL은 미입력).
+    가상투자 참가자는 paper_accounts 수. 방문자 수는 visitor 카운터(방문≠가입).
+    """
+    total_users = db.scalar(select(func.count()).select_from(User)) or 0
+    users_with_nickname = db.scalar(
+        select(func.count()).select_from(User).where(User.nickname.isnot(None))
+    ) or 0
+
+    age_rows = db.execute(
+        select(User.age_group, func.count()).group_by(User.age_group)
+    ).all()
+    age_groups = {(g or "미입력"): c for g, c in age_rows}
+
+    paper_players = db.scalar(select(func.count()).select_from(PaperAccount)) or 0
+
+    # 방문자 수는 별도 스토어(Supabase/파일) — 실패해도 통계 전체는 반환.
+    try:
+        from src.data.visitor import get_visitor_counts
+        _, visitors_total = get_visitor_counts()
+    except Exception:  # noqa: BLE001
+        visitors_total = 0
+
+    return AdminStatsResponse(
+        total_users=total_users,
+        users_with_nickname=users_with_nickname,
+        age_groups=age_groups,
+        paper_players=paper_players,
+        visitors_total=visitors_total,
+    )
