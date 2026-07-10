@@ -34,6 +34,27 @@ def _get_db_conn() -> sqlite3.Connection:
         return _db_conn
 
 
+def reset_db_connection() -> None:
+    """DB 파일이 교체됐을 때 싱글톤 커넥션·TTL 캐시를 리셋한다.
+
+    DB 파일을 unlink→재다운로드로 갈아끼우면, 이 싱글톤은 삭제된 옛 inode의
+    열린 핸들을 계속 잡고 있어 새 데이터가 절대 반영되지 않는다. 커넥션을 닫고
+    None으로 되돌려 다음 조회 시 새 파일로 재연결하게 하고, stale 값을 서빙하지
+    않도록 OHLCV/종가 캐시도 비운다. (DB 새로고침 cron 엔드포인트에서 호출)
+    """
+    global _db_conn
+    with _db_lock:
+        if _db_conn is not None:
+            try:
+                _db_conn.close()
+            except Exception:  # noqa: BLE001 — 닫기 실패해도 None 리셋은 진행
+                logger.warning("기존 DB 커넥션 close 실패 — 무시하고 리셋", exc_info=True)
+            _db_conn = None
+        _ohlcv_cache.clear()
+        _closes_cache.clear()
+    logger.info("technical DB 커넥션·캐시 리셋 완료")
+
+
 # ── 간단한 TTL 캐시 (동일 질문 내 중복 DB 쿼리 방지) ──
 _CACHE_TTL = 300  # 5분
 _ohlcv_cache: dict[tuple, tuple] = {}  # (ticker, days) → (timestamp, data)
