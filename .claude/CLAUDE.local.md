@@ -2557,6 +2557,17 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
   - 프론트: 회원가입 폼 나이대 select(선택), 계정설정 '프로필'(닉네임+나이대 통합). `updateNickname`→`updateProfile(nickname, ageGroup)` 확장(+하위호환 별칭). 테스트 +4.
 - **ID/비밀번호 찾기 = 안내 방식(메일 인프라 없이)**: 이 서비스는 **이메일=아이디**라 ID찾기는 기능 아닌 안내로 충분. 비번 재설정 메일은 SMTP 인프라 필요→보류 유지. 로그인 화면에 "아이디·비밀번호 찾기" 토글 안내(ID=이메일 / 비번=로그인 시 계정설정 변경, 분실 시 문의). **메일 인프라(Resend/SendGrid free)는 사용자가 원하면 후속.**
 
+## 2026-07-06~10 세션 (운영장애 복구 + Alembic + 코드점검)
+상세 메모리: `memory/project_ai_agent_krx_pw_expiry.md`, `memory/project_ai_agent_prod_db_refresh.md`, `memory/project_ai_agent_text_to_sql_idea.md`, `memory/project_ai_agent_app_cost.md`.
+
+- **KRX 비번 만료로 자동수집 멈춤 (7/6)**: Daily KRX Collection이 "패스워드 변경 필요"로 실패(3회 재시도 전부). 원인=KRX 계정 비번 만료 정책(코드 무관). 로그인 화면에서 "90일 연기" 선택→기존 비번 유지→`gh workflow run daily-collect.yml` 수동 재실행으로 복구. **~2026-10-04경 재발 예정**. 주말(토·일 휴장)은 데이터가 직전 금요일자인 게 정상 — 함정 주의.
+- **프로덕션 DB stale 근본해결 (7/10, PR #107)**: 수집·Release DB는 최신인데 라이브 백엔드가 7/7에 멈춰 서빙. 원인=`ensure_db`(신선도검사)가 **부팅 시에만** 호출되는데 keep-alive가 재부팅을 막아 볼륨 DB가 굳음. 해결: **`POST /admin/refresh-db`**(`api/admin.py`, X-Cron-Token) — DB+WAL/SHM 삭제→ensure_db 재다운로드→`technical.reset_db_connection()`(삭제된 옛 inode 핸들 잡는 싱글톤 close+캐시clear, **가장 위험한 함정**)→run_init 재실행. daily-collect가 Release 갱신 직후 알림/스냅샷보다 먼저 트리거. **CRON_TOKEN이 원래 GitHub·Railway 양쪽에 없어 기존 알림/스냅샷도 그동안 skip돼 왔음** → 신규 토큰 생성해 양쪽 동일값 등록(+REFRESH_DB_URL/PUSH_ALERT_URL/PAPER_SNAPSHOT_URL). cron 3종 라이브 검증 완료. 함정: Railway env 저장 후 재배포(Active) 실제 반영 확인 필수.
+- **Alembic 마이그레이션 도입 (PR #109)**: 수동 `_migrate_add_columns`(ALTER 4건 누적) → 정식 Alembic. `alembic/env.py`가 `config.attributes["connection"]`로 외부엔진 주입(부팅 시 db.engine 재사용→테스트 StaticPool 엔진과 연결 유지). `run_migrations`: alembic_version 있으면 upgrade / users만 있으면 **stamp head**(기존 라이브 DB, DDL 0건·데이터 무손상) / 빈 DB면 upgrade. **API_SKIP_INIT=1(테스트)은 Alembic 없이 create_all**(894 경로 불변). 실패 시 create_all fallback. ci.yml drift 게이트(`alembic check`)로 모델-리비전 정합. 초기 리비전==create_all 스키마 완전일치 실측. 3분기 실측 검증(기존DB stamp 시 데이터 보존 확인).
+- **가상투자 진입일 tz 실버그 (PR #109, 커밋 분리)**: `_holding_since_map`이 naive datetime(sqlite 반환)에 `.astimezone(KST)` 직접 호출→시스템 로컬시간 오해→UTC 자정 근처 체결 진입일 하루 어긋남. `_to_kst` 헬퍼(naive는 UTC로 못박음)로 수정. Postgres는 원래 정상. 표시용만 영향. **PR #93~#108 코드점검 라운드**에서 발견(발굴 에이전트 후보 3건 중 직접 재현·검증으로 1건만 실버그 확정, 2건 기각 — 주말재다운로드=의도된 트레이드오프, PDF티커=현재 발생불가).
+- **`/tabs/news` 통합 테스트 (PR #108)**: 뉴스탭(#104) 엔드포인트 계층 커버리지 갭(0건) 메움. 정상/종목미해석/빈시계열/max_articles 검증. 테스트 +5.
+- **검토 후 제외/보류**: ①실제 투자설명서 PDF — 파이프라인은 합성샘플로 검증 완료(PR #103), 실제 투입은 한글PDF 파싱(스캔·표·CID 조용히 실패)+저작권+대량시 이미지비대화로 **효용 낮다 판단→보류**. ②Text-to-SQL(KAIST 발표 메모) — 가치중복+"실행되는데 틀린SQL"이 신뢰성 정체성과 충돌+Ollama/7B가 Railway 부적합→**제외**(유료화·별도프로젝트 시 재검토, 정형DB 전제는 완비). ③앱화 비용 산정만(개발 보류): 이미 PWA, 스토어등록은 Capacitor 래핑 초기$124+Apple $99/년.
+- 테스트: 882→**895** (refresh-db +7, news +5, tz +1 등).
+
 ## 임베딩 비교 정식화 + RAG CI 게이트 (2026-06-29, PR #102)
 상세: `memory/project_ai_agent_embedding_ragas_ci.md`.
 - **임베딩 비교**: `exp_embedding_ab.py`에 BGE-M3(한국어 특화 로컬) 추가, 리포트 `eval/EMBEDDING_COMPARISON.md`. 실측 dense_only MRR small 0.49/large 0.87(압도)/bge-m3 0.58. **full 파이프라인 셋 다 천장 1.0 → 현행 small 유지**(하이브리드가 임베딩 약점 메움). dense↑(PDF) 시 large. 함정: torch<2.6 .bin 차단→safetensors revision 고정, MPS OOM→cpu.
@@ -2565,7 +2576,8 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 
 ---
 
-_Last Updated: 2026-06-29 (PR #102 — 임베딩 비교 정식화(BGE-M3 실측: full 천장→small 유지, dense는 large 압도) + RAG 검색 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY 있을때만). 백엔드 873)_
+_Last Updated: 2026-07-10 (세션: 운영장애 2건 복구[KRX 비번만료 자동수집멈춤 90일연기·재실행 / 프로덕션 DB stale 근본해결 refresh-db cron #107] + cron 3종 secret 등록(CRON_TOKEN 원래 없어 알림/스냅샷도 skip됐던 것 해결) + Alembic 도입 #109(stamp head로 라이브DB 무DDL·데이터보존, 테스트는 create_all 유지, drift게이트) + 가상투자 tz 실버그 수정 #109(코드점검 PR#93~108) + news 통합테스트 #108. PDF실투입·Text-to-SQL은 검토 후 제외/보류. 테스트 882→895)_
+_2026-06-29 (PR #102 — 임베딩 비교 정식화(BGE-M3 실측: full 천장→small 유지, dense는 large 압도) + RAG 검색 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY 있을때만). 백엔드 873)_
 _2026-06-26 세션후반2 (PR #100·#101 추가 — 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 #100 / 나이대(선택, 식별X·분류정보) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 전체 873+프론트17)_
 _2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403 백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문 / UX 공통컴포넌트 / Vitest 도입+다크모드 롤백 / **데이터 수집 누락 2건 해결**(프로덕션 DB stale 신선도검사 #98 + 검증 ETF/주식 분리 #99). 전체 869+프론트17. 데이터: 외부수집 간헐실패는 불가피하나 검증이 부분누락 잡아 자동복구·프로덕션은 collect_full 검증으로 보호)_
 _2026-06-26 (ToDo 1~10 일괄 완료 PR #88~#92 — env진단·KOSDAQ백필(로그인누락)·관심종목⭐확대·가상투자 고도화(파이/통계/배당)·RAGAS재측정 F0.988·코드점검 실버그2건. MEMORY 43KB→8KB 다이어트. 전체 851. 후원/블로그는 사용자 요청 시까지 보류)_

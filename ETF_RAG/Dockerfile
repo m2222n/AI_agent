@@ -34,6 +34,9 @@ COPY config.py .
 COPY src/ ./src/
 COPY api/ ./api/
 COPY scripts/ ./scripts/
+# 사용자 DB 마이그레이션 — 부팅 시 api/db.py:run_migrations가 참조(없으면 런타임 실패).
+COPY alembic.ini .
+COPY alembic/ ./alembic/
 
 EXPOSE 8000
 
