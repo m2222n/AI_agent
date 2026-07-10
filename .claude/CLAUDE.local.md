@@ -2568,6 +2568,15 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 - **검토 후 제외/보류**: ①실제 투자설명서 PDF — 파이프라인은 합성샘플로 검증 완료(PR #103), 실제 투입은 한글PDF 파싱(스캔·표·CID 조용히 실패)+저작권+대량시 이미지비대화로 **효용 낮다 판단→보류**. ②Text-to-SQL(KAIST 발표 메모) — 가치중복+"실행되는데 틀린SQL"이 신뢰성 정체성과 충돌+Ollama/7B가 Railway 부적합→**제외**(유료화·별도프로젝트 시 재검토, 정형DB 전제는 완비). ③앱화 비용 산정만(개발 보류): 이미 PWA, 스토어등록은 Capacitor 래핑 초기$124+Apple $99/년.
 - 테스트: 882→**895** (refresh-db +7, news +5, tz +1 등).
 
+### 가입자 통계 + 성별 + 비밀번호 재설정 (2026-07-10, PR #114~116)
+상세 메모리: `memory/project_ai_agent_gender_pwreset_20260710.md`.
+- **가입자 통계 #114**: `GET /admin/stats`(X-Cron-Token) — 가입자/닉네임/나이대/성별/가상투자/방문 집계. 라이브 조회 **가입자 1명(본인, 30대)·방문 242**. 랭킹은 참가자 1명이라 의미 약하나 "지금은 그대로 두기"(사용자 결정).
+- **성별 필수 #115**: `User.gender` + **Alembic 정식 마이그레이션(첫 실전 DDL — 라이브 Postgres에 upgrade head로 컬럼 실제 추가 성공, #109는 stamp만이었음)**. GENDERS(남/여/기타/선택안함), signup 필수(누락422·미허용400)·profile 선택변경. 프론트 가입폼 필수 select+계정설정. 기존 signup 테스트 전부 gender 반영.
+- **비밀번호 재설정 #115**: 단기 JWT(purpose=pwreset,30분), api/email.py Resend(httpx, 키없으면 no-op), request(항상202 열거방지)·confirm(만료·위조·액세스토큰 400), 프론트 /reset. 
+- **⚠️ Resend 무료 도메인 제약(라이브 로그 확정)**: onboarding@resend.dev는 **가입계정 본인에게만 발송**, 타 수신자 **403 "테스트 도메인 제한"**. 코드·설정·발송 전부 정상, Resend 정책만 막음(기능결함 아님). 모든 사용자 발송하려면 **직접 구매 도메인 인증**(Railway 서브도메인은 DNS 제어 불가). 도메인 없어도 가입·로그인·전기능 정상, 비번재설정 발송만 본인계정 제한.
+- **결정 #116**: 가입자 1명이라 도메인 지금 안 삼. **코드/엔드포인트/`/reset`/auth함수 전부 보존**, 로그인 화면 비번찾기 UI만 "메일 서비스 준비 중" 안내로 되돌림. 도메인 인증 시 RESET_EMAIL_FROM env + login UI만 되살리면 즉시 전체 동작.
+- env: RESEND_API_KEY/FRONTEND_BASE_URL(GitHub secret + Railway 등록). 테스트 895→**907**(성별4+비번찾기4).
+
 ### 프론트 버그 수정 + 백엔드 리팩터링 (2026-07-10, PR #110)
 상세 메모리: `memory/project_ai_agent_refactor_20260710.md`.
 - **프론트 실버그 3건**(코드점검 첫 라운드→직접검증): ①관심종목 소실 — `add/removeWatchlist`가 실패 시 `[]` 반환→토글 1회 실패(토큰만료 등)로 `setTickers(new Set([]))`가 되어 관심종목 화면에서 전부 사라짐. 실패 시 `null` 반환+낙관적 상태 유지로 수정. ②데이터탭 5종(technical/outlook/comparison/financial/sector) stale response race — 빠른 종목/기간 전환 시 이전 응답이 최신 덮어씀. 요청 순번(useRef) 가드. ③PriceCard change_pct 미포맷(.toFixed(2)). 검증 tsc+Vitest17+build14.
@@ -2584,7 +2593,8 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 
 ---
 
-_Last Updated: 2026-07-10 세션후반 (PR #110 — 프론트 실버그3[관심종목 소실·데이터탭 race·시세포맷] + 백엔드 리팩터링[미사용청소·cron Depends통합·conftest 공통화 ~100줄↓·tabs 헬퍼·paper 랭킹 N+1제거]. 진단→우선순위→단계별커밋+테스트검증, 동작보존, 파일분할은 이득<리스크로 제외. 순 -81줄. 895 green. 상세: memory/project_ai_agent_refactor_20260710)_
+_Last Updated: 2026-07-10 세션후반3 (PR #114~116 — 가입자통계 /admin/stats[라이브 가입자 1명·방문242] + 성별 필수수집[Alembic 첫 실전 DDL, gender 라이브 컬럼추가 성공] + 비밀번호 재설정[JWT토큰·Resend메일]. **Resend 무료 도메인 제약**: onboarding@resend.dev는 가입계정 본인만 발송(타 수신자 403), 도메인 인증해야 전체발송 — 지금은 UI만 "준비중" 안내로 되돌리고 코드 보존. 907 green. 상세: memory/project_ai_agent_gender_pwreset_20260710)_
+_2026-07-10 세션후반2 (PR #110 — 프론트 실버그3[관심종목 소실·데이터탭 race·시세포맷] + 백엔드 리팩터링[미사용청소·cron Depends통합·conftest 공통화 ~100줄↓·tabs 헬퍼·paper 랭킹 N+1제거]. 진단→우선순위→단계별커밋+테스트검증, 동작보존, 파일분할은 이득<리스크로 제외. 순 -81줄. 895 green. 상세: memory/project_ai_agent_refactor_20260710)_
 _2026-07-10 세션전반 (운영장애 2건 복구[KRX 비번만료 자동수집멈춤 90일연기·재실행 / 프로덕션 DB stale 근본해결 refresh-db cron #107] + cron 3종 secret 등록(CRON_TOKEN 원래 없어 알림/스냅샷도 skip됐던 것 해결) + Alembic 도입 #109(stamp head로 라이브DB 무DDL·데이터보존, 테스트는 create_all 유지, drift게이트) + 가상투자 tz 실버그 수정 #109(코드점검 PR#93~108) + news 통합테스트 #108. PDF실투입·Text-to-SQL은 검토 후 제외/보류. 테스트 882→895)_
 _2026-06-29 (PR #102 — 임베딩 비교 정식화(BGE-M3 실측: full 천장→small 유지, dense는 large 압도) + RAG 검색 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY 있을때만). 백엔드 873)_
 _2026-06-26 세션후반2 (PR #100·#101 추가 — 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 #100 / 나이대(선택, 식별X·분류정보) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 전체 873+프론트17)_
