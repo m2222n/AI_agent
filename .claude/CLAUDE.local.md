@@ -2568,6 +2568,13 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 - **검토 후 제외/보류**: ①실제 투자설명서 PDF — 파이프라인은 합성샘플로 검증 완료(PR #103), 실제 투입은 한글PDF 파싱(스캔·표·CID 조용히 실패)+저작권+대량시 이미지비대화로 **효용 낮다 판단→보류**. ②Text-to-SQL(KAIST 발표 메모) — 가치중복+"실행되는데 틀린SQL"이 신뢰성 정체성과 충돌+Ollama/7B가 Railway 부적합→**제외**(유료화·별도프로젝트 시 재검토, 정형DB 전제는 완비). ③앱화 비용 산정만(개발 보류): 이미 PWA, 스토어등록은 Capacitor 래핑 초기$124+Apple $99/년.
 - 테스트: 882→**895** (refresh-db +7, news +5, tz +1 등).
 
+### 프론트 버그 수정 + 백엔드 리팩터링 (2026-07-10, PR #110)
+상세 메모리: `memory/project_ai_agent_refactor_20260710.md`.
+- **프론트 실버그 3건**(코드점검 첫 라운드→직접검증): ①관심종목 소실 — `add/removeWatchlist`가 실패 시 `[]` 반환→토글 1회 실패(토큰만료 등)로 `setTickers(new Set([]))`가 되어 관심종목 화면에서 전부 사라짐. 실패 시 `null` 반환+낙관적 상태 유지로 수정. ②데이터탭 5종(technical/outlook/comparison/financial/sector) stale response race — 빠른 종목/기간 전환 시 이전 응답이 최신 덮어씀. 요청 순번(useRef) 가드. ③PriceCard change_pct 미포맷(.toFixed(2)). 검증 tsc+Vitest17+build14.
+- **백엔드 리팩터링**(진단→안전·고가치순, 895 전부 green 유지): ①미사용 import/변수 청소(pyflakes clean) + `/tabs/news` 도달불가 404분기 제거. ②cron 토큰검증 3곳(push/paper/admin) 복붙→`deps.verify_cron_token` 공통 Depends. ③테스트 `_reset_sse_global`(7곳)+`client` StaticPool fixture(4곳)→conftest 통합(~100줄↓). ④tabs `(data or {}).get` 패턴 4곳→`_ticker_name` 헬퍼. ⑤paper ranking `db.get(User)` N+1→`select(User).in_(ids)` 배치.
+- **비권장(안 함)**: predictor/collector/agent 파일분할(응집도 좋아 이득<리스크), 멀티워커 대응(단일워커 전제).
+- **교훈**: conftest 공통화 중 test_push가 본문에서 `db.SessionLocal()` 직접 쓰는 걸 놓쳐 import 제거→테스트가 즉시 NameError로 잡음(동작보존 안전망 실증).
+
 ## 임베딩 비교 정식화 + RAG CI 게이트 (2026-06-29, PR #102)
 상세: `memory/project_ai_agent_embedding_ragas_ci.md`.
 - **임베딩 비교**: `exp_embedding_ab.py`에 BGE-M3(한국어 특화 로컬) 추가, 리포트 `eval/EMBEDDING_COMPARISON.md`. 실측 dense_only MRR small 0.49/large 0.87(압도)/bge-m3 0.58. **full 파이프라인 셋 다 천장 1.0 → 현행 small 유지**(하이브리드가 임베딩 약점 메움). dense↑(PDF) 시 large. 함정: torch<2.6 .bin 차단→safetensors revision 고정, MPS OOM→cpu.
@@ -2576,7 +2583,8 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 
 ---
 
-_Last Updated: 2026-07-10 (세션: 운영장애 2건 복구[KRX 비번만료 자동수집멈춤 90일연기·재실행 / 프로덕션 DB stale 근본해결 refresh-db cron #107] + cron 3종 secret 등록(CRON_TOKEN 원래 없어 알림/스냅샷도 skip됐던 것 해결) + Alembic 도입 #109(stamp head로 라이브DB 무DDL·데이터보존, 테스트는 create_all 유지, drift게이트) + 가상투자 tz 실버그 수정 #109(코드점검 PR#93~108) + news 통합테스트 #108. PDF실투입·Text-to-SQL은 검토 후 제외/보류. 테스트 882→895)_
+_Last Updated: 2026-07-10 세션후반 (PR #110 — 프론트 실버그3[관심종목 소실·데이터탭 race·시세포맷] + 백엔드 리팩터링[미사용청소·cron Depends통합·conftest 공통화 ~100줄↓·tabs 헬퍼·paper 랭킹 N+1제거]. 진단→우선순위→단계별커밋+테스트검증, 동작보존, 파일분할은 이득<리스크로 제외. 순 -81줄. 895 green. 상세: memory/project_ai_agent_refactor_20260710)_
+_2026-07-10 세션전반 (운영장애 2건 복구[KRX 비번만료 자동수집멈춤 90일연기·재실행 / 프로덕션 DB stale 근본해결 refresh-db cron #107] + cron 3종 secret 등록(CRON_TOKEN 원래 없어 알림/스냅샷도 skip됐던 것 해결) + Alembic 도입 #109(stamp head로 라이브DB 무DDL·데이터보존, 테스트는 create_all 유지, drift게이트) + 가상투자 tz 실버그 수정 #109(코드점검 PR#93~108) + news 통합테스트 #108. PDF실투입·Text-to-SQL은 검토 후 제외/보류. 테스트 882→895)_
 _2026-06-29 (PR #102 — 임베딩 비교 정식화(BGE-M3 실측: full 천장→small 유지, dense는 large 압도) + RAG 검색 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY 있을때만). 백엔드 873)_
 _2026-06-26 세션후반2 (PR #100·#101 추가 — 가상투자 보유종목 클릭→주문 + 채팅 관심종목 종목명 #100 / 나이대(선택, 식별X·분류정보) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 전체 873+프론트17)_
 _2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403 백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문 / UX 공통컴포넌트 / Vitest 도입+다크모드 롤백 / **데이터 수집 누락 2건 해결**(프로덕션 DB stale 신선도검사 #98 + 검증 ETF/주식 분리 #99). 전체 869+프론트17. 데이터: 외부수집 간헐실패는 불가피하나 검증이 부분누락 잡아 자동복구·프로덕션은 collect_full 검증으로 보호)_
