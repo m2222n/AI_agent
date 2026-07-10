@@ -499,6 +499,109 @@ def test_price_stream_unavailable_when_subscribe_none(client):
     assert "unavailable" in r.text
 
 
+# ── News ───────────────────────────────────────────────────────────
+# get_stock_news_summary / build_sentiment_timeseries는 _news_blocking 내부에서
+# import되므로 원본 모듈(src.data.news)에서 patch. generate_news_sentiment_chart는
+# api.tabs 상단 import라 api.tabs에서 patch.
+def _news_summary(**over):
+    base = {
+        "overall_sentiment": "긍정",
+        "positive_count": 3,
+        "negative_count": 1,
+        "neutral_count": 1,
+        "key_topics": ["실적", "반도체"],
+        "summary": "최근 실적 개선 기대.",
+        "sentiment_source": "local",
+        "articles": [
+            {"title": "실적 개선", "published": "2026-07-09", "sentiment": "긍정"},
+            {"title": "관망세", "published": "2026-07-08", "sentiment": "중립"},
+        ],
+    }
+    base.update(over)
+    return base
+
+
+def test_news_returns_summary_timeseries_and_chart(client):
+    structured = {"ticker": "005930", "name": "삼성전자", "per": 12.0}
+    series = [
+        {"date": "2026-07-08", "score": 0.0, "positive": 0, "negative": 0, "neutral": 1},
+        {"date": "2026-07-09", "score": 1.0, "positive": 1, "negative": 0, "neutral": 0},
+    ]
+    with patch("api.tabs._find_structured_data", return_value=structured), patch(
+        "src.data.news.get_stock_news_summary", return_value=_news_summary()
+    ), patch(
+        "src.data.news.build_sentiment_timeseries", return_value=series
+    ), patch("api.tabs.generate_news_sentiment_chart", return_value="NEWSPNG"):
+        r = client.get("/tabs/news", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "삼성전자"
+    assert body["ticker"] == "005930"
+    assert body["overall_sentiment"] == "긍정"
+    assert body["timeseries"] == series
+    assert body["chart_b64"] == "NEWSPNG"
+
+
+def test_news_uses_query_when_unresolved(client):
+    """구조화 데이터로 종목 미해석 시 query를 name으로 쓰고 ticker=None, 뉴스는 그대로 수집."""
+    captured = {}
+
+    def _summary(name, max_articles):
+        captured["name"] = name
+        return _news_summary()
+
+    with patch("api.tabs._find_structured_data", return_value=None), patch(
+        "src.data.news.get_stock_news_summary", side_effect=_summary
+    ), patch(
+        "src.data.news.build_sentiment_timeseries", return_value=[]
+    ), patch("api.tabs.generate_news_sentiment_chart", return_value="X"):
+        r = client.get("/tabs/news", params={"ticker": "듣보종목"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["name"] == "듣보종목"
+    assert body["ticker"] is None
+    assert captured["name"] == "듣보종목"
+
+
+def test_news_no_chart_when_timeseries_empty(client):
+    """시계열이 비면(2일 미만 등) chart_b64=None, 차트 생성 함수 호출 안 함."""
+    with patch("api.tabs._find_structured_data", return_value={"ticker": "005930", "name": "삼성전자"}), patch(
+        "src.data.news.get_stock_news_summary", return_value=_news_summary()
+    ), patch(
+        "src.data.news.build_sentiment_timeseries", return_value=[]
+    ), patch("api.tabs.generate_news_sentiment_chart", return_value="SHOULD_NOT_APPEAR") as m_chart:
+        r = client.get("/tabs/news", params={"ticker": "삼성전자"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["chart_b64"] is None
+    assert body["timeseries"] == []
+    m_chart.assert_not_called()
+
+
+def test_news_passes_max_articles(client):
+    """max_articles 쿼리가 get_stock_news_summary로 전달된다."""
+    captured = {}
+
+    def _summary(name, max_articles):
+        captured["max_articles"] = max_articles
+        return _news_summary()
+
+    with patch("api.tabs._find_structured_data", return_value={"ticker": "005930", "name": "삼성전자"}), patch(
+        "src.data.news.get_stock_news_summary", side_effect=_summary
+    ), patch("src.data.news.build_sentiment_timeseries", return_value=[]):
+        r = client.get("/tabs/news", params={"ticker": "삼성전자", "max_articles": 15})
+    assert r.status_code == 200
+    assert captured["max_articles"] == 15
+
+
+def test_news_max_articles_out_of_range_422(client):
+    """max_articles 범위(3~20) 밖이면 422 검증 에러."""
+    r_low = client.get("/tabs/news", params={"ticker": "삼성전자", "max_articles": 2})
+    r_high = client.get("/tabs/news", params={"ticker": "삼성전자", "max_articles": 21})
+    assert r_low.status_code == 422
+    assert r_high.status_code == 422
+
+
 # ── 가드 ───────────────────────────────────────────────────────────
 def test_tabs_require_ready_503(client):
     # ready=False면 503 (require_ready 의존성)
