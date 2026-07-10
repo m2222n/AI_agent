@@ -2574,6 +2574,7 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 - **백엔드 리팩터링**(진단→안전·고가치순, 895 전부 green 유지): ①미사용 import/변수 청소(pyflakes clean) + `/tabs/news` 도달불가 404분기 제거. ②cron 토큰검증 3곳(push/paper/admin) 복붙→`deps.verify_cron_token` 공통 Depends. ③테스트 `_reset_sse_global`(7곳)+`client` StaticPool fixture(4곳)→conftest 통합(~100줄↓). ④tabs `(data or {}).get` 패턴 4곳→`_ticker_name` 헬퍼. ⑤paper ranking `db.get(User)` N+1→`select(User).in_(ids)` 배치.
 - **비권장(안 함)**: predictor/collector/agent 파일분할(응집도 좋아 이득<리스크), 멀티워커 대응(단일워커 전제).
 - **교훈**: conftest 공통화 중 test_push가 본문에서 `db.SessionLocal()` 직접 쓰는 걸 놓쳐 import 제거→테스트가 즉시 NameError로 잡음(동작보존 안전망 실증).
+- **배포 후 라이브 검증**: 백엔드 재배포(502→200) + 5계층 정상 확인, 리팩터링이 라이브 무해. 프론트 재배포는 무중단. **일시적 502 관찰됨(코드 문제 아님)** — 재배포/유휴 재시작 시 `run_init`(full DB 1.8GB+FAISS 빌드)에 수십초~1분 걸려 그동안 `/health` 502→프론트 "백엔드에 연결할 수 없어요". 자동 회복(14:51 확인), 새로고침이면 됨. 영속볼륨으로 완화됐으나 재시작 자체는 가끔 발생. 계속 502면 크래시 의심(로그 확인).
 
 ## 임베딩 비교 정식화 + RAG CI 게이트 (2026-06-29, PR #102)
 상세: `memory/project_ai_agent_embedding_ragas_ci.md`.
