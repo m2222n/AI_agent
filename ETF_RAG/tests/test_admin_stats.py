@@ -37,14 +37,15 @@ def test_stats_empty(client):
     assert body["total_users"] == 0
     assert body["paper_players"] == 0
     assert body["age_groups"] == {}
+    assert body["genders"] == {}
 
 
 def test_stats_counts_users_and_age_groups(client):
     """가입 후 가입자 수·나이대 분포·닉네임 수 집계."""
     # 나이대 있는 유저 2명(20대), 나이대 없는 유저 1명
-    client.post("/auth/signup", json={"email": "a@b.com", "password": "pw123456", "age_group": "20대"})
-    client.post("/auth/signup", json={"email": "c@d.com", "password": "pw123456", "age_group": "20대"})
-    client.post("/auth/signup", json={"email": "e@f.com", "password": "pw123456"})
+    client.post("/auth/signup", json={"email": "a@b.com", "password": "pw123456", "age_group": "20대", "gender": "남성"})
+    client.post("/auth/signup", json={"email": "c@d.com", "password": "pw123456", "age_group": "20대", "gender": "여성"})
+    client.post("/auth/signup", json={"email": "e@f.com", "password": "pw123456", "gender": "선택안함"})
 
     # 방문자 카운터는 외부 스토어라 모킹(집계에 영향 없음 확인용)
     with patch("config.CRON_TOKEN", "secret"), \
@@ -56,4 +57,7 @@ def test_stats_counts_users_and_age_groups(client):
     assert body["total_users"] == 3
     assert body["age_groups"].get("20대") == 2
     assert body["age_groups"].get("미입력") == 1
+    assert body["genders"].get("남성") == 1
+    assert body["genders"].get("여성") == 1
+    assert body["genders"].get("선택안함") == 1
     assert body["visitors_total"] == 42

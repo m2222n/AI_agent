@@ -26,10 +26,13 @@ export interface AuthUser {
   email: string;
   nickname: string; // 미설정 시 백엔드가 이메일 앞부분으로 채워 보냄
   age_group?: string | null; // 나이대(선택)
+  gender?: string | null; // 성별(신규 가입 필수, 기존 유저는 null)
 }
 
 // 허용 나이대 — 백엔드 AGE_GROUPS와 일치
 export const AGE_GROUPS = ["10대", "20대", "30대", "40대", "50대", "60대", "70대 이상"];
+// 허용 성별 — 백엔드 GENDERS와 일치 (가입 시 필수)
+export const GENDERS = ["남성", "여성", "기타", "선택안함"];
 
 async function postAuth(
   path: string,
@@ -51,9 +54,15 @@ async function postAuth(
 export async function signup(
   email: string,
   password: string,
+  gender: string,
   ageGroup?: string,
 ): Promise<string> {
-  return postAuth("/auth/signup", { email, password, age_group: ageGroup || null });
+  return postAuth("/auth/signup", {
+    email,
+    password,
+    gender,
+    age_group: ageGroup || null,
+  });
 }
 
 export async function login(email: string, password: string): Promise<string> {
@@ -96,9 +105,11 @@ export async function changePassword(
 export async function updateProfile(
   nickname: string,
   ageGroup?: string | null,
+  gender?: string | null,
 ): Promise<AuthUser> {
   const body: Record<string, unknown> = { nickname };
   if (ageGroup !== undefined) body.age_group = ageGroup; // undefined면 미변경
+  if (gender !== undefined) body.gender = gender; // undefined면 미변경
   const res = await fetch(`${API_BASE}/auth/profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeader() },

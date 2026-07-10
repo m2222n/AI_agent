@@ -19,7 +19,7 @@ import api.db as db  # noqa: E402 — 테스트 본문이 db.SessionLocal()로 �
 
 @pytest.fixture
 def auth(client):
-    r = client.post("/auth/signup", json={"email": "p@b.com", "password": "pw123456"})
+    r = client.post("/auth/signup", json={"email": "p@b.com", "password": "pw123456", "gender": "선택안함"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 

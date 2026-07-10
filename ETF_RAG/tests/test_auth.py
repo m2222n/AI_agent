@@ -12,8 +12,11 @@ os.environ["DATABASE_URL"] = "sqlite://"  # 인메모리; conftest client 픽스
 # client / _reset_sse_global 픽스처는 tests/conftest.py에 공통 정의됨.
 
 
-def _signup(client, email="a@b.com", pw="pw123456"):
-    return client.post("/auth/signup", json={"email": email, "password": pw})
+def _signup(client, email="a@b.com", pw="pw123456", gender="선택안함"):
+    body = {"email": email, "password": pw}
+    if gender is not None:
+        body["gender"] = gender
+    return client.post("/auth/signup", json=body)
 
 
 def test_signup_login_me_happy_path(client):
@@ -235,7 +238,7 @@ def test_delete_account_purges_paper_trading(client):
 
 def test_signup_with_age_group(client):
     r = client.post("/auth/signup", json={
-        "email": "age@b.com", "password": "pw123456", "age_group": "30대"})
+        "email": "age@b.com", "password": "pw123456", "age_group": "30대", "gender": "선택안함"})
     assert r.status_code == 201
     token = r.json()["access_token"]
     me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -243,7 +246,7 @@ def test_signup_with_age_group(client):
 
 
 def test_signup_without_age_group_is_none(client):
-    r = client.post("/auth/signup", json={"email": "noage@b.com", "password": "pw123456"})
+    r = client.post("/auth/signup", json={"email": "noage@b.com", "password": "pw123456", "gender": "선택안함"})
     token = r.json()["access_token"]
     me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.json()["age_group"] is None
@@ -251,14 +254,14 @@ def test_signup_without_age_group_is_none(client):
 
 def test_signup_invalid_age_group_ignored(client):
     r = client.post("/auth/signup", json={
-        "email": "bad@b.com", "password": "pw123456", "age_group": "백살"})
+        "email": "bad@b.com", "password": "pw123456", "age_group": "백살", "gender": "선택안함"})
     token = r.json()["access_token"]
     me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.json()["age_group"] is None  # 미허용값은 무시
 
 
 def test_profile_update_age_group(client):
-    r = client.post("/auth/signup", json={"email": "p@b.com", "password": "pw123456"})
+    r = client.post("/auth/signup", json={"email": "p@b.com", "password": "pw123456", "gender": "선택안함"})
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     upd = client.put("/auth/profile", json={"nickname": "닉", "age_group": "40대"}, headers=h)
     assert upd.status_code == 200
@@ -266,3 +269,38 @@ def test_profile_update_age_group(client):
     # 나이대 미전송(None) → 기존 유지
     upd2 = client.put("/auth/profile", json={"nickname": "닉2"}, headers=h)
     assert upd2.json()["age_group"] == "40대"
+
+
+# ── 성별(gender) 필수 수집 ──
+
+def test_signup_with_gender(client):
+    r = client.post("/auth/signup", json={
+        "email": "g@b.com", "password": "pw123456", "gender": "남성"})
+    assert r.status_code == 201
+    token = r.json()["access_token"]
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["gender"] == "남성"
+
+
+def test_signup_without_gender_422(client):
+    """성별은 필수 — 누락 시 422(Pydantic 필수 필드)."""
+    r = client.post("/auth/signup", json={"email": "nog@b.com", "password": "pw123456"})
+    assert r.status_code == 422
+
+
+def test_signup_invalid_gender_400(client):
+    """허용값 아닌 성별 → 400(라우터 검증)."""
+    r = client.post("/auth/signup", json={
+        "email": "badg@b.com", "password": "pw123456", "gender": "외계인"})
+    assert r.status_code == 400
+
+
+def test_profile_update_gender(client):
+    r = client.post("/auth/signup", json={"email": "pg@b.com", "password": "pw123456", "gender": "선택안함"})
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    upd = client.put("/auth/profile", json={"nickname": "닉", "gender": "여성"}, headers=h)
+    assert upd.status_code == 200
+    assert upd.json()["gender"] == "여성"
+    # 성별 미전송(None) → 기존 유지(필수값이라 비우지 않음)
+    upd2 = client.put("/auth/profile", json={"nickname": "닉2"}, headers=h)
+    assert upd2.json()["gender"] == "여성"

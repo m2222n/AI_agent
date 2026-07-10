@@ -19,6 +19,7 @@ from config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
 from api.db import get_db
 from api.models import (
     AGE_GROUPS,
+    GENDERS,
     AccountDeleteRequest,
     LoginRequest,
     PasswordChangeRequest,
@@ -95,7 +96,13 @@ def get_current_user(
 def signup(req: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if db.scalar(select(User).where(User.email == req.email)) is not None:
         raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
-    user = User(email=req.email, password_hash=hash_password(req.password))
+    if req.gender not in GENDERS:  # 필수 — 허용값 아니면 거부
+        raise HTTPException(status_code=400, detail="성별을 선택하세요.")
+    user = User(
+        email=req.email,
+        password_hash=hash_password(req.password),
+        gender=req.gender,
+    )
     if req.age_group in AGE_GROUPS:  # 선택 — 허용값만 저장, 그 외 무시
         user.age_group = req.age_group
     db.add(user)
@@ -124,7 +131,7 @@ def _display_nickname(user: User) -> str:
 def _user_response(user: User) -> UserResponse:
     return UserResponse(
         id=user.id, email=user.email, nickname=_display_nickname(user),
-        age_group=user.age_group or None,
+        age_group=user.age_group or None, gender=user.gender or None,
     )
 
 
@@ -162,6 +169,9 @@ def update_profile(
     # 나이대: None이면 미변경, 허용값이면 설정, 그 외(빈값 등)는 미설정으로 비움
     if req.age_group is not None:
         user.age_group = req.age_group if req.age_group in AGE_GROUPS else None
+    # 성별: None이면 미변경, 허용값이면 설정, 그 외는 무시(비움 아님 — 필수값이라 보존)
+    if req.gender is not None and req.gender in GENDERS:
+        user.gender = req.gender
     db.commit()
     db.refresh(user)
     return _user_response(user)

@@ -89,6 +89,7 @@ class AdminStatsResponse(BaseModel):
     total_users: int          # 총 가입자 수
     users_with_nickname: int  # 닉네임 설정한 유저 수
     age_groups: dict          # 나이대별 가입자 수 ({"20대": 3, ...}), 미입력은 "미입력"
+    genders: dict             # 성별 가입자 수 ({"남성": 2, ...}), 미입력(기존유저)은 "미입력"
     paper_players: int        # 가상투자 계좌를 만든 유저 수
     visitors_total: int       # 누적 방문 수(방문자 카운터, 방문≠가입)
 
@@ -113,6 +114,11 @@ def admin_stats(
     ).all()
     age_groups = {(g or "미입력"): c for g, c in age_rows}
 
+    gender_rows = db.execute(
+        select(User.gender, func.count()).group_by(User.gender)
+    ).all()
+    genders = {(g or "미입력"): c for g, c in gender_rows}
+
     paper_players = db.scalar(select(func.count()).select_from(PaperAccount)) or 0
 
     # 방문자 수는 별도 스토어(Supabase/파일) — 실패해도 통계 전체는 반환.
@@ -126,6 +132,7 @@ def admin_stats(
         total_users=total_users,
         users_with_nickname=users_with_nickname,
         age_groups=age_groups,
+        genders=genders,
         paper_players=paper_players,
         visitors_total=visitors_total,
     )

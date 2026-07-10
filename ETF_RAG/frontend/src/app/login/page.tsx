@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { AGE_GROUPS } from "@/lib/auth";
+import { AGE_GROUPS, GENDERS } from "@/lib/auth";
 
 export default function LoginPage() {
   const { login, signup } = useAuth();
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ageGroup, setAgeGroup] = useState(""); // 선택
+  const [gender, setGender] = useState(""); // 필수(가입 시)
   const [showFind, setShowFind] = useState(false); // ID/비번 찾기 안내
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,8 +22,16 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      if (mode === "login") await login(email, password);
-      else await signup(email, password, ageGroup || undefined);
+      if (mode === "login") {
+        await login(email, password);
+      } else {
+        if (!gender) {
+          setError("성별을 선택하세요.");
+          setBusy(false);
+          return;
+        }
+        await signup(email, password, gender, ageGroup || undefined);
+      }
       router.push("/"); // 채팅으로
     } catch (err) {
       setError(
@@ -64,7 +73,26 @@ export default function LoginPage() {
         {mode === "signup" && (
           <label className="flex flex-col gap-1">
             <span className="text-xs text-gray-500">
-              나이대 <span className="text-gray-400">(선택 — 맞춤 추천에 활용, 이름·성별은 받지 않아요)</span>
+              성별 <span className="text-red-500">*</span>{" "}
+              <span className="text-gray-400">(맞춤 추천에 활용 — 이름은 받지 않아요)</span>
+            </span>
+            <select
+              required
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">선택하세요</option>
+              {GENDERS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {mode === "signup" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500">
+              나이대 <span className="text-gray-400">(선택 — 맞춤 추천에 활용)</span>
             </span>
             <select
               value={ageGroup}
