@@ -6,7 +6,7 @@ import traceback
 import streamlit as st
 
 from src.llm.agent import stream_agent, _make_error_message
-from src.ui.charts import try_parse_comparison, render_comparison, try_parse_structured_data, render_structured_data
+from src.ui.charts import try_parse_structured_data, render_structured_data
 from src.utils.logging import log_interaction
 
 logger = logging.getLogger(__name__)

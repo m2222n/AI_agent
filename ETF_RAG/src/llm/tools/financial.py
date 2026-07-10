@@ -8,7 +8,7 @@ import logging
 from langchain_core.tools import tool
 
 from src.llm.tools import _state
-from src.llm.tools._helpers import _find_structured_data, _not_found_message, _fmt_date
+from src.llm.tools._helpers import _find_structured_data, _not_found_message
 
 logger = logging.getLogger(__name__)
 

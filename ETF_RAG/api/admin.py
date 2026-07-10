@@ -13,10 +13,10 @@ push/paper의 cron 엔드포인트와 동일한 인라인 토큰 검증 패턴�
 import logging
 import threading
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from api.deps import run_init, _DB_PATH
+from api.deps import run_init, verify_cron_token, _DB_PATH
 from src.data.db_downloader import ensure_db
 from src.data import technical
 
@@ -47,21 +47,13 @@ def _purge_db_files() -> None:
 
 
 @router.post("/refresh-db", response_model=RefreshDbResponse)
-def refresh_db(
-    x_cron_token: str = Header(None, alias="X-Cron-Token"),
-) -> RefreshDbResponse:
+def refresh_db(_: None = Depends(verify_cron_token)) -> RefreshDbResponse:
     """볼륨 DB를 최신 Release DB로 강제 교체 후 메모리 상태 재초기화. X-Cron-Token 보호.
 
     순서: (1) DB 파일+사이드카 삭제 → (2) ensure_db로 최신 Release 재다운로드
     → (3) technical 싱글톤 커넥션/캐시 리셋(삭제된 옛 inode 핸들 방지)
     → (4) run_init 재실행(retriever/인덱스/data_index 재구축, FAISS/BM25는 해시로 자동 재빌드).
     """
-    from config import CRON_TOKEN
-    if not CRON_TOKEN:
-        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
-    if x_cron_token != CRON_TOKEN:
-        raise HTTPException(403, "잘못된 토큰")
-
     if not _refresh_lock.acquire(blocking=False):
         # 이미 다른 refresh가 진행 중 — 중복 실행 방지
         return RefreshDbResponse(ok=True, refreshed=False, detail="이미 진행 중")

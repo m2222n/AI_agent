@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from src.data.chart_generator._style import (
     BG_COLOR, GRID_COLOR, TEXT_COLOR,
-    setup_font, font_kw, to_base64_tight, FONT_PROP,
+    setup_font, font_kw, to_base64_tight,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def generate_sector_detail_chart(
         # ── 오른쪽: 시가총액 바 ──
         ax2.set_facecolor(BG_COLOR)
         caps_조 = [c / 1_000_000_000_000 for c in caps]
-        bars2 = ax2.barh(y, caps_조, color="#78909C", alpha=0.7, height=0.6, zorder=3)
+        ax2.barh(y, caps_조, color="#78909C", alpha=0.7, height=0.6, zorder=3)
         for i, val in enumerate(caps_조):
             if val >= 0.1:
                 ax2.text(val + max(caps_조) * 0.02, i, f"{val:.1f}조",

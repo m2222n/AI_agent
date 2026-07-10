@@ -28,12 +28,13 @@ def _to_kst(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(KST)
 
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func as safunc, select
 from sqlalchemy.orm import Session
 
 from api.auth import get_current_user, _display_nickname
 from api.db import get_db
+from api.deps import verify_cron_token
 from api.models import (
     DividendItem,
     DividendResponse,
@@ -598,19 +599,13 @@ def history(
 
 @router.post("/snapshot-all", response_model=SnapshotAllResponse)
 def snapshot_all(
-    x_cron_token: str = Header(None, alias="X-Cron-Token"),
+    _: None = Depends(verify_cron_token),
     db: Session = Depends(get_db),
 ) -> SnapshotAllResponse:
     """전 유저 당일 평가액 스냅샷 기록 (GitHub Actions 수집 후 호출). X-Cron-Token 보호.
 
     거래 안 한 날도 시세 변동을 추이에 반영하기 위함. 종목별 현재가는 1회만 조회(캐시).
     """
-    from config import CRON_TOKEN
-    if not CRON_TOKEN:
-        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
-    if x_cron_token != CRON_TOKEN:
-        raise HTTPException(403, "잘못된 토큰")
-
     price_cache: dict = {}
 
     def _cached(tk: str):

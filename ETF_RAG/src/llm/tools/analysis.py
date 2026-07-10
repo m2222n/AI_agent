@@ -73,7 +73,6 @@ def _calc_percentile(value: float, values: list[float]) -> float:
 
 def _format_valuation_position(stock_data: dict, sector_stocks: list) -> str:
     """종목의 업종 내 밸류에이션 상대 위치를 포맷팅."""
-    ticker = stock_data.get("ticker", "")
     parts = []
 
     # PER 위치

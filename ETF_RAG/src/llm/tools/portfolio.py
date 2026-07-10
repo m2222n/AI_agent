@@ -37,7 +37,7 @@ def get_stock_correlation(ticker1: str, ticker2: str) -> str:
     n2 = d2.get("name", "")
 
     try:
-        from src.data.technical import calc_correlation, calc_beta, MARKET_BENCHMARK
+        from src.data.technical import calc_correlation, calc_beta
 
         lines = [f"[{n1} ({t1}) vs {n2} ({t2})] 상관관계 분석\n"]
 

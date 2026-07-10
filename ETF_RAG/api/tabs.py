@@ -377,10 +377,9 @@ async def news(
     ticker: str = Query(..., min_length=1),
     max_articles: int = Query(10, ge=3, le=20),
 ):
-    result = await run_in_threadpool(_news_blocking, ticker, max_articles)
-    if result is None:
-        raise HTTPException(404, "종목을 찾을 수 없습니다.")
-    return result
+    # 뉴스는 종목 미해석 시에도 query 그대로 검색하므로 _news_blocking은 항상
+    # dict를 반환한다(다른 탭과 달리 404 없음). 종목 없어도 뉴스는 나올 수 있음.
+    return await run_in_threadpool(_news_blocking, ticker, max_articles)
 
 
 # ── 종목 자동완성 / 해석 ────────────────────────────────────────────
