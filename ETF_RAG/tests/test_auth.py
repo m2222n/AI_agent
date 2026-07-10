@@ -304,3 +304,52 @@ def test_profile_update_gender(client):
     # 성별 미전송(None) → 기존 유지(필수값이라 비우지 않음)
     upd2 = client.put("/auth/profile", json={"nickname": "닉2"}, headers=h)
     assert upd2.json()["gender"] == "여성"
+
+
+# ── 비밀번호 재설정 (이메일 링크) ──
+
+def test_password_reset_request_always_202(client):
+    """가입 여부와 무관하게 202(이메일 열거 방지). 발송은 모킹."""
+    from unittest.mock import patch
+    _signup(client, email="reset@b.com")
+    with patch("api.email.send_password_reset", return_value=True) as m:
+        r1 = client.post("/auth/password-reset/request", json={"email": "reset@b.com"})
+        r2 = client.post("/auth/password-reset/request", json={"email": "nobody@b.com"})
+    assert r1.status_code == 202 and r2.status_code == 202
+    # 가입된 이메일만 실제 발송 시도
+    assert m.call_count == 1
+
+
+def test_password_reset_confirm_changes_password(client):
+    """유효 토큰으로 새 비밀번호 설정 → 새 비번 로그인 성공, 옛 비번 실패."""
+    from api.auth import create_reset_token
+    r = _signup(client, email="rc@b.com", pw="oldpw123")
+    # 토큰은 서버 로직으로 직접 생성(이메일 발송 경로 우회). id는 /me로 조회.
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+    token = create_reset_token(me.json()["id"])
+
+    conf = client.post("/auth/password-reset/confirm",
+                       json={"token": token, "new_password": "newpw12345"})
+    assert conf.status_code == 204
+    # 새 비번 로그인 성공
+    ok = client.post("/auth/login", json={"email": "rc@b.com", "password": "newpw12345"})
+    assert ok.status_code == 200
+    # 옛 비번 실패
+    bad = client.post("/auth/login", json={"email": "rc@b.com", "password": "oldpw123"})
+    assert bad.status_code == 401
+
+
+def test_password_reset_confirm_invalid_token_400(client):
+    """위조/엉뚱한 토큰 → 400."""
+    r = client.post("/auth/password-reset/confirm",
+                    json={"token": "not.a.valid.token", "new_password": "newpw12345"})
+    assert r.status_code == 400
+
+
+def test_password_reset_confirm_rejects_access_token(client):
+    """일반 액세스 토큰(purpose 없음)은 재설정에 못 쓰게 → 400."""
+    r = _signup(client, email="at@b.com")
+    access = r.json()["access_token"]
+    conf = client.post("/auth/password-reset/confirm",
+                       json={"token": access, "new_password": "newpw12345"})
+    assert conf.status_code == 400

@@ -94,6 +94,16 @@ class AccountDeleteRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 
+class PasswordResetRequest(BaseModel):
+    # 재설정 링크를 받을 이메일. 존재 여부는 응답으로 노출하지 않음.
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(..., min_length=1)  # 이메일 링크의 재설정 토큰
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
 # ── 가상투자(모의투자) ─────────────────────────────────────
 class TradeRequest(BaseModel):
     ticker: str = Field(..., min_length=1)  # 종목코드 또는 종목명(서버에서 해석)

@@ -69,6 +69,29 @@ export async function login(email: string, password: string): Promise<string> {
   return postAuth("/auth/login", { email, password });
 }
 
+/** 비밀번호 재설정 링크 발송 요청. 보안상 가입 여부와 무관하게 성공 처리. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await fetch(`${API_BASE}/auth/password-reset/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  // 202 외 상태여도 사용자에겐 동일 안내(열거 방지) — 예외 던지지 않음.
+}
+
+/** 재설정 토큰 + 새 비밀번호로 변경. 실패(만료·위조) 시 예외. */
+export async function confirmPasswordReset(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/password-reset/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  if (!res.ok) throw new Error(await readDetail(res));
+}
+
 /** 현재 토큰으로 사용자 조회. 실패(401 등) 시 null. */
 export async function fetchMe(): Promise<AuthUser | null> {
   const t = getToken();
