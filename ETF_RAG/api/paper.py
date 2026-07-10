@@ -542,6 +542,13 @@ def ranking(
                 price_cache[tk] = None
         return price_cache[tk]
 
+    # 유저를 한 번에 조회(계정 수만큼 개별 db.get 하던 N+1 제거).
+    user_ids = [acc.user_id for acc in accounts]
+    users = {
+        u.id: u
+        for u in db.scalars(select(User).where(User.id.in_(user_ids)))
+    } if user_ids else {}
+
     rows = []
     for acc in accounts:
         value = acc.cash
@@ -549,7 +556,7 @@ def ranking(
             cur = _price(h.ticker)
             if cur:
                 value += int(round(cur * h.qty))
-        u = db.get(User, acc.user_id)
+        u = users.get(acc.user_id)
         rows.append({
             "user_id": acc.user_id,
             "nickname": _display_nickname(u) if u else "?",

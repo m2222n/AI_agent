@@ -88,13 +88,23 @@ def _build_sector_stats(sector_index: dict) -> list:
     return stats
 
 
+def _ticker_name(data: Optional[dict], query: str) -> tuple[str, str]:
+    """구조화 데이터에서 (ticker, name)을 추출. 없으면 query로 폴백.
+
+    _find_structured_data 결과(있을 수도, None일 수도)와 원 질의어를 받아 각 탭의
+    반복되던 `(data or {}).get("ticker") or query` 패턴을 통일. None 처리(404 vs
+    degrade)는 호출부가 data 자체로 판단하고, 이 헬퍼는 순수 추출만 한다.
+    """
+    d = data or {}
+    return (d.get("ticker") or query, d.get("name") or query)
+
+
 # ── Technical ──────────────────────────────────────────────────────
 def _technical_blocking(query: str, days: int) -> Optional[dict]:
     data = _find_structured_data(query)
     if not data:
         return None
-    ticker = data.get("ticker") or query
-    name = data.get("name") or query
+    ticker, name = _ticker_name(data, query)
     summary = get_technical_summary(ticker, days=days)  # days 전달(미전달 시 항상 250 고정 버그)
     if summary is None:
         return None
@@ -122,8 +132,7 @@ def _intraday_blocking(query: str) -> Optional[dict]:
     data = _find_structured_data(query)
     if not data:
         return None
-    ticker = data.get("ticker") or query
-    name = data.get("name") or query
+    ticker, name = _ticker_name(data, query)
     prev_close = data.get("close") or None
     chart_b64 = generate_intraday_chart(ticker, name, prev_close)
     if not chart_b64:
@@ -144,8 +153,7 @@ def _financial_blocking(query: str, quarters: int) -> Optional[dict]:
     if not DB_PATH.exists():
         return None
     data = _find_structured_data(query)
-    ticker = (data or {}).get("ticker") or query
-    name = (data or {}).get("name") or query
+    ticker, name = _ticker_name(data, query)
     conn = get_connection()
     try:
         rows = get_financial_data(conn, ticker, quarters=quarters)
@@ -209,8 +217,7 @@ async def comparison(req: ComparisonRequest):
 # ── Outlook ────────────────────────────────────────────────────────
 def _outlook_blocking(query: str, horizon: str) -> Optional[dict]:
     data = _find_structured_data(query)
-    ticker = (data or {}).get("ticker") or query
-    name = (data or {}).get("name") or query
+    ticker, name = _ticker_name(data, query)
     summary = get_technical_summary(ticker)
     if summary is None:
         return None
