@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { postComparison, getFinancial } from "@/lib/api";
 import type {
   ComparisonResponse,
@@ -39,16 +39,21 @@ export default function ComparisonPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 요청 순번 — stale response(이전 비교 조합) 방지.
+  const reqSeq = useRef(0);
+
   const run = async (
     a: { ticker: string },
     b: { ticker: string },
     d: number,
   ) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
     setFin(null);
     try {
       const res = await postComparison([a.ticker, b.ticker], d);
+      if (seq !== reqSeq.current) return;
       if (!res) setError("비교할 종목을 찾을 수 없어요.");
       setData(res);
       // 최근 분기 실적 비교 (각 종목 재무제표 병렬 — 없으면 null, 표 자체 생략)
@@ -57,14 +62,16 @@ export default function ComparisonPage() {
           getFinancial(a.ticker, 8),
           getFinancial(b.ticker, 8),
         ]);
+        if (seq !== reqSeq.current) return;
         if (f1 || f2) setFin([f1, f2]);
       } catch {
         /* 재무제표 실패는 비교 자체를 막지 않음 */
       }
     } catch {
+      if (seq !== reqSeq.current) return;
       setError("데이터를 가져오지 못했어요.");
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
   };
 

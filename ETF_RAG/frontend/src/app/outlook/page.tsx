@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getOutlook } from "@/lib/api";
 import type { OutlookResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
@@ -50,17 +50,23 @@ export default function OutlookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 요청 순번 — stale response(이전 종목/기간 응답)가 최신을 덮어쓰지 않도록.
+  const reqSeq = useRef(0);
+
   const run = async (ticker: string, h: string) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
     try {
       const res = await getOutlook(ticker, h);
+      if (seq !== reqSeq.current) return;
       if (!res) setError("전망을 생성할 수 없어요.");
       setData(res);
     } catch {
+      if (seq !== reqSeq.current) return;
       setError("데이터를 가져오지 못했어요.");
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
   };
 
