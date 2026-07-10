@@ -13,7 +13,7 @@ AI 에이전트가 알아서 필요한 데이터(실시간 시세·12년 차트�
 별도 설치 없이 브라우저에서 바로 사용 (모바일 설치형 PWA 지원)
 
 [![CI](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/m2222n/AI_agent/actions/workflows/ci.yml)
-&nbsp;·&nbsp; 테스트 890개(백엔드 873 + 프론트 17) &nbsp;·&nbsp; RAG 검색 정확도 100% &nbsp;·&nbsp; AI 도구 14종
+&nbsp;·&nbsp; 테스트 924개(백엔드 907 + 프론트 17) &nbsp;·&nbsp; RAG 검색 정확도 100% &nbsp;·&nbsp; AI 도구 14종
 
 </div>
 
@@ -77,6 +77,8 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
      → ④ 결과 결합(RRF) → ⑤ 재정렬(Cohere Rerank) → ⑥ 다양성 확보(MMR) → 답변
 ```
 
+종목이 매칭되면 해당 종목의 **투자설명서 PDF 청크도 함께 검색**돼(총보수·위험등급·환헤지 등 정형 데이터에 없는 정보), 시세·재무 같은 구조화 데이터와 결합해 답합니다.
+
 검색 정확도(Hit Rate)는 평가셋 192개 질문(11개 유형)에서 **100%**.
 답변 품질(RAGAS)은 Faithfulness 0.69~0.99 · Answer Relevancy 0.75 · Context Recall 0.85~1.0 수준입니다.
 
@@ -84,7 +86,7 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
 - **임베딩 모델 정량 비교** ([리포트](ETF_RAG/eval/EMBEDDING_COMPARISON.md)): OpenAI small/large vs BGE-M3(한국어 특화)를 MRR·Hit@k로 비교. dense-only에선 large가 압도(MRR 0.49→0.87)하나 **full 파이프라인은 셋 다 천장(1.0)** → 하이브리드 검색이 임베딩 약점을 메워, 현행 small 유지가 합리적이라는 결론.
 - **검색 품질 CI 게이트**: `run_eval.py --min-hit-rate` + GitHub Actions `rag-eval` job — PR마다 검색 Hit Rate가 임계 미만이면 자동 실패시켜 회귀를 막습니다.
 
-### 🖥️ 7개 탭으로 나뉜 웹앱
+### 🖥️ 8개 탭으로 나뉜 웹앱
 
 채팅뿐 아니라, 분석 종류별로 전용 탭을 제공합니다.
 
@@ -96,9 +98,10 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
 | **비교 분석** | 2종목 상대 수익률 + 밸류에이션 (1주~10년) |
 | **가격 전망** | 4개 모델 종합 전망 + 시나리오·확률·리스크 |
 | **섹터 분석** | 업종별 등락률·밸류에이션 + 기간 추이 차트 |
+| **뉴스** | 종목 뉴스 + 감성 분석 + 일별 감성 시계열 차트 |
 | **가상투자** | 1억 가상자금 모의 매매 + 평가손익·보유기간 + 비중 차트 + 거래 통계(승률·손익비) + 배당 정산 + 유저 랭킹 + 수익률 추이 + 거래내역 CSV |
 
-- **계정(선택)**: 이메일 로그인 시 관심종목·대화이력·가상투자가 영구 저장 — 비로그인도 전 기능 사용 가능 (가입 시 나이대만 선택 수집, 이름·성별 등 식별정보는 받지 않음)
+- **계정(선택)**: 이메일 로그인 시 관심종목·대화이력·가상투자가 영구 저장 — 비로그인도 전 기능 사용 가능 (가입 시 나이대·성별을 분류정보로만 수집, 이름 등 식별정보는 받지 않음). 비밀번호 재설정(이메일 링크) 지원.
 - **실시간 시세**: 기술 탭에서 한국투자증권 WebSocket 체결가 + 호가 10단계 표시
 - **모바일**: 설치형 PWA + 반응형 + 관심종목 급등/급락 웹 푸시 알림
 
@@ -114,10 +117,10 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
 
 ```
 ┌─ 프론트 (Next.js 16 + Tailwind) ──────── Railway
-│   채팅(SSE 스트리밍) · 7탭 · 로그인 · PWA · 푸시
+│   채팅(SSE 스트리밍) · 8탭 · 로그인 · PWA · 푸시
 │        │ REST / SSE
 ┌─ 백엔드 (FastAPI) ────────────────────── Railway
-│   /chat·/stream(SSE) · /tabs/* · /auth · /me/* · /push
+│   /chat·/stream(SSE) · /tabs/* · /auth · /me/* · /push · /admin
 │   └─ LangGraph 에이전트 (14 도구) + 하이브리드 RAG
 │        │
 ├─ 유저 DB: PostgreSQL (계정·관심종목·이력·가상투자, 영구)
@@ -132,10 +135,10 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
 | **벡터 DB** | FAISS(디스크 캐싱) + Pinecone(서버리스, 자동 fallback) |
 | **데이터 수집** | pykrx · 한국투자증권 KIS OpenAPI(REST+WebSocket) · yfinance(fallback) · dart-fss |
 | **분석 / 예측** | 기술 지표 11종 + 상관/베타 + 포트폴리오 백테스트 + Ridge 회귀 + Prophet |
-| **백엔드** | FastAPI(SSE) + JWT 인증 + SQLAlchemy(PostgreSQL) + pywebpush(VAPID) |
+| **백엔드** | FastAPI(SSE) + JWT 인증(+비밀번호 재설정 이메일) + SQLAlchemy(PostgreSQL) + Alembic 마이그레이션 + pywebpush(VAPID) |
 | **프론트엔드** | Next.js 16 + Tailwind v4 (SSE 스트리밍, PWA, 모바일 드로워) + Vitest 단위 테스트 |
-| **품질 / 평가** | RAGAS 평가 · 임베딩 모델 정량 벤치(MRR/Hit@k) · 검색 품질 CI 게이트 · pytest 873개 + Vitest 17개 · GitHub Actions CI |
-| **배포 / 운영** | Railway 2서비스(백엔드+프론트) + 영속 볼륨 · GitHub Actions 일일 자동 수집 |
+| **품질 / 평가** | RAGAS 평가 · 임베딩 모델 정량 벤치(MRR/Hit@k) · 검색 품질 CI 게이트 · pytest 907개 + Vitest 17개 · GitHub Actions CI |
+| **배포 / 운영** | Railway 2서비스(백엔드+프론트) + 영속 볼륨 · GitHub Actions 일일 자동 수집 · 무중단 DB 새로고침(cron) |
 
 **운영 비용**: OpenAI API $5~17/월 + Railway Hobby $5/월~ (개인 프로젝트 규모). 한국투자증권 실시간·로컬 감성 분석은 추가 비용 0.
 
@@ -150,13 +153,16 @@ CoV(검증 단계)로 답이 데이터와 맞는지 한 번 더 확인하고 답
 ETF_RAG/
 ├── api/                       # FastAPI 백엔드
 │   ├── main.py                # /chat·/stream(SSE)·/health·/feedback·/stats
-│   ├── tabs.py                # 데이터 탭 REST + /tabs/price·orderbook·price/stream(SSE)
-│   ├── auth.py                # JWT 인증 (가입/로그인/비번변경/닉네임/탈퇴)
+│   ├── tabs.py                # 데이터 탭 REST(뉴스 포함) + /tabs/price·orderbook·price/stream(SSE)
+│   ├── auth.py                # JWT 인증 (가입/로그인/비번변경/닉네임·성별/탈퇴/비번재설정)
+│   ├── admin.py               # 운영 cron (무중단 DB 새로고침) + 가입자/방문 통계
+│   ├── email.py               # 비밀번호 재설정 메일 발송 (Resend)
 │   ├── user_data.py           # 관심종목·대화이력 CRUD
 │   ├── paper.py               # 가상투자 (매수/매도/포트폴리오/랭킹/스냅샷/라운드)
 │   ├── push.py                # 웹 푸시 (VAPID 구독 + 관심종목 일일 알림)
 │   └── db.py / models_db.py   # SQLAlchemy (User/Watchlist/ChatHistory/Push/Paper*)
-├── frontend/                  # Next.js 16 + Tailwind v4 (채팅·7탭·로그인·PWA)
+├── alembic/                   # DB 스키마 마이그레이션 (Alembic, 버전 관리)
+├── frontend/                  # Next.js 16 + Tailwind v4 (채팅·8탭·로그인·PWA)
 ├── src/
 │   ├── data/
 │   │   ├── database/          # SQLite CRUD 패키지 (WAL, 시장 구분 포함)
@@ -170,7 +176,7 @@ ETF_RAG/
 │   └── ui/                    # Streamlit 프로토타입 UI
 ├── app.py                     # Streamlit 진입점 (프로토타입)
 ├── eval/                      # RAGAS 평가(192문항, 11유형) + 임베딩 비교(exp_embedding_ab.py, EMBEDDING_COMPARISON.md)
-├── tests/                     # pytest 873개 (프론트는 frontend/ Vitest 17개)
+├── tests/                     # pytest 907개 (프론트는 frontend/ Vitest 17개)
 ├── scripts/                   # 수집·백필·배포 스크립트 + launchd
 └── .github/workflows/         # daily-collect · watchdog-collect · ci
 ```
@@ -213,6 +219,8 @@ pytest tests/
 - [x] **가상투자** — 1억 가상자금 매매 · 평가손익 · 유저 랭킹 · 수익률 추이 · 라운드 결산
 - [x] **운영 안정화** — PostgreSQL 유저 DB 영구화 · 영속 볼륨(콜드스타트 제거) · 시장 구분 기반 시세 정확화 · DB 신선도 검사 + ETF/주식 분리 수집 검증(부분 누락 자동 복구)
 - [x] **평가 자동화** — 임베딩 모델 정량 벤치(BGE-M3 vs OpenAI) · 검색 품질 CI 게이트(Hit Rate 회귀 방어)
+- [x] **콘텐츠 확장** — 투자설명서 PDF RAG(정형 데이터에 없는 총보수·위험등급 검색) · 뉴스 감성 시계열 전용 탭
+- [x] **운영 고도화** — Alembic 스키마 마이그레이션 도입 · 무중단 DB 새로고침(cron, stale 방지) · 가입자/방문 통계 · 성별 수집 · 비밀번호 재설정(이메일) · 코드 리팩터링(중복 제거·N+1 개선, 테스트 907개)
 - [ ] **모바일 앱 (Phase G)** — React Native (웹 코드 재사용), 네이티브 푸시, 오프라인 캐시
 
 ---
