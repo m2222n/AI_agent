@@ -162,6 +162,27 @@ jobs:
           git pull --rebase origin main
           git push
 
+      # ── 프로덕션 DB 새로고침 트리거 (Railway 백엔드 호출) ──────
+      # 백엔드는 부팅 시에만 최신 Release DB를 받는다. keep-alive로 재부팅이
+      # 안 일어나면 볼륨 DB가 며칠 stale해지므로(라이브가 옛 날짜 서빙), Release
+      # 갱신 직후 여기서 재부팅 없이 최신 DB로 교체·재초기화하게 한다.
+      # 이후 알림/스냅샷이 최신 데이터를 보도록 반드시 이 트리거를 먼저 실행.
+      # REFRESH_DB_URL/CRON_TOKEN secret 미설정 시 자동 skip(무해).
+      - name: Trigger production DB refresh
+        continue-on-error: true
+        env:
+          REFRESH_DB_URL: ${{ secrets.REFRESH_DB_URL }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          if [ -z "$REFRESH_DB_URL" ] || [ -z "$CRON_TOKEN" ]; then
+            echo "REFRESH_DB_URL/CRON_TOKEN 미설정 — DB 새로고침 트리거 skip"
+            exit 0
+          fi
+          echo "프로덕션 DB 새로고침 트리거: $REFRESH_DB_URL"
+          curl -fsS -X POST "$REFRESH_DB_URL" \
+            -H "X-Cron-Token: $CRON_TOKEN" \
+            --max-time 300 || echo "DB 새로고침 트리거 실패(무시)"
+
       # ── 관심종목 푸시 알림 트리거 (Railway 백엔드 호출) ──────
       # 수집 후 백엔드가 관심종목 ±임계% 종목을 구독 유저에게 push.
       # PUSH_ALERT_URL/CRON_TOKEN secret 미설정 시 스크립트가 자동 skip(무해).

@@ -46,6 +46,7 @@ from api.auth import router as auth_router, get_current_user_optional
 from api.user_data import router as user_data_router
 from api.push import router as push_router
 from api.paper import router as paper_router
+from api.admin import router as admin_router
 from api.models_db import User
 from src.utils.logging import log_feedback
 
@@ -98,6 +99,8 @@ app.include_router(user_data_router)
 app.include_router(push_router)
 # 가상투자(모의투자) — 매수/매도/포트폴리오/랭킹 (/me/paper/*)
 app.include_router(paper_router)
+# 운영 cron — 재부팅 없이 DB 새로고침 (/admin/refresh-db)
+app.include_router(admin_router)
 
 
 def _require_ready() -> None:

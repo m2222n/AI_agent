@@ -21,6 +21,7 @@ from src.data.technical._data import (
     _get_db_conn,
     _ohlcv_cache,
     _closes_cache,
+    reset_db_connection,
 )
 
 # ── 기본 지표 ──
@@ -60,7 +61,7 @@ __all__ = [
     "MARKET_BENCHMARK", "BENCHMARK_TICKER",
     # 데이터 접근
     "_get_closes", "_get_ohlcv", "_yfinance_ohlcv", "_db_available",
-    "_get_db_conn", "_ohlcv_cache", "_closes_cache",
+    "_get_db_conn", "_ohlcv_cache", "_closes_cache", "reset_db_connection",
     # 기본 지표
     "calc_ma", "calc_ema", "calc_rsi", "calc_macd", "calc_bollinger",
     "detect_cross",
