@@ -8,8 +8,25 @@
 import json
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 KST = timezone(timedelta(hours=9))
+
+
+def _to_kst(dt: Optional[datetime]) -> Optional[datetime]:
+    """저장된 created_at(UTC)을 KST로 변환. tz-naive면 UTC로 간주.
+
+    created_at은 _utcnow(tz-aware UTC)로 저장되지만, sqlite(dev/test)는 tzinfo를
+    벗겨 naive로 반환한다. naive에 그냥 .astimezone()을 하면 파이썬이 시스템 로컬
+    시간으로 오해해 UTC 자정 근처 체결의 진입일이 하루 어긋난다(#93~108 점검). Postgres는
+    timestamptz라 정상이지만, 방언 무관하게 안전하도록 naive는 UTC로 못박고 변환한다.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(KST)
+
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import delete, func as safunc, select
@@ -95,7 +112,7 @@ def _holding_since_map(db: Session, user_id: int) -> dict:
         prev = running.get(t.ticker, 0)
         if t.side == "buy":
             if prev <= 0:  # 신규 진입(0에서 양수로)
-                d = t.created_at.astimezone(KST) if t.created_at else None
+                d = _to_kst(t.created_at)
                 since[t.ticker] = d.strftime("%Y-%m-%d") if d else None
             running[t.ticker] = prev + t.qty
         else:  # sell

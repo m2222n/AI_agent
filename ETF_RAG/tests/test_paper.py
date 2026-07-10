@@ -451,6 +451,23 @@ def test_holding_since_map_reentry():
     assert out["000660"] == "2026-06-02"
 
 
+def test_to_kst_naive_utc_treated_as_utc():
+    """created_at이 naive(sqlite 반환)여도 UTC로 간주해 KST 변환.
+
+    회귀: 이전엔 naive에 .astimezone(KST)를 해 시스템 로컬시간으로 오해 → UTC
+    자정 근처 체결의 진입일이 하루 어긋났다(#93~108 점검). aware/naive 둘 다
+    2026-07-09T23:30 UTC(=KST 07-10 08:30)로 같은 날짜를 내야 한다.
+    """
+    from datetime import datetime, timezone
+    from api.paper import _to_kst
+
+    aware = datetime(2026, 7, 9, 23, 30, tzinfo=timezone.utc)
+    naive = datetime(2026, 7, 9, 23, 30)  # sqlite가 tzinfo 벗겨 반환하는 형태
+    assert _to_kst(aware).strftime("%Y-%m-%d") == "2026-07-10"
+    assert _to_kst(naive).strftime("%Y-%m-%d") == "2026-07-10"
+    assert _to_kst(None) is None
+
+
 def test_holding_since_map_fully_sold_excluded():
     """전량 매도해 보유 0인 종목은 since에서 제외."""
     from datetime import datetime, timezone, timedelta
