@@ -17,14 +17,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 from api.main import app  # noqa: E402
 
 
-@pytest.fixture(autouse=True)
-def _reset_sse_global():
-    """sse-starlette의 AppStatus.should_exit_event는 모듈 전역이라 첫 이벤트 루프에
-    바인딩된다. TestClient는 테스트마다 새 루프를 만들어 'attached to a different loop'
-    에러가 난다 → 매 테스트 전 리셋해서 현재 루프에 새로 생성되게 한다."""
-    from sse_starlette.sse import AppStatus
-    AppStatus.should_exit_event = None
-    yield
+# _reset_sse_global(autouse)은 tests/conftest.py에 공통 정의됨(sse-starlette의
+# AppStatus.should_exit_event가 모듈 전역이라 테스트마다 리셋 — 'different loop' 방지).
 
 
 @pytest.fixture

@@ -15,12 +15,7 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
-@pytest.fixture(autouse=True)
-def _reset_sse_global():
-    from sse_starlette.sse import AppStatus
-
-    AppStatus.should_exit_event = None
-    yield
+# _reset_sse_global(autouse)은 tests/conftest.py에 공통 정의됨.
 
 
 @pytest.fixture
