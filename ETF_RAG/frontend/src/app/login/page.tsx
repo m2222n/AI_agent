@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { AGE_GROUPS } from "@/lib/auth";
+import { AGE_GROUPS, GENDERS, requestPasswordReset } from "@/lib/auth";
 
 export default function LoginPage() {
   const { login, signup } = useAuth();
@@ -12,17 +12,39 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ageGroup, setAgeGroup] = useState(""); // 선택
+  const [gender, setGender] = useState(""); // 필수(가입 시)
   const [showFind, setShowFind] = useState(false); // ID/비번 찾기 안내
+  const [resetEmail, setResetEmail] = useState(""); // 비번 재설정 요청 이메일
+  const [resetSent, setResetSent] = useState(false); // 발송 요청 완료 안내
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const requestReset = async () => {
+    if (!resetEmail) return;
+    setBusy(true);
+    try {
+      await requestPasswordReset(resetEmail);
+    } finally {
+      setBusy(false);
+      setResetSent(true); // 성공/실패 무관 동일 안내(이메일 열거 방지)
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      if (mode === "login") await login(email, password);
-      else await signup(email, password, ageGroup || undefined);
+      if (mode === "login") {
+        await login(email, password);
+      } else {
+        if (!gender) {
+          setError("성별을 선택하세요.");
+          setBusy(false);
+          return;
+        }
+        await signup(email, password, gender, ageGroup || undefined);
+      }
       router.push("/"); // 채팅으로
     } catch (err) {
       setError(
@@ -64,7 +86,26 @@ export default function LoginPage() {
         {mode === "signup" && (
           <label className="flex flex-col gap-1">
             <span className="text-xs text-gray-500">
-              나이대 <span className="text-gray-400">(선택 — 맞춤 추천에 활용, 이름·성별은 받지 않아요)</span>
+              성별 <span className="text-red-500">*</span>{" "}
+              <span className="text-gray-400">(맞춤 추천에 활용 — 이름은 받지 않아요)</span>
+            </span>
+            <select
+              required
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">선택하세요</option>
+              {GENDERS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {mode === "signup" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500">
+              나이대 <span className="text-gray-400">(선택 — 맞춤 추천에 활용)</span>
             </span>
             <select
               value={ageGroup}
@@ -115,13 +156,35 @@ export default function LoginPage() {
 
       {mode === "login" && showFind && (
         <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
-          <p className="mb-1">
+          <p className="mb-2">
             <b>아이디</b>: 가입하신 <b>이메일이 곧 아이디</b>예요. 이메일 주소로 로그인하세요.
           </p>
-          <p>
-            <b>비밀번호</b>: 현재 이메일 재설정은 준비 중이에요. 로그인이 되는 상태라면{" "}
-            <b>계정 설정</b>에서 변경할 수 있고, 완전히 잊으셨다면 문의해 주세요.
+          <p className="mb-2">
+            <b>비밀번호</b>: 가입 이메일로 재설정 링크를 보내드려요.
           </p>
+          {resetSent ? (
+            <p className="text-green-700">
+              가입된 이메일이면 재설정 링크를 보냈어요. 메일함(스팸함 포함)을 확인해 주세요.
+            </p>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="가입 이메일"
+                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={requestReset}
+                disabled={busy || !resetEmail}
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:bg-gray-300"
+              >
+                재설정 메일
+              </button>
+            </div>
+          )}
         </div>
       )}
     </main>

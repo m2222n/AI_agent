@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-import { AGE_GROUPS, changePassword, deleteAccount, updateProfile } from "@/lib/auth";
+import { AGE_GROUPS, GENDERS, changePassword, deleteAccount, updateProfile } from "@/lib/auth";
 import { Notice } from "@/components/Feedback";
 
 export default function AccountPage() {
@@ -41,6 +41,7 @@ export default function AccountPage() {
       <NicknameSection
         current={user.nickname}
         currentAge={user.age_group ?? ""}
+        currentGender={user.gender ?? ""}
         onSaved={refresh}
       />
       <PasswordSection />
@@ -81,25 +82,30 @@ const btnCls =
 function NicknameSection({
   current,
   currentAge,
+  currentGender,
   onSaved,
 }: {
   current: string;
   currentAge: string;
+  currentGender: string;
   onSaved: () => Promise<void>;
 }) {
   const [value, setValue] = useState(current);
   const [age, setAge] = useState(currentAge);
+  const [gender, setGender] = useState(currentGender);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ k: "ok" | "err"; t: string } | null>(null);
 
-  const changed = value.trim() !== current || age !== currentAge;
+  const changed =
+    value.trim() !== current || age !== currentAge || gender !== currentGender;
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
     setBusy(true);
     try {
-      await updateProfile(value.trim(), age); // age "" → 미설정으로 비움
+      // age "" → 미설정으로 비움. gender는 빈값이면 미변경(필수값 보존).
+      await updateProfile(value.trim(), age, gender || undefined);
       await onSaved();
       setMsg({ k: "ok", t: "저장했어요." });
     } catch (err) {
@@ -126,6 +132,16 @@ function NicknameSection({
         >
           <option value="">나이대 선택 안 함</option>
           {AGE_GROUPS.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+        <select
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+          className={inputCls}
+        >
+          <option value="">성별 선택 안 함</option>
+          {GENDERS.map((g) => (
             <option key={g} value={g}>{g}</option>
           ))}
         </select>

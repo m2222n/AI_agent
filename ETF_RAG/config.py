@@ -55,6 +55,15 @@ VAPID = {
 # 크론/배치 트리거 보호 토큰 (GitHub Actions가 푸시 발송 엔드포인트 호출 시).
 # 미설정 시 해당 엔드포인트 비활성(403). 관심종목 알림 임계값(±%)도 여기서 조정.
 CRON_TOKEN = os.getenv("CRON_TOKEN", "")
+
+# 이메일 발송 (비밀번호 재설정 링크) — Resend API. 미설정 시 발송 비활성(요청은
+# 받되 메일 안 감, 보안상 유저 존재 여부는 노출 안 함). FRONTEND_BASE_URL은
+# 재설정 링크(프론트 /reset?token=)에 쓰이며 미설정 시 프론트 배포 origin 필요.
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESET_EMAIL_FROM = os.getenv("RESET_EMAIL_FROM", "onboarding@resend.dev")  # Resend 검증 전 기본 발신
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "").rstrip("/")
+EMAIL_ENABLED = bool(RESEND_API_KEY)
+RESET_TOKEN_EXPIRE_MINUTES = int(os.getenv("RESET_TOKEN_EXPIRE_MINUTES", "30"))
 WATCHLIST_ALERT_THRESHOLD = float(os.getenv("WATCHLIST_ALERT_THRESHOLD", "5.0"))
 
 # 로컬 금융 감성 분류 (F-3) — KR-FinBert-SC. transformers/torch 설치 시 사용,

@@ -16,7 +16,7 @@ import pytest  # noqa: E402
 @pytest.fixture
 def auth(client):
     """가입 후 Authorization 헤더 반환."""
-    r = client.post("/auth/signup", json={"email": "u@b.com", "password": "pw123456"})
+    r = client.post("/auth/signup", json={"email": "u@b.com", "password": "pw123456", "gender": "선택안함"})
     token = r.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -68,8 +68,8 @@ def test_watchlist_detail_fallback_to_ticker(client, auth):
 
 
 def test_watchlist_isolated_per_user(client):
-    t1 = client.post("/auth/signup", json={"email": "a@b.com", "password": "pw123456"}).json()["access_token"]
-    t2 = client.post("/auth/signup", json={"email": "b@b.com", "password": "pw123456"}).json()["access_token"]
+    t1 = client.post("/auth/signup", json={"email": "a@b.com", "password": "pw123456", "gender": "선택안함"}).json()["access_token"]
+    t2 = client.post("/auth/signup", json={"email": "b@b.com", "password": "pw123456", "gender": "선택안함"}).json()["access_token"]
     client.put("/me/watchlist/005930", headers={"Authorization": f"Bearer {t1}"})
     # user2는 비어있어야
     r = client.get("/me/watchlist", headers={"Authorization": f"Bearer {t2}"})

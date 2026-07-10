@@ -40,8 +40,11 @@ class User(Base):
     # 기존 유저/미입력은 NULL → 응답 시 이메일 local-part로 fallback.
     nickname: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     # 나이대(선택). 분류정보(10대~70대 이상 7버킷, 식별정보 아님) — 맞춤 추천 등에 활용.
-    # 기존 유저/미입력은 NULL. 이름·성별 등 민감정보는 수집하지 않음(개인정보 최소화).
+    # 기존 유저/미입력은 NULL.
     age_group: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    # 성별(가입 시 필수). 분류정보(남/여/기타/선택안함, 식별정보 아님). 신규 가입은
+    # 필수지만 기존 유저는 NULL(마이그레이션 전 가입) → 응답/통계에서 "미입력" 처리.
+    gender: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now()
     )

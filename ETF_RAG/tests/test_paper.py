@@ -19,7 +19,7 @@ from api.models_db import INITIAL_CASH  # noqa: E402
 
 
 def _auth(client, email="u@b.com"):
-    r = client.post("/auth/signup", json={"email": email, "password": "pw123456"})
+    r = client.post("/auth/signup", json={"email": email, "password": "pw123456", "gender": "선택안함"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 

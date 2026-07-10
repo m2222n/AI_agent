@@ -46,12 +46,15 @@ class ComparisonRequest(BaseModel):
 # ── 인증 ────────────────────────────────────────────────
 # 허용 나이대 버킷 (분류정보, 선택). 빈 문자열은 '미설정'으로 처리.
 AGE_GROUPS = ("10대", "20대", "30대", "40대", "50대", "60대", "70대 이상")
+# 성별 — 분류정보(식별 아님). "선택안함"으로 프라이버시 보장하되 가입 시 필수 선택.
+GENDERS = ("남성", "여성", "기타", "선택안함")
 
 
 class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     age_group: Optional[str] = None  # 선택 — AGE_GROUPS 중 하나(아니면 무시)
+    gender: str  # 필수 — GENDERS 중 하나(아니면 422)
 
 
 class LoginRequest(BaseModel):
@@ -69,6 +72,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     nickname: str  # 미설정 시 이메일 local-part로 fallback (auth.py에서 채움)
     age_group: Optional[str] = None  # 나이대(선택, 미설정 시 None)
+    gender: Optional[str] = None  # 성별(신규 가입 필수, 기존 유저는 None)
 
 
 class PasswordChangeRequest(BaseModel):
@@ -81,11 +85,23 @@ class ProfileUpdateRequest(BaseModel):
     nickname: str = Field(..., min_length=1, max_length=40)
     # 나이대(선택). None=변경 안 함, "" 또는 미허용값=미설정으로 비움, 허용값=설정.
     age_group: Optional[str] = None
+    # 성별(선택 변경). None=변경 안 함, 허용값=설정, 그 외=무시(비움 아님).
+    gender: Optional[str] = None
 
 
 class AccountDeleteRequest(BaseModel):
     # 탈퇴는 되돌릴 수 없으므로 비밀번호 재확인.
     password: str = Field(..., min_length=1)
+
+
+class PasswordResetRequest(BaseModel):
+    # 재설정 링크를 받을 이메일. 존재 여부는 응답으로 노출하지 않음.
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(..., min_length=1)  # 이메일 링크의 재설정 토큰
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 # ── 가상투자(모의투자) ─────────────────────────────────────
