@@ -541,7 +541,7 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-07-10 (운영장애 2건 복구 + 인프라 강화: ①KRX 비번만료로 자동수집 멈춤→90일연기·수동재실행 복구(~10월 재발예정) ②프로덕션 DB stale 근본해결 — ensure_db가 부팅시에만 도는데 keep-alive로 재부팅 안 돼 볼륨DB 굳음 → refresh-db cron 엔드포인트 #107(재부팅없이 DB교체+메모리리셋) ③cron 3종 secret 등록(CRON_TOKEN 원래 미설정이라 알림/스냅샷도 skip됐던 것 해결) ④Alembic 마이그레이션 도입 #109(수동ALTER 대체, 라이브DB는 stamp head 무DDL, 테스트는 create_all, CI drift게이트) ⑤가상투자 진입일 tz 실버그 수정+news 통합테스트. PDF 실투입·Text-to-SQL은 검토 후 제외/보류. 백엔드 873→895)_
+_Last Updated: 2026-07-10 (운영장애 2건 복구 + 인프라 강화: ①KRX 비번만료로 자동수집 멈춤→90일연기·수동재실행 복구(~10월 재발예정) ②프로덕션 DB stale 근본해결 — ensure_db가 부팅시에만 도는데 keep-alive로 재부팅 안 돼 볼륨DB 굳음 → refresh-db cron 엔드포인트 #107(재부팅없이 DB교체+메모리리셋) ③cron 3종 secret 등록(CRON_TOKEN 원래 미설정이라 알림/스냅샷도 skip됐던 것 해결) ④Alembic 마이그레이션 도입 #109(수동ALTER 대체, 라이브DB는 stamp head 무DDL, 테스트는 create_all, CI drift게이트) ⑤가상투자 진입일 tz 실버그 수정+news 통합테스트 ⑥**리팩터링 #110**(프론트 실버그3[관심종목 소실·데이터탭 race·시세포맷] + 백엔드 미사용청소·cron Depends통합·conftest 공통화·tabs 헬퍼·paper N+1제거, 동작보존·순 -81줄). PDF 실투입·Text-to-SQL은 검토 후 제외/보류. 백엔드 873→895)_
 _2026-06-29 (PR #102 — 임베딩 비교 정식화: BGE-M3 vs OpenAI 실측. full 파이프라인 천장이라 현행 small 유지, dense는 large 압도. + RAG 검색 품질 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY secret 있을때만). 백엔드 873)_
 _2026-06-26 세션후반2 (PR #100·#101 — 가상투자 보유종목 클릭→주문·채팅 관심종목 종목명 #100 / 나이대(선택, 분류정보·식별X) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 백엔드 873+프론트17. 상세: CLAUDE.local.md "세션 후반2")_
 _2026-06-26 세션후반 (PR #93~#100 — KIS 해외IP 403→백오프·yfinance 유지 / 가상투자 보유기간·CSV·보유클릭주문·비중파이·거래통계·배당 / UX 공통 Feedback / Vitest 도입+다크모드 롤백 / 데이터 수집 누락 2건 해결: 프로덕션 DB stale #98 + verify ETF/주식 분리 #99. 869+17)_
