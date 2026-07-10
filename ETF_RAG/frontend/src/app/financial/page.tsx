@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getFinancial } from "@/lib/api";
 import type { FinancialResponse } from "@/lib/types";
 import TickerSearch from "@/components/TickerSearch";
@@ -36,17 +36,23 @@ export default function FinancialPage() {
   const [quarters, setQuarters] = useState(12);
   const [customYears, setCustomYears] = useState(""); // 직접설정(년) 입력값
 
+  // 요청 순번 — stale response(이전 종목/기간) 방지.
+  const reqSeq = useRef(0);
+
   const fetchFin = async (tk: string, q: number) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
     try {
       const res = await getFinancial(tk, q);
+      if (seq !== reqSeq.current) return;
       if (!res) setError("재무 데이터를 찾을 수 없어요. (재무제표는 상장 주식만 제공)");
       setData(res);
     } catch {
+      if (seq !== reqSeq.current) return;
       setError("데이터를 가져오지 못했어요.");
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
   };
 

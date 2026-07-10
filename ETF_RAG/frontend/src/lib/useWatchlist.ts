@@ -37,9 +37,10 @@ export function useWatchlist() {
         else next.delete(ticker);
         return next;
       });
-      // 서버 반영 → 정본으로 동기화 (실패 시 서버 응답으로 보정)
+      // 서버 반영 → 성공 시 정본으로 동기화. 실패(null)면 낙관적 상태를 유지한다.
+      // (과거엔 실패 시 []로 덮어써 관심종목이 화면에서 전부 사라지는 버그가 있었다.)
       const server = adding ? await addWatchlist(ticker) : await removeWatchlist(ticker);
-      setTickers(new Set(server));
+      if (server !== null) setTickers(new Set(server));
     },
     [user, tickers],
   );

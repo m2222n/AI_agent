@@ -13,7 +13,6 @@ LangGraph 기반 ETF 에이전트
 - 복잡 질문 (compare, recommend, risk) → GPT-4o
 """
 
-import json
 import logging
 import operator
 from concurrent.futures import ThreadPoolExecutor, as_completed

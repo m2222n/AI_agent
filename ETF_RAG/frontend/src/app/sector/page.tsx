@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSector } from "@/lib/api";
 import type { SectorResponse } from "@/lib/types";
 import ChartImage from "@/components/ChartImage";
@@ -34,29 +34,38 @@ export default function SectorPage() {
   const [picked, setPicked] = useState<string>("");
   const [period, setPeriod] = useState<string>("1d");
 
+  // 요청 순번 — mount 개요 로드와 섹터/기간 전환이 같은 setData를 쓰므로,
+  // 빠른 전환 시 이전(느린) 응답이 최신을 덮어쓰지 않게 공유 순번으로 가드.
+  const reqSeq = useRef(0);
+
   // mount 시 전체 개요 로드
   useEffect(() => {
+    const seq = ++reqSeq.current;
     (async () => {
       try {
         const res = await getSector();
+        if (seq !== reqSeq.current) return;
         if (!res) setError("섹터 데이터를 찾을 수 없어요.");
         setData(res);
       } catch {
+        if (seq !== reqSeq.current) return;
         setError("데이터를 가져오지 못했어요.");
       } finally {
-        setLoading(false);
+        if (seq === reqSeq.current) setLoading(false);
       }
     })();
   }, []);
 
   // 섹터/기간 변경 시 재조회 (섹터 미선택이면 전체 개요)
   const load = async (sector: string, p: string) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     try {
       const res = sector ? await getSector(sector, p) : await getSector();
+      if (seq !== reqSeq.current) return;
       if (res) setData(res);
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
   };
 

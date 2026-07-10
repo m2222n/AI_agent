@@ -13,10 +13,8 @@
 import logging
 import pickle
 import re
-from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 
-import numpy as np
 from kiwipiepy import Kiwi
 from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document

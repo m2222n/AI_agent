@@ -7,56 +7,9 @@ import 전 API_SKIP_INIT=1 + DATABASE_URL=sqlite://(인메모리).
 import os
 
 os.environ["API_SKIP_INIT"] = "1"
-os.environ["DATABASE_URL"] = "sqlite://"  # 인메모리; fixture에서 실제 엔진 교체
+os.environ["DATABASE_URL"] = "sqlite://"  # 인메모리; conftest client 픽스처가 엔진 교체
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.orm import sessionmaker  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
-
-import api.db as db  # noqa: E402
-from api.db import Base, get_db  # noqa: E402
-
-
-@pytest.fixture(autouse=True)
-def _reset_sse_global():
-    from sse_starlette.sse import AppStatus
-
-    AppStatus.should_exit_event = None
-    yield
-
-
-@pytest.fixture
-def client():
-    # 단일 공유 인메모리 커넥션 (StaticPool) — 테이블이 요청 간 유지됨
-    test_engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        future=True,
-    )
-    TestSession = sessionmaker(
-        bind=test_engine, autoflush=False, expire_on_commit=False
-    )
-    db.engine = test_engine  # init_models()가 이 엔진에 create_all
-    db.SessionLocal = TestSession
-    Base.metadata.create_all(test_engine)
-
-    from api.main import app
-
-    def _override_db():
-        s = TestSession()
-        try:
-            yield s
-        finally:
-            s.close()
-
-    app.dependency_overrides[get_db] = _override_db
-    with TestClient(app) as c:  # 컨텍스트 매니저 → lifespan(init_models) 실행
-        yield c
-    app.dependency_overrides.clear()
-    Base.metadata.drop_all(test_engine)
+# client / _reset_sse_global 픽스처는 tests/conftest.py에 공통 정의됨.
 
 
 def _signup(client, email="a@b.com", pw="pw123456"):

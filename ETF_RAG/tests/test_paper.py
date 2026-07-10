@@ -12,48 +12,10 @@ os.environ["DATABASE_URL"] = "sqlite://"
 from unittest.mock import patch  # noqa: E402
 
 import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.orm import sessionmaker  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
 
-import api.db as db  # noqa: E402
-from api.db import Base, get_db  # noqa: E402
 from api.models_db import INITIAL_CASH  # noqa: E402
 
-
-@pytest.fixture(autouse=True)
-def _reset_sse_global():
-    from sse_starlette.sse import AppStatus
-    AppStatus.should_exit_event = None
-    yield
-
-
-@pytest.fixture
-def client():
-    test_engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False},
-        poolclass=StaticPool, future=True,
-    )
-    TestSession = sessionmaker(bind=test_engine, autoflush=False, expire_on_commit=False)
-    db.engine = test_engine
-    db.SessionLocal = TestSession
-    Base.metadata.create_all(test_engine)
-
-    from api.main import app
-
-    def _override_db():
-        s = TestSession()
-        try:
-            yield s
-        finally:
-            s.close()
-
-    app.dependency_overrides[get_db] = _override_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-    Base.metadata.drop_all(test_engine)
+# client / _reset_sse_global 픽스처는 tests/conftest.py에 공통 정의됨.
 
 
 def _auth(client, email="u@b.com"):

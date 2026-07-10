@@ -9,7 +9,6 @@ tools.py의 predict_price_outlook 도구에서 호출.
 
 import logging
 import math
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from fastapi import HTTPException, Request
+from fastapi import Header, HTTPException, Request
 
 from src.llm.client import get_api_key
 from src.data.db_downloader import ensure_db
@@ -51,6 +51,21 @@ def require_ready(request: Request) -> None:
             status_code=503,
             detail=f"초기화 중/실패: {state.error or 'initializing'}",
         )
+
+
+def verify_cron_token(
+    x_cron_token: str = Header(None, alias="X-Cron-Token"),
+) -> None:
+    """cron 엔드포인트 공유 인증 의존성 (GitHub Actions 등 서버-투-서버 호출용).
+
+    CRON_TOKEN 미설정이면 403(비활성), 헤더 토큰 불일치면 403. push/paper/admin의
+    cron 엔드포인트가 동일 검증을 인라인 복붙하던 것을 하나로 통일.
+    """
+    from config import CRON_TOKEN
+    if not CRON_TOKEN:
+        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
+    if x_cron_token != CRON_TOKEN:
+        raise HTTPException(403, "잘못된 토큰")
 
 
 def run_init() -> None:

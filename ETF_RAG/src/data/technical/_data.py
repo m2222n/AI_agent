@@ -10,7 +10,7 @@ import threading
 import time
 from typing import Optional
 
-from src.data.database import DB_PATH, get_historical_prices
+from src.data.database import DB_PATH
 
 logger = logging.getLogger(__name__)
 

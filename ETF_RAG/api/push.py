@@ -7,12 +7,13 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from api.auth import get_current_user
 from api.db import get_db
+from api.deps import verify_cron_token
 from api.models import (
     PushStatusResponse,
     PushSubscribeRequest,
@@ -212,17 +213,12 @@ def run_watchlist_alerts(db: Session) -> dict:
 
 @router.post("/run-watchlist-alerts", response_model=WatchlistAlertResponse)
 def run_alerts(
-    x_cron_token: str = Header(None, alias="X-Cron-Token"),
+    _: None = Depends(verify_cron_token),
     db: Session = Depends(get_db),
 ) -> WatchlistAlertResponse:
     """관심종목 일일 알림 발송 (GitHub Actions 수집 후 호출). X-Cron-Token 보호.
 
-    CRON_TOKEN 미설정 시 403(비활성). VAPID 미설정 시 발송은 no-op(0건).
+    VAPID 미설정 시 발송은 no-op(0건).
     """
-    from config import CRON_TOKEN
-    if not CRON_TOKEN:
-        raise HTTPException(403, "CRON_TOKEN 미설정 — 비활성")
-    if x_cron_token != CRON_TOKEN:
-        raise HTTPException(403, "잘못된 토큰")
     result = run_watchlist_alerts(db)
     return WatchlistAlertResponse(ok=True, **result)

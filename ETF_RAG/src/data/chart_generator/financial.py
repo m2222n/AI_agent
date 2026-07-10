@@ -11,7 +11,7 @@ from src.data.chart_generator._style import (
     BG_COLOR, GRID_COLOR, TEXT_COLOR,
     REV_COLOR, OP_COLOR, NI_COLOR, MARGIN_COLOR,
     VAL_COLORS, PORT_COLOR, BM_COLOR, DD_COLOR, DD_FILL,
-    setup_font, font_kw, build_xlabels, to_base64_tight, FONT_PROP,
+    setup_font, font_kw, build_xlabels, to_base64_tight,
 )
 
 logger = logging.getLogger(__name__)

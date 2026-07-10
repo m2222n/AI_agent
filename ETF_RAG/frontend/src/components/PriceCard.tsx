@@ -136,7 +136,7 @@ export default function PriceCard({ ticker }: { ticker: string }) {
               ? `${up ? "+" : ""}${data.change.toLocaleString("ko-KR")}원 `
               : ""}
             ({up ? "+" : ""}
-            {data.change_pct}%)
+            {data.change_pct.toFixed(2)}%)
           </span>
         )}
       </div>

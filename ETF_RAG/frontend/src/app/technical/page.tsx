@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getTechnical, getIntraday } from "@/lib/api";
 import type { TechnicalResponse } from "@/lib/types";
@@ -41,19 +41,26 @@ function TechnicalInner() {
   const [intraday, setIntraday] = useState<string | null>(null);
   const [intradayMsg, setIntradayMsg] = useState<string | null>(null);
 
+  // 요청 순번 — 빠른 종목/기간 전환 시 이전(느린) 응답이 최신 결과를 덮어쓰지
+  // 않도록, 응답이 최신 요청일 때만 상태를 반영한다(stale response 방지).
+  const reqSeq = useRef(0);
+
   const run = async (ticker: string, d: number) => {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
     setIntraday(null);
     setIntradayMsg(null);
     try {
       const res = await getTechnical(ticker, d);
+      if (seq !== reqSeq.current) return; // 더 최신 요청이 진행 중 → 이 응답 폐기
       if (!res) setError("해당 종목의 기술적 데이터를 찾을 수 없어요.");
       setData(res);
     } catch {
+      if (seq !== reqSeq.current) return;
       setError("데이터를 가져오지 못했어요. 백엔드 상태를 확인해주세요.");
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) setLoading(false);
     }
   };
 

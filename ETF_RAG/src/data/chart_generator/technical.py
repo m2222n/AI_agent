@@ -12,7 +12,7 @@ from src.data.chart_generator._style import (
     BG_COLOR, GRID_COLOR, TEXT_COLOR, PRICE_COLOR, MA_COLORS, BB_COLOR,
     RSI_COLOR, VOL_UP, VOL_DOWN, MACD_LINE, MACD_SIGNAL, COMPARE_COLORS,
     setup_font, apply_style, font_kw, fmt_date_full, build_xlabels,
-    to_base64, to_base64_tight, FONT_PROP,
+    to_base64, to_base64_tight,
 )
 from src.data.chart_generator._series import (
     calc_ma_series, calc_rsi_series, calc_macd_series, calc_bb_series,

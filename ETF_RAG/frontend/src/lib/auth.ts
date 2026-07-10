@@ -187,22 +187,25 @@ export async function getWatchlistDetail(): Promise<
   return (data.items ?? []) as import("./types").WatchlistDetailItem[];
 }
 
-export async function addWatchlist(ticker: string): Promise<string[]> {
+// 성공 시 정본 티커 배열, 실패 시 null(호출부가 낙관적 상태를 유지·롤백 판단).
+// 과거엔 실패 시 []를 반환해, 토글 1회 실패(예: 토큰 만료 401)로 관심종목이
+// 화면에서 전부 사라지는 버그가 있었다 → null로 실패를 구분한다.
+export async function addWatchlist(ticker: string): Promise<string[] | null> {
   const res = await fetch(`${API_BASE}/me/watchlist/${ticker}`, {
     method: "PUT",
     headers: authHeader(),
   });
-  if (!res.ok) return [];
+  if (!res.ok) return null;
   const data = await res.json();
   return (data.tickers ?? []) as string[];
 }
 
-export async function removeWatchlist(ticker: string): Promise<string[]> {
+export async function removeWatchlist(ticker: string): Promise<string[] | null> {
   const res = await fetch(`${API_BASE}/me/watchlist/${ticker}`, {
     method: "DELETE",
     headers: authHeader(),
   });
-  if (!res.ok) return [];
+  if (!res.ok) return null;
   const data = await res.json();
   return (data.tickers ?? []) as string[];
 }

@@ -8,7 +8,6 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from src.data.database._schema import init_db
 from src.data.database._write import upsert_daily_data
 from src.data.database._read import get_latest_date
 
