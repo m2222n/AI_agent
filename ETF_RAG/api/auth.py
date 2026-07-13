@@ -120,6 +120,10 @@ def get_current_user(
         user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
         raise cred_exc
+    # 비밀번호 재설정 전용 토큰(purpose=pwreset)은 로그인 세션으로 쓰지 못하게 거부.
+    # 토큰 종류를 분리했으므로 대칭 방어(재설정 엔드포인트도 액세스 토큰 거부).
+    if payload.get("purpose") == "pwreset":
+        raise cred_exc
     user = db.get(User, user_id)
     if user is None:
         raise cred_exc
@@ -282,6 +286,8 @@ def get_current_user_optional(
         return None
     try:
         payload = jwt.decode(creds.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("purpose") == "pwreset":  # 재설정 토큰은 세션 아님
+            return None
         return db.get(User, int(payload["sub"]))
     except Exception:  # noqa: BLE001 — optional 경로는 실패 시 None
         return None
