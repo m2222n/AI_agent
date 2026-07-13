@@ -353,3 +353,17 @@ def test_password_reset_confirm_rejects_access_token(client):
     conf = client.post("/auth/password-reset/confirm",
                        json={"token": access, "new_password": "newpw12345"})
     assert conf.status_code == 400
+
+
+def test_reset_token_rejected_as_access_token(client):
+    """대칭 방어: 재설정 토큰(purpose=pwreset)은 로그인 세션으로 못 쓰게 → 401.
+
+    재설정 토큰이 일반 액세스 토큰처럼 쓰이면 30분짜리 세션이 되는 갭 방지.
+    """
+    from api.auth import create_reset_token
+    r = _signup(client, email="rt@b.com")
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"})
+    reset_token = create_reset_token(me.json()["id"])
+    # 재설정 토큰으로 보호된 엔드포인트 접근 → 401
+    blocked = client.get("/auth/me", headers={"Authorization": f"Bearer {reset_token}"})
+    assert blocked.status_code == 401
