@@ -284,7 +284,7 @@
   - [x] **가상투자(모의투자) 탭** (2026-06-23, PR #69): 로그인 유저 가상 현금 1억으로 실제 시세 기반 모의투자. `api/paper.py`(`/me/paper/*`) — 4모델(계좌/보유/내역/스냅샷) + 매수(평단가 가중평균)/매도(실현손익) + 체결가=현재가(`_price_blocking` 재사용) + 포트폴리오 평가손익 + 거래내역 + 계좌 초기화 + 유저간 수익률 랭킹. 프론트 `/invest` 탭. 테스트 +15.
   - [x] **가상투자 수익률 추이 차트** (2026-06-23, PR #70): 일별 평가액 스냅샷(PaperSnapshot) 누적 → 수익률 추이 라인. 거래 직후 + `/me/paper/snapshot-all`(X-Cron-Token, daily-collect 트리거) 2경로 기록. `/me/paper/history`(차트). 테스트 +5(전체 821).
   - [x] **가상투자 계좌 초기화 = 라운드 결산** (2026-06-24, PR #71): 초기화 시 직전 라운드 성과(기간·종목별 실현+미실현 손익)를 `PaperRound`에 결산 보존 후 1억 새출발. 확인 모달("초기화" 입력)+`confirm` 서버검증. `/me/paper/rounds`(지난 성적). 프론트 "📚 지난 성적" 섹션. 테스트 +6(전체 825).
-- [ ] **Phase G: 모바일 앱** — React Native (웹 70% 재사용), 푸시 알림, 오프라인 캐시
+- [~] **Phase G: 모바일 앱 (iOS, Capacitor 래핑)** — 2026-07-15 착수(브랜치 `feat/ios-capacitor`, 미머지). RN 재작성 대신 기존 Next.js 앱을 **Capacitor v8**로 래핑(코드 재작성 0). 계기: 친구 재우와 함께 개발. 목표 Apple만($99/년). `output:"export"` 정적번들 기기내장(`server.url` 미설정 → Apple 4.2 회피) + OfflineBanner/상태바 네이티브 마감 + CORS capacitor origin 허용. 앱명 "주선생". **1~4단계(코드) 완료·검증 green, 5단계(Xcode 시뮬레이터)는 Xcode 설치 후.** 상세: CLAUDE.local.md "iOS 앱화" + `frontend/IOS_APP.md` + memory/project_ai_agent_ios_app
 - [ ] 한국어 임베딩 모델 비교 (BGE-M3 vs text-embedding-3-small, 검색 품질 불만 시)
 - [ ] KRX 시세정보 재배포 라이선스 검토 (상용화 시 필수)
 
@@ -541,7 +541,8 @@ ETF_RAG/
 
 ---
 
-_Last Updated: 2026-07-10 세션후반3 (PR #114~116 — 가입자통계 /admin/stats[라이브 가입자 1명·방문242] + 성별 필수수집(Alembic 첫 실전 DDL: gender 라이브 컬럼추가 성공) + 비밀번호 재설정(JWT토큰+Resend메일). Resend 무료는 가입계정 본인만 발송(타 수신자 403)→도메인 인증해야 전체발송, 지금은 UI만 "준비중" 안내로 되돌리고 코드 보존. 도메인 없어도 가입·전기능 정상. 895→907. 상세: CLAUDE.local.md·memory)_
+_Last Updated: 2026-07-15 (iOS 앱화 착수 — 친구 재우와 함께, Apple만 목표. Capacitor v8 래핑 1~4단계 완료: next.config 조건부 export/standalone(server.url無로 4.2 회피)·SPM이라 CocoaPods불필요·manifest force-static·OfflineBanner/NativeAppInit·CORS capacitor origin regex+테스트3. 앱명 "주선생". 브랜치 feat/ios-capacitor 미머지. build 양쪽+백56/프17 green. 5단계는 Xcode 설치 후. 상세: CLAUDE.local.md·frontend/IOS_APP.md·memory/project_ai_agent_ios_app)_
+_2026-07-10 세션후반3 (PR #114~116 — 가입자통계 /admin/stats[라이브 가입자 1명·방문242] + 성별 필수수집(Alembic 첫 실전 DDL: gender 라이브 컬럼추가 성공) + 비밀번호 재설정(JWT토큰+Resend메일). Resend 무료는 가입계정 본인만 발송(타 수신자 403)→도메인 인증해야 전체발송, 지금은 UI만 "준비중" 안내로 되돌리고 코드 보존. 도메인 없어도 가입·전기능 정상. 895→907. 상세: CLAUDE.local.md·memory)_
 _2026-07-10 (운영장애 2건 복구 + 인프라 강화: ①KRX 비번만료로 자동수집 멈춤→90일연기·수동재실행 복구(~10월 재발예정) ②프로덕션 DB stale 근본해결 — ensure_db가 부팅시에만 도는데 keep-alive로 재부팅 안 돼 볼륨DB 굳음 → refresh-db cron 엔드포인트 #107(재부팅없이 DB교체+메모리리셋) ③cron 3종 secret 등록(CRON_TOKEN 원래 미설정이라 알림/스냅샷도 skip됐던 것 해결) ④Alembic 마이그레이션 도입 #109(수동ALTER 대체, 라이브DB는 stamp head 무DDL, 테스트는 create_all, CI drift게이트) ⑤가상투자 진입일 tz 실버그 수정+news 통합테스트 ⑥**리팩터링 #110**(프론트 실버그3[관심종목 소실·데이터탭 race·시세포맷] + 백엔드 미사용청소·cron Depends통합·conftest 공통화·tabs 헬퍼·paper N+1제거, 동작보존·순 -81줄). PDF 실투입·Text-to-SQL은 검토 후 제외/보류. 백엔드 873→895)_
 _2026-06-29 (PR #102 — 임베딩 비교 정식화: BGE-M3 vs OpenAI 실측. full 파이프라인 천장이라 현행 small 유지, dense는 large 압도. + RAG 검색 품질 CI 게이트(run_eval --min-hit-rate + ci.yml rag-eval, OPENAI_API_KEY secret 있을때만). 백엔드 873)_
 _2026-06-26 세션후반2 (PR #100·#101 — 가상투자 보유종목 클릭→주문·채팅 관심종목 종목명 #100 / 나이대(선택, 분류정보·식별X) 수집 + ID·비번찾기 안내(이메일=ID, 비번 재설정 메일은 인프라 보류) #101. 백엔드 873+프론트17. 상세: CLAUDE.local.md "세션 후반2")_
