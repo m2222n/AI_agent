@@ -2605,6 +2605,7 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 - **Android 플랫폼 추가**(방향 전환 후): `@capacitor/android` v8 + `npx cap add android` → `android/`(4플러그인·아이콘/스플래시 74개·`android/.gitignore`가 `*.apk/*.aab/build/`·복사 웹자산 제외, 소스 77파일만 커밋). iOS와 `out/` 번들·appId·앱명 "주선생" 공유. iOS도 별도도구 없이 됐듯 Android도 CocoaPods류 불필요.
 - **검증**: build:static(out/) + standalone(server.js, 웹 회귀 없음) 양쪽 OK. 백엔드 56+프론트 Vitest 17 통과. `cap sync ios`/`cap sync android` 성공. 커밋 5개(iOS feat/docs 3 + android feat + cors fix).
 - **다음(사용자 몫)**: **Android 우선** — Android Studio 설치(무료, 이 macOS 14에서 OK)→`cap open android`→에뮬레이터(가상 갤럭시) Run. 공기계는 실기기 최종점검/실사용 때만(선택, 개통 불필요, 에뮬레이터로 대체). 절차 `frontend/IOS_APP.md` Android 섹션. **Google Play 제출 전**: 번들ID 확정·$25(평생1회)·**2026 신규 개인계정은 테스터 12명 14일 연속 옵트인 필요**·keystore/AAB. **iOS는 보류**(개인맥/새맥 생기면: Xcode설치→시뮬).
+- **안드 배포 3경로(개념)**: ①에뮬레이터(맥 안 가상폰, 아이폰선 불가) ②진짜폰 USB ③**APK 직접배포**(Play 안 거치고 카톡/링크로 갤럭시에 설치, 심사·$25·테스터12명 skip — 홍보 초기 유용하나 "출처불명" 경고+검색노출/신뢰 없음). 우리 앱은 특수 HW 안 써 에뮬로 충분.
 
 ---
 
