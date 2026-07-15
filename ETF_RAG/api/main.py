@@ -76,19 +76,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="ETF RAG API", version="0.1.0", lifespan=lifespan)
 app.state.app_state = AppState()
 
-# iOS 앱(Capacitor WKWebView)의 origin. WKWebView는 항상 이 origin으로 요청한다.
+# Capacitor 앱 WebView origin (기기 내장 번들 실행 시):
+#  - iOS(WKWebView):    capacitor://localhost
+#  - Android(WebView):  http://localhost  (포트 없음 — Next dev의 http://localhost:3000과 구분됨)
 CAPACITOR_ORIGIN = "capacitor://localhost"
 
 
 def _capacitor_origin_regex(cors_origins: List[str]) -> Optional[str]:
-    """CORS_ORIGINS를 특정 웹 origin으로 좁혔을 때만 capacitor origin을 정규식으로 추가 허용.
+    """CORS_ORIGINS를 특정 웹 origin으로 좁혔을 때만 Capacitor 앱 origin을 정규식으로 추가 허용.
 
+    iOS(capacitor://localhost)와 Android(http://localhost, 포트 없음) 둘 다 매칭.
     allow_origins가 "*"이면 이미 전부 허용되므로 regex 불필요(None).
     인증은 쿠키가 아니라 Authorization 헤더라 credentials와 무관.
     """
     if cors_origins == ["*"]:
         return None
-    return r"^capacitor://localhost$"
+    return r"^(capacitor://localhost|http://localhost)$"
 
 
 # CORS: CORS_ORIGINS 환경변수(쉼표 구분)로 제어, 미설정 시 "*"(로컬/dev).

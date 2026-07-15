@@ -159,9 +159,13 @@ def test_capacitor_origin_regex_when_restricted():
     regex = _capacitor_origin_regex(["https://myapp.example.com"])
     assert regex is not None
     import re
+    # iOS(capacitor://localhost) + Android(http://localhost) 둘 다 허용
     assert re.match(regex, "capacitor://localhost")
+    assert re.match(regex, "http://localhost")
     # 임의의 다른 origin은 이 regex에 매칭되지 않아야(웹 origin은 allow_origins가 처리)
     assert not re.match(regex, "https://evil.example.com")
+    # Next dev 서버(http://localhost:3000)는 포트가 있어 매칭 안 됨(별도 CORS_ORIGINS로 처리)
+    assert not re.match(regex, "http://localhost:3000")
 
 
 def test_capacitor_origin_regex_none_when_wildcard():
