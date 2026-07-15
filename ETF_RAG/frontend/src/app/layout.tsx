@@ -4,6 +4,8 @@ import "./globals.css";
 import ChromeShell from "@/components/ChromeShell";
 import { AuthProvider } from "@/lib/AuthContext";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import OfflineBanner from "@/components/OfflineBanner";
+import NativeAppInit from "@/components/NativeAppInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,13 +18,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "투자 AI 어시스턴트",
+  title: "주선생",
   description: "ETF·주식 RAG 기반 투자 질의응답 챗봇",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "투자AI",
+    title: "주선생",
   },
   icons: {
     icon: "/icons/icon-192.png",
@@ -45,6 +47,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <OfflineBanner />
+        <NativeAppInit />
         <AuthProvider>
           <ChromeShell>{children}</ChromeShell>
         </AuthProvider>

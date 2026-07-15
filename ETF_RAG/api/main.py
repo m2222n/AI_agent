@@ -28,7 +28,7 @@ from starlette.concurrency import iterate_in_threadpool
 from src.llm.agent import run_agent, stream_agent
 from src.data.visitor import record_visit, get_visitor_counts
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends
 
@@ -76,6 +76,21 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="ETF RAG API", version="0.1.0", lifespan=lifespan)
 app.state.app_state = AppState()
 
+# iOS 앱(Capacitor WKWebView)의 origin. WKWebView는 항상 이 origin으로 요청한다.
+CAPACITOR_ORIGIN = "capacitor://localhost"
+
+
+def _capacitor_origin_regex(cors_origins: List[str]) -> Optional[str]:
+    """CORS_ORIGINS를 특정 웹 origin으로 좁혔을 때만 capacitor origin을 정규식으로 추가 허용.
+
+    allow_origins가 "*"이면 이미 전부 허용되므로 regex 불필요(None).
+    인증은 쿠키가 아니라 Authorization 헤더라 credentials와 무관.
+    """
+    if cors_origins == ["*"]:
+        return None
+    return r"^capacitor://localhost$"
+
+
 # CORS: CORS_ORIGINS 환경변수(쉼표 구분)로 제어, 미설정 시 "*"(로컬/dev).
 # 프로덕션은 프론트 배포 origin을 지정. "*"일 때만 credentials 비활성(브라우저 제약).
 _cors_env = os.getenv("CORS_ORIGINS", "*")
@@ -84,6 +99,7 @@ _allow_credentials = _cors_origins != ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=_capacitor_origin_regex(_cors_origins),
     allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
