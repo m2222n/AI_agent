@@ -58,7 +58,7 @@ Xcode에서:
 
 - **앱 아이콘 1024×1024**: 현재 512 소스를 업스케일해 씀. 제출용은 1024 원본 필요.
   `assets/icon.png`를 1024로 교체 후 `npx @capacitor/assets generate --ios` 재실행.
-- **번들 ID**: 현재 임시 `com.example.etfrag`. 제출 전 확정(`capacitor.config.ts` + Xcode).
+- **번들 ID**: `ai.jusunsaeng.app` 확정(`capacitor.config.ts` + `ios/App/App.xcodeproj` + `capacitor.config.json` 반영 완료). App Store Connect 등록 후 영구 고정.
 - **앱 이름**: 현재 "주선생"(후보: 주선생/주교수/영차). 언제든 변경 가능.
 - Apple Developer Program 가입($99/년) → App Store Connect 앱 생성 → 아카이브/업로드.
 - 스크린샷, 설명, 개인정보처리방침 URL, 심사 노트.
@@ -112,7 +112,7 @@ Android WebView origin은 `http://localhost`(포트 없음), iOS는 `capacitor:/
 
 ## Google Play 제출 전 남은 일 (별도)
 - **아이콘 512×512**(Play 스토어 등록용) — 현재 자산으로 충분, 필요 시 고해상도 교체.
-- **번들 ID**: 임시 `com.example.etfrag` → 확정(`capacitor.config.ts`).
+- **번들 ID**: iOS는 `ai.jusunsaeng.app`로 확정. **Android는 아직 `com.example.etfrag`** — 안드로이드 진행 시 `MainActivity.java` 디렉토리 경로까지 함께 이동해 통일 필요(단순 치환 불가).
 - Google Play Console 등록비 **$25(평생 1회)**.
 - **2026년 정책**: 신규 개인 개발자 계정은 프로덕션 공개 전 **테스터 12명이 14일 연속 옵트인** 필요(요건 확인).
 - 서명 키(keystore) 생성 + AAB 빌드 + 스크린샷/설명/개인정보처리방침.

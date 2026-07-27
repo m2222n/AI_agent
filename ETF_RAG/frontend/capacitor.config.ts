@@ -6,7 +6,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // Apple 심사 가이드라인 4.2(Minimum Functionality) 리젝을 피한다.
 // 데이터는 앱 안의 JS가 라이브 백엔드(Railway)를 fetch로 호출한다.
 const config: CapacitorConfig = {
-  appId: "com.example.etfrag", // 임시 — App Store 제출 전 실제 값으로 확정
+  appId: "ai.jusunsaeng.app", // App Store 번들 ID (확정, 영구 고정)
   appName: "주선생",
   webDir: "out",
   ios: {
