@@ -148,3 +148,30 @@ def test_visit_read_only(client):
     assert r.json() == {"daily": 5, "total": 100}
     m.assert_called_once()
     rec.assert_not_called()
+
+
+def test_capacitor_origin_regex_when_restricted():
+    """CORS_ORIGINS를 특정 웹 origin으로 좁히면 capacitor 앱 origin을 regex로 추가 허용."""
+    import re
+
+    from api.main import _capacitor_origin_regex
+
+    regex = _capacitor_origin_regex(["https://myapp.example.com"])
+    assert regex is not None
+    # iOS(capacitor://localhost) + Android(http/https://localhost) 모두 허용
+    assert re.match(regex, "capacitor://localhost")
+    assert re.match(regex, "http://localhost")
+    # Android 14 실측: 최신 WebView origin은 https://localhost (2026-07-31 에뮬 logcat 확인)
+    assert re.match(regex, "https://localhost")
+    # 임의의 다른 origin은 매칭 안 됨(웹 origin은 allow_origins가 처리)
+    assert not re.match(regex, "https://evil.example.com")
+    # Next dev 서버(localhost:3000)는 포트가 있어 매칭 안 됨
+    assert not re.match(regex, "http://localhost:3000")
+    assert not re.match(regex, "https://localhost:3000")
+
+
+def test_capacitor_origin_regex_none_when_wildcard():
+    """allow_origins가 '*'이면 이미 전부 허용 → regex 불필요(None)."""
+    from api.main import _capacitor_origin_regex
+
+    assert _capacitor_origin_regex(["*"]) is None
