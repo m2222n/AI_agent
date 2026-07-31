@@ -78,20 +78,23 @@ app.state.app_state = AppState()
 
 # Capacitor 앱 WebView origin (기기 내장 번들 실행 시):
 #  - iOS(WKWebView):    capacitor://localhost
-#  - Android(WebView):  http://localhost  (포트 없음 — Next dev의 http://localhost:3000과 구분됨)
+#  - Android(WebView):  http://localhost 또는 https://localhost  (포트 없음)
+#    ※ 실측(Android 14, 2026-07-31 에뮬 logcat): 최신 WebView는 origin이 https://localhost로 나옴.
+#      기존엔 http://localhost만 허용해 CORS 차단됐음 → https도 허용.
+#    Next dev의 http://localhost:3000은 포트가 있어 정규식에서 구분됨.
 CAPACITOR_ORIGIN = "capacitor://localhost"
 
 
 def _capacitor_origin_regex(cors_origins: List[str]) -> Optional[str]:
     """CORS_ORIGINS를 특정 웹 origin으로 좁혔을 때만 Capacitor 앱 origin을 정규식으로 추가 허용.
 
-    iOS(capacitor://localhost)와 Android(http://localhost, 포트 없음) 둘 다 매칭.
+    iOS(capacitor://localhost)와 Android(http/https://localhost, 포트 없음) 매칭.
     allow_origins가 "*"이면 이미 전부 허용되므로 regex 불필요(None).
     인증은 쿠키가 아니라 Authorization 헤더라 credentials와 무관.
     """
     if cors_origins == ["*"]:
         return None
-    return r"^(capacitor://localhost|http://localhost)$"
+    return r"^(capacitor://localhost|https?://localhost)$"
 
 
 # CORS: CORS_ORIGINS 환경변수(쉼표 구분)로 제어, 미설정 시 "*"(로컬/dev).
