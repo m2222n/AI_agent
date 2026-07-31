@@ -1,4 +1,4 @@
-package com.example.etfrag;
+package ai.jusunsaeng.app;
 
 import com.getcapacitor.BridgeActivity;
 
