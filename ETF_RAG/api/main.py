@@ -80,6 +80,7 @@ app.state.app_state = AppState()
 #  - iOS(WKWebView):    capacitor://localhost
 #  - Android(WebView):  http://localhost 또는 https://localhost  (포트 없음)
 #    ※ 실측(Android 14, 2026-07-31 에뮬 logcat): 최신 WebView는 origin이 https://localhost로 나옴.
+#      기존엔 http://localhost만 허용해 CORS 차단됐음 → https도 허용.
 #    Next dev의 http://localhost:3000은 포트가 있어 정규식에서 구분됨.
 def _capacitor_origin_regex(cors_origins: List[str]) -> Optional[str]:
     """CORS_ORIGINS를 특정 웹 origin으로 좁혔을 때만 Capacitor 앱 origin을 정규식으로 추가 허용.

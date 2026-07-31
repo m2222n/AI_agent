@@ -150,6 +150,8 @@ def test_visit_read_only(client):
     rec.assert_not_called()
 
 
+# --- CORS: 모바일 앱(Capacitor) origin 허용 ---
+
 def test_capacitor_origin_regex_when_restricted():
     """CORS_ORIGINS를 특정 웹 origin으로 좁히면 capacitor 앱 origin을 regex로 추가 허용."""
     import re
@@ -163,9 +165,9 @@ def test_capacitor_origin_regex_when_restricted():
     assert re.match(regex, "http://localhost")
     # Android 14 실측: 최신 WebView origin은 https://localhost (2026-07-31 에뮬 logcat 확인)
     assert re.match(regex, "https://localhost")
-    # 임의의 다른 origin은 매칭 안 됨(웹 origin은 allow_origins가 처리)
+    # 임의의 다른 origin은 이 regex에 매칭되지 않아야(웹 origin은 allow_origins가 처리)
     assert not re.match(regex, "https://evil.example.com")
-    # Next dev 서버(localhost:3000)는 포트가 있어 매칭 안 됨
+    # Next dev 서버(http://localhost:3000)는 포트가 있어 매칭 안 됨(별도 CORS_ORIGINS로 처리)
     assert not re.match(regex, "http://localhost:3000")
     assert not re.match(regex, "https://localhost:3000")
 
@@ -175,3 +177,26 @@ def test_capacitor_origin_regex_none_when_wildcard():
     from api.main import _capacitor_origin_regex
 
     assert _capacitor_origin_regex(["*"]) is None
+
+
+def test_capacitor_origin_allowed_in_cors_response():
+    """제한된 CORS 설정에서 Capacitor origin의 preflight가 허용되는지 통합 검증."""
+    import importlib
+    import api.main as main_mod
+
+    # 프로덕션처럼 특정 origin으로 제한한 앱을 별도 구성해 미들웨어를 재적용
+    with patch.dict(os.environ, {"CORS_ORIGINS": "https://myapp.example.com"}):
+        reloaded = importlib.reload(main_mod)
+        try:
+            with TestClient(reloaded.app) as c:
+                r = c.options(
+                    "/health",
+                    headers={
+                        "Origin": "capacitor://localhost",
+                        "Access-Control-Request-Method": "GET",
+                    },
+                )
+                assert r.headers.get("access-control-allow-origin") == "capacitor://localhost"
+        finally:
+            # 다른 테스트가 기본(*) 설정 앱을 쓰도록 원복
+            importlib.reload(main_mod)
