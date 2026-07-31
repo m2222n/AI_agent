@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [ageGroup, setAgeGroup] = useState(""); // 선택
   const [gender, setGender] = useState(""); // 필수(가입 시)
+  const [agreed, setAgreed] = useState(false); // 개인정보 수집·이용 동의(가입 필수)
   const [showFind, setShowFind] = useState(false); // ID/비번 찾기 안내
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,6 +28,11 @@ export default function LoginPage() {
       } else {
         if (!gender) {
           setError("성별을 선택하세요.");
+          setBusy(false);
+          return;
+        }
+        if (!agreed) {
+          setError("개인정보 수집·이용에 동의해야 가입할 수 있어요.");
           setBusy(false);
           return;
         }
@@ -106,10 +112,31 @@ export default function LoginPage() {
             </select>
           </label>
         )}
+        {mode === "signup" && (
+          <label className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-700"
+            />
+            <span>
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
+                개인정보처리방침
+              </a>
+              을 확인했으며, 개인정보 수집·이용에 동의합니다. (필수)
+            </span>
+          </label>
+        )}
         {error && <p className="text-xs text-red-600">{error}</p>}
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || (mode === "signup" && !agreed)}
           className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300"
         >
           {busy ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
@@ -123,6 +150,7 @@ export default function LoginPage() {
             setMode(mode === "login" ? "signup" : "login");
             setError(null);
             setShowFind(false);
+            setAgreed(false);
           }}
           className="text-xs text-blue-600 hover:underline"
         >
