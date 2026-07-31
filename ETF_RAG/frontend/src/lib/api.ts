@@ -53,14 +53,26 @@ export async function chatOnce(
  * token 이벤트의 data는 "누적 전체 답변" → onToken에서 replace.
  * 반환: abort() — 호출자가 스트림을 취소할 수 있음.
  */
+/** 콜드스타트(유휴 재시작) 중 게이트웨이가 내는 코드 — 잠시 후 되므로 재시도 대상. */
+const COLD_START_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+/** 콜드스타트 재시도 횟수/간격 — run_init(full DB+FAISS)에 수십초 걸림 */
+const COLD_START_RETRIES = 5;
+const COLD_START_DELAY_MS = 4000;
+
+class ColdStartError extends Error {}
+
 export function streamChat(
   question: string,
   history: ChatHistoryItem[],
   cb: StreamCallbacks,
 ): () => void {
   const ctrl = new AbortController();
+  let attempt = 0;
+  // 토큰을 한 번이라도 받았으면 재시도 금지(답변 중복/뒤섞임 방지)
+  let gotData = false;
 
-  fetchEventSource(`${API_BASE}/stream`, {
+  const run = () => {
+    fetchEventSource(`${API_BASE}/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({
@@ -71,12 +83,22 @@ export function streamChat(
     openWhenHidden: true, // 탭 백그라운드여도 스트림 유지
 
     onopen: async (res) => {
-      if (!res.ok) throw new Error(`stream ${res.status}`);
+      if (res.ok) return;
+      // 아직 데이터를 못 받았고 재시도 여력이 있으면 콜드스타트로 간주
+      if (
+        !gotData &&
+        COLD_START_STATUS.has(res.status) &&
+        attempt < COLD_START_RETRIES
+      ) {
+        throw new ColdStartError(`cold start ${res.status}`);
+      }
+      throw new Error(`stream ${res.status}`);
     },
 
     onmessage: (ev) => {
       // ev.event / ev.data — 라이브러리가 `:` 주석(ping) 라인은 걸러줌
       const { event, data } = ev;
+      gotData = true; // 응답이 흐르기 시작 → 이후 실패는 재시도하지 않음
       switch (event) {
         case "question_type":
           cb.onQuestionType?.(data as QuestionType);
@@ -108,13 +130,30 @@ export function streamChat(
     },
 
     onerror: (err) => {
-      cb.onError?.("연결 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
+      // 콜드스타트로 판정된 경우: 서버가 깨어나길 기다렸다가 자동 재시도
+      if (err instanceof ColdStartError) {
+        attempt += 1;
+        cb.onStatus?.(
+          `서버를 깨우고 있어요… 잠시만 기다려주세요 (${attempt}/${COLD_START_RETRIES})`,
+        );
+        setTimeout(() => {
+          if (!ctrl.signal.aborted) run();
+        }, COLD_START_DELAY_MS);
+        throw err; // 라이브러리 자체 재시도는 중단(위 setTimeout으로 직접 제어)
+      }
+      cb.onError?.(
+        gotData
+          ? "답변이 중간에 끊겼어요. 다시 시도해주세요."
+          : "서버가 응답하지 않아요. 잠시 후 다시 시도해주세요.",
+      );
       throw err; // re-throw → 라이브러리 자동 재시도(재POST) 중단
     },
-  }).catch(() => {
-    /* onError로 이미 표면화됨 */
-  });
+    }).catch(() => {
+      /* onError/onStatus로 이미 표면화됨 */
+    });
+  };
 
+  run();
   return () => ctrl.abort();
 }
 
