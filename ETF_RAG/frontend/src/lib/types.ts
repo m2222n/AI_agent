@@ -253,6 +253,8 @@ export interface StreamCallbacks {
   onCovRevision?: (s: string) => void;
   onToken?: (cumulativeText: string) => void; // 누적 텍스트 → replace
   onStructuredData?: (d: StructuredData) => void;
+  /** 진행 상태 안내(에러 아님) — 콜드스타트 재시도 중 표시 */
+  onStatus?: (msg: string) => void;
   onError?: (msg: string) => void;
   onDone?: (d: DonePayload) => void;
 }

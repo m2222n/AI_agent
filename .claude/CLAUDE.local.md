@@ -2609,6 +2609,90 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 
 ---
 
+## 🎉 안드로이드 에뮬 실행 성공 + CORS 실버그 (2026-07-31 16:36~17:36)
+상세 메모리: `memory/project_ai_agent_ios_app.md`. **앱이 실기기(에뮬)에서 완전 작동 실증 — Intel 맥에서 Capacitor 안드로이드 빌드·실행 가능 확인**(iOS는 CPU 제약으로 막혔지만 안드는 됨).
+
+### Android Studio 환경 구축 (GUI 절차 — 재현용)
+- 팝업 3개 순서: ①**Trust Project** ②**macOS 로컬네트워크 접근 "허용"**(Tahoe 표준, 실기기/에뮬 탐색용) ③**Gradle JVM 비호환** — AS 기본 JVM 25가 프로젝트 Gradle 8.14.3과 안 맞음(요구 8~24) → 제시된 **"Use JVM 21" 원클릭**으로 해결(`Open JVM settings` 수동설정 불필요).
+- **Device Manager 위치(Android Studio Quail 3)**: 상단 기기 드롭다운엔 **없음**(Pair Devices/Troubleshoot만) → **Double Shift → "Device Manager"** 또는 View→Tool Windows. 버전마다 달라 헤맴 — 다음에 바로 이 경로로.
+- **AVD**: Pixel 8 / **API 34**(UpsideDownCake, Android 14) / Google Play / **x86_64**(Intel 맥이라 arm64 아님, 1.4GB 다운로드). API 37(CinnamonBun)·"16KB Page Size" 실험 이미지는 회피(너무 최신/특수).
+- AS 업그레이드 권유 알림(AGP 8.13.0, Gradle Daemon toolchain)은 **전부 무시**. 원칙: **"지금 빌드되는 상태를 건드리지 않는다"** — 목표는 앱 출시지 최신 도구 맞추기가 아님.
+- ▶ Run → 첫 에뮬 부팅 1~3분(Intel이라 더 느림) → 자동 빌드·설치·실행. **debug APK 5.0MB** 생성(`android/app/build/intermediates/apk/debug/`).
+
+### CORS 실버그 — 기존 메모리 가정이 틀렸던 사례 ⚠️
+- **증상**: 앱은 떴는데 "백엔드에 연결할 수 없어요"/"연결 오류". 라이브 `/health` 200·번들 URL 주입 정상이라 앱/에뮬 문제로 보였음.
+- **진단 경로**: 에뮬 ping 정상(DNS OK — `time` 값이 이상한 건 에뮬 시계버그일 뿐)·에뮬 Chrome도 접속됨 → 네트워크 아님. 에뮬엔 **`curl` 없음**. **`adb logcat`이 결정적 증거**: `Access to fetch ... from origin 'https://localhost' has been blocked by CORS policy`.
+- **원인**: **Android 14 최신 WebView origin이 `https://localhost`(s 붙음)** 인데 코드는 `http://localhost`만 허용. 기존 CLAUDE.md/메모리에 "Android WebView origin은 http://localhost"라 적어뒀던 게 **실측으로 틀린 것 확인** → regex를 `^(capacitor://localhost|https?://localhost)$`로 확장(Next dev `:3000`은 포트로 구분·제외).
+- **교훈**: WebView origin 같은 **런타임 값은 훈련지식/기존 메모리 가정이 아니라 logcat 실측이 진실**. (이번엔 에이전트 오판이 아니라 **진짜 버그**였고 로그로 확증 — "LLM 점검 오판" 교훈과는 구분.)
+- **배포가 복잡했던 이유(중요)**: 프로덕션 main에 **Capacitor CORS 코드 자체가 없었음**(`_capacitor_origin_regex`는 7/15 feat 브랜치에서 처음 생긴 것·main 미머지). feat의 `eb02564`를 **cherry-pick 시도 → main.py·test_api.py 둘 다 충돌**(얹힐 토대가 없어서) → `--abort` 후 **main에 CORS 지원 직접 이식**(`List` import + 함수 + 미들웨어 `allow_origin_regex` 배선 + 테스트 2개) = `cdc36a5`. 결과적으로 같은 수정이 feat(`eb02564`)·main(`cdc36a5`) 양쪽에 별도 존재 → **8/01 머지 충돌의 원인이 됨**.
+- **프로덕션 반영 실증**: push 후 **약 5분(폴링 18회)** 뒤 적용. `Origin: https://localhost` → `access-control-allow-origin: https://localhost` 200, `capacitor://localhost`도 200(iOS 대비 완료). 앱 재실행 후 **logcat CORS 에러 0건** + `{"connected":true,"connectionType":"wifi"}`.
+- **최종 실증**: 에뮬 앱에서 "삼성전자 기술적 분석해줘" → **RAG 정상 답변**(MA 5/20/60/120·RSI 33.6·MACD·볼린저, gpt-4o-mini 표시), 상단 초록 "준비 완료".
+- **유용한 명령**: `export ANDROID_HOME=$HOME/Library/Android/sdk`; `$ANDROID_HOME/platform-tools/adb logcat -d | grep -iE 'CORS|Capacitor/Console'`; `adb logcat -c`(클리어 후 재현이 진단에 효과적). **`adb shell ping`은 `timeout 15` 필수** — 안 걸면 무한대기로 툴 2분 타임아웃(실제로 당함).
+
+## 머지 + /privacy 라이브 + 콜드스타트 UX (2026-08-01)
+### feat/ios-capacitor → main 머지 (커밋 `ca45449`)
+- **계기**: `/privacy`가 브랜치에만 있어 **라이브 404** — Play Console 제출 필수 URL이라 머지가 선행 조건.
+- **충돌 2건 해소**(위 CORS 이중 커밋이 원인): ①`api/main.py` 주석 충돌 + **미사용 상수 `CAPACITOR_ORIGIN` 제거**(grep으로 정의 1줄뿐·regex가 대체한 죽은 코드) ②`tests/test_api.py` 같은 테스트가 양쪽에 다른 문구로 존재 → **합집합 정리**(브랜치에만 있던 통합테스트 `test_capacitor_origin_allowed_in_cors_response` 살림).
+- ⚠️ **진단 과정 정정**: `git merge-tree`(구 syntax) 출력을 잘못 읽어 "충돌 없음"으로 판단했다가 실제 머지에서 충돌 2건 발생. **merge-tree 구문법 출력은 충돌 판정 근거로 부적합** — 실제 `git merge` 시도가 진실.
+- **검증**: 백엔드 **911 passed**(895→911, 머지로 증가) / 프론트 tsc 0 / Vitest 17 / `build:static` **16라우트**(privacy 포함).
+- **앱 번들 갱신**: 어제 APK엔 privacy 없었음(당시 `out/`이 14라우트 구버전) → `cap sync android`로 반영.
+- **라이브**: `/privacy` **404→200**(내용·문의처 렌더 확인). 배포 중 백엔드 502→200 자동회복(콜드스타트 정상 케이스, 폴링 확인).
+- **✅ Play용 개인정보처리방침 URL 확보**: `https://radiant-abundance-production-bdf0.up.railway.app/privacy`
+- main이 feat보다 18커밋 앞섬 → **이후 작업은 main에서**(feat 브랜치 역할 종료, 삭제 미정).
+
+### 콜드스타트 UX 개선 (브랜치 `fix/coldstart-ux`, 커밋 `b10ab89`, 미머지)
+- **문제**: `streamChat`의 `onerror`가 **모든 실패를 "연결 오류가 발생했어요"로 뭉뚱그리고 즉시 포기**. Railway 유휴 재시작(`run_init`: full DB 1.8GB + FAISS) 중 502는 잠시 후 되는데도 실패로 보임 → **에뮬에서 2회 재현**, 스토어 신규 사용자의 첫인상이 됨.
+- **수정** (`lib/api.ts`·`lib/types.ts`·`app/page.tsx`):
+  - 재시도 가능 코드(408/425/429/500/502/503/504)이고 **아직 토큰 미수신**이면 콜드스타트로 간주 → **4초 간격 5회 자동 재시도**(최대 ~20초).
+  - **`gotData` 가드**: 토큰을 한 번이라도 받은 뒤 실패는 재시도 금지(답변 중복/뒤섞임 방지) → 문구도 "답변이 중간에 끊겼어요"로 분기.
+  - **abort 연동**: 취소 시 예정된 재시도도 취소(`ctrl.signal.aborted` 체크).
+  - **`onStatus` 콜백 신설**(StreamCallbacks): 재시도 중엔 에러(빨간 문구) 아니라 **"서버를 깨우고 있어요… (n/5)"** 진행 상태로 표시.
+  - health 폴링: 초반 실패는 **"서버를 깨우고 있어요 (최대 1분)"**, 10회(≈30초) 초과 시에만 연결 실패 단정.
+  - 문구 통일 **"백엔드"→"서버"**(사용자에게 내부 용어 노출 제거).
+- **검증 2층 (mock만 믿지 않음 — 과거 교훈)**: mock 4개(재시도/소진/비콜드스타트/abort) + **실제 HTTP 1개** — 가짜 백엔드(첫 2회 502→이후 정상 SSE, `scratchpad/fake502.py`)에 진짜로 붙어 답변 도달 확인(8초=실제 대기 2회). 프론트 **22 passed**(17→22), tsc 0, build:static 16라우트.
+- ⚠️ 한계: Playwright 없어 **브라우저 육안 확인 미실시**. 단 `onStatus`→`patchLastAssistant({status})`는 기존 도구 상태줄과 동일 경로라 렌더는 검증된 경로.
+- **미배포** — 머지·배포 시 라이브 웹 + 다음 APK 빌드에 함께 반영.
+
+## 📸 블로그 9편(Phase G 앱화) 스크린샷 체크리스트 — 포스팅 완료까지 유지
+사용자 요청(2026-08-01): **앞으로 스크린샷 찍어두면 좋은 것을 미리미리 알려줄 것.** 블로그 포스팅 완료 시까지 이 목록 유지·갱신. 상세 메모리: `memory/project_ai_agent_blog9_screenshots.md`.
+
+**⚠️ 지금 안 찍으면 다시 못 찍는 것(1회성·최우선)**
+| # | 장면 | 왜 필요 | 시점 |
+|---|---|---|---|
+| S1 | **Play Console 등록/결제 $25 화면** | 1회성, 지나가면 재현 불가 | Play 등록 시 |
+| S2 | **keystore 생성 터미널 출력** (비번 입력칸은 가림) | 1회성. "가장 조심" 서사의 핵심 | keystore 작업 시 |
+| S3 | **테스터 12명 14일 옵트인 진행 화면**(인원/일수 카운터) | 2026 신규계정 최대 허들. 진행 중에만 존재 | 테스트 트랙 운영 중 |
+| S4 | **AAB 업로드·심사 제출/승인 화면** | 1회성. 편의 결말 | 제출 시 |
+| S5 | **스토어 실제 등록 페이지**(주선생 공개된 모습) | 편 마무리 대표 이미지 | 출시 후 |
+
+**이미 확보됨(재현 가능하나 있으면 좋음)**
+- ✅ Gradle JVM 비호환 팝업("Use JVM 21") — 삽질 서사용, 확보
+- ✅ Device Manager AVD 생성(Pixel 8/API 34) — 확보
+- ✅ 에뮬에 앱 첫 실행 성공 화면 — 확보
+- ✅ **"연결 오류" 떴던 화면** — 콜드스타트/CORS 편의 before. **버그 화면은 고치면 못 찍음 → 확보해둔 게 다행**
+- ✅ **CORS 수정 후 RAG 정상 답변 화면**(RSI 33.6 등) — after 대비
+
+**아직 안 찍었고 지금 찍을 수 있는 것(권장)**
+| # | 장면 | 용도 |
+|---|---|---|
+| S6 | **`adb logcat` CORS 에러 원문** 터미널 | "logcat이 결정적 증거" 대목. 지금 재현 가능(CORS regex 임시 되돌리면) — 다만 굳이 안 해도 로그 텍스트는 이 문서에 보존됨 |
+| S7 | **콜드스타트 "서버를 깨우고 있어요" 상태 표시** | 개선 after. **배포 후 유휴 상태에서 첫 요청 때만 보임 → 놓치기 쉬움** |
+| S8 | **라이브 `/privacy` 페이지** | 개인정보 동의 대목 |
+| S9 | **회원가입 동의 체크박스**(미동의 시 버튼 disabled) | 3중 차단 설명 |
+| S10 | 에뮬에서 8탭 각각(기술/재무/비교/전망/섹터/뉴스/가상투자) | "앱에서도 전 기능" 근거. 여유 있을 때 |
+| S11 | Android Studio 프로젝트 트리(capacitor 플러그인 4개 보이는 상태) | 래핑 구조 설명 |
+
+**촬영 팁**: 에뮬 스크린샷은 Device Manager 카메라 아이콘 또는 `adb exec-out screencap -p > shot.png`. Play 스토어 등록용 스크린샷(폰 2장+)은 어차피 필요하니 **S10 찍을 때 같이** 확보하면 일이 줄어듦.
+
+### 📌 다음 ToDo (사용자 결정으로 보류)
+1. **keystore 생성** (`ANDROID_RELEASE.md` 5단계) — `keytool -genkey -v -keystore ~/jusunsaeng-release.keystore -alias jusunsaeng -keyalg RSA -keysize 2048 -validity 10000`. **사용자가 직접 입력해야 하는 작업**(비밀번호가 대화 로그에 남으면 안 됨·분실 시 앱 업데이트 영구 불가). 이후 제 작업분 = **`key.properties` + `build.gradle` 릴리스 서명 배선(비번 gitignore 처리 필수)** → `./gradlew bundleRelease`로 AAB.
+2. `fix/coldstart-ux` 머지·배포.
+3. 아이콘 1024(현재 512 업스케일)·스크린샷 2장+·Play 등록 $25·**테스터 12명 14일 옵트인(실질 최대 허들)**.
+
+---
+
+_2026-08-01 (**머지 + /privacy 라이브 + 콜드스타트 UX**). **① feat/ios-capacitor→main 머지 완료** `ca45449` — 계기는 `/privacy`가 브랜치에만 있어 **라이브 404**(Play 제출 필수 URL). 충돌 2건 해소(원인=CORS 수정이 feat `eb02564`·main `cdc36a5` 양쪽에 별도 존재): main.py 주석+**미사용 상수 `CAPACITOR_ORIGIN` 제거**(죽은 코드), test_api.py **합집합 정리**(브랜치 통합테스트 살림). ⚠️`git merge-tree` 구문법 출력을 오독해 "충돌 없음"으로 판단했다가 실제 충돌 발생 — **실제 `git merge`가 진실**. 검증 백엔드 **911 passed**(895→911)·tsc0·Vitest17·build:static 16라우트. `cap sync android`로 앱 번들에 privacy 반영(어제 APK엔 없었음). 라이브 `/privacy` **404→200** 확인, 배포 중 백엔드 502→200 자동회복. **✅Play용 처리방침 URL 확보**. 이후 작업은 main에서(main이 feat보다 18커밋 앞섬). **② 콜드스타트 UX** 브랜치 `fix/coldstart-ux` `b10ab89` **미배포** — `streamChat.onerror`가 모든 실패를 "연결 오류"로 뭉개고 즉시 포기하던 것(에뮬 2회 재현)을 재시도가능코드+토큰미수신 시 **4초×5회 자동 재시도**로, `onStatus` 신설해 **"서버를 깨우고 있어요"** 진행표시(빨간에러 아님). `gotData` 가드로 토큰 수신 후엔 재시도 금지(중복방지), abort 연동, health 폴링도 10회까지 단정 보류, 문구 "백엔드"→"서버". **검증 2층**: mock 4개 + **실제 HTTP 1개**(가짜 백엔드 502·502·200에 진짜 접속, 8초=실대기 2회) → 프론트 **22 passed**(17→22). Playwright 없어 브라우저 육안확인은 미실시(렌더 경로는 기존 상태줄과 동일). **③ 📸 블로그 9편 스크린샷 체크리스트 신설**(사용자 요청 — 포스팅 완료까지 유지·미리 알려주기): 1회성 최우선 5건(Play $25결제·keystore터미널·테스터12명카운터·AAB제출·스토어등록페이지) + 확보분(JVM팝업·AVD·앱첫실행·**"연결오류" before**·CORS후 정상답변) + 지금가능 6건(콜드스타트 after S7은 배포후 유휴때만 보임·주의). 상세 memory/project_ai_agent_blog9_screenshots. **④ 다음 ToDo**: keystore(사용자 직접 입력 — 비번이 로그에 남으면 안 되고 분실 시 업데이트 영구불가, 이후 제 몫은 key.properties+build.gradle 서명배선·gitignore·AAB) → coldstart 머지·배포 → 아이콘1024·스크린샷·Play$25·테스터12명14일_
+
 _2026-07-31 세션후반 (개인정보 동의 절차 코드 구현 — 앱 출시 요건). **목표 재확인**: 앱 출시 완주 + 블로그 9편(Phase G 앱화 편, 이미 8편 완성돼 있음)으로 정리. 지금 세션은 카드 없이 되는 개발분부터. **① 로그인은 손 안 댐**: 현재 선택제(`get_current_user_optional`, 비로그인도 전 기능)가 최선 — 필수화는 이탈↑·심사 불리라 유지. **② 개인정보처리방침 페이지 신설** `frontend/src/app/privacy/page.tsx`(/privacy, 정적 export 16번째 라우트): 8섹션(수집항목/목적/보관기간/제3자/이용자권리/안전성/문의처 jtm@flickdone.com/고지). 실제 수집과 일치(이메일·비번·성별 필수 / 나이대·닉네임 선택 / 관심종목·가상투자·대화이력 이용중생성), "이름·주민번호·계좌 안 받음·가상투자=모의" 명시. **③ 회원가입 동의 체크박스** `login/page.tsx`: signup 모드만 표시, /privacy 링크(새탭), **미동의 시 3중 차단**(버튼 disabled + submit 가드 + 에러). 모드 전환 시 agreed 리셋. **④ 성별=필수 유지 결정**(완화 안 함 — 사용처[통계·맞춤] 있고 처리방침 명시로 방어). **⑤ 추가 수집 안 하기로**: 최소수집 원칙(법적·심사·이탈 리스크). 현 항목 다 사용처 있어 적정. "데이터 더 쌓기"는 개인정보 아닌 익명 행동로그 영역이고 사용자 늘면 그때. **검증**: build:static 16라우트(privacy 포함) 통과·tsc 에러0·privacy 페이지 렌더 스크린샷 확인. 다음(사용자): Android Studio 설치→에뮬 빌드→keystore→Play등록. 상세: ANDROID_RELEASE.md_
 _2026-07-31 (재우 하차 → 정태민 단독, 안드로이드 앱 1개 출시로 결정 + 보안점검 + 번들ID 통일). **① 방향 확정**: 친구 재우가 이번 앱화에서 빠짐 → 앱화 원동기(재우 협업·학습)의 절반 소멸, 남은 목적=포트폴리오+홍보. 선택지 A(안드로이드 1개 내고 마무리) vs B(웹/PWA로 그만) vs C(iOS 나중) 장단점 정리 후 **A 확정**(스토어 출시 경험/이력 한 줄 목적). 본인 아이폰이라 안드로이드는 에뮬로만 확인·본인이 스토어에서 못 써보는 어색함은 감수. **② Android 번들ID 통일 완료**: `com.example.etfrag`→`ai.jusunsaeng.app` — 파일 4곳(build.gradle namespace/applicationId·strings.xml package_name/custom_url_scheme·capacitor.config.json) + **자바 패키지 디렉토리 `com/example/etfrag`→`ai/jusunsaeng/app` git mv + package 선언 교체**(단순 sed 불가라던 부분 처리). cap sync android 후 잔여 0. iOS·Android 번들ID 완전 통일. **③ 출시 체크리스트 문서 신설** `frontend/ANDROID_RELEASE.md`(11단계 진행표: 프로젝트생성✅·번들ID✅ / AndroidStudio설치·에뮬빌드·keystore·아이콘·스크린샷·개인정보처리방침URL·Play등록$25·테스터12명14일·AAB제출). **④ 보안점검 all green(실증)**: 앱 정적번들(out/)에 백엔드 시크릿(OpenAI/KIS/KRX/Supabase/JWT) 전무·클라 노출은 NEXT_PUBLIC_API_BASE(백엔드URL, 공개OK)뿐 / 실제 .env는 git 미추적(.env.example만) / 비번 bcrypt / **프로덕션 JWT_SECRET 실증**: dev기본값 `dev-insecure-change-me`로 위조한 토큰을 라이브 /auth/me에 던지니 401 → 프로덕션은 별도 시크릿 사용 확정 / cron은 X-Cron-Token 보호·미설정시 403 / CORS 환경변수+capacitor regex. **결론: 앱 스토어 출시해도 보안 문제없음.** 유일 주의=keystore 백업(분실 시 앱 업데이트 영구 불가, 코드 아닌 절차). **⑤ 유지비**: 사용자 적을 때 실질 월 $5~15(Railway $5~10 상주+OpenAI 종량 $0~5, Cohere/Supabase/Pinecone/데이터API 무료). Play $25는 평생1회·유지비 아님. 상세: ANDROID_RELEASE.md·memory/project_ai_agent_ios_app·project_ai_agent_app_cost)_
 _2026-07-27 (앱 배포 방향 재정립 + macOS Tahoe 업글 후 서비스 재검증). **① iOS 빌드 불가 확정(중대 정정)**: macOS를 14 Sonoma→**26.5.2 Tahoe**로 실제 업그레이드함. 앞서 "Tahoe면 최신 Xcode 설치 가능→iOS 열림"이라 판단(memory에도 그리 기록)했으나 **App Store 실물 화면에서 "이 앱은 사용자의 Mac과 호환되지 않습니다 / macOS 26.2 이상 및 Apple M1 칩 이상 필요"** 확인 → **최신 Xcode 26.6은 Apple Silicon 전용, Intel 2019 맥은 CPU 때문에 설치 불가**. 진짜 관문은 macOS 버전이 아니라 **CPU(Apple Silicon)**였음. 구버전 Xcode(.xip)도 2026-04-28부터 App Store가 iOS 26 SDK 빌드만 받아 막다른 길. → **이 맥으로 iOS 직접 빌드 영구 불가**. iOS는 지인 M1맥 대여/클라우드맥(MacinCloud)/CI(Codemagic)/새 Apple Silicon맥 필요. **② 번들ID 확정**: 임시 `com.example.etfrag`→**`ai.jusunsaeng.app`**(GitHub/실명 연상 없는 중립값). iOS 3곳(capacitor.config.ts + project.pbxproj Debug/Release 2곳 + capacitor.config.json) 전부 교체·잔여 없음 확인. **Android는 아직 `com.example.etfrag`** — MainActivity.java 디렉토리 경로까지 이동해야 해 단순치환 불가, 8월 안드 작업 시 통일. IOS_APP.md 문서도 갱신. **③ 방향**: 태민·재우 둘 다 아이폰이라 "안드로이드 먼저 올리면 정작 본인들이 못 써봄" 딜레마 인지 → 우선 **PWA로 아이폰에서 써보며 다듬기**(라이브 manifest/SW/apple-touch-icon 전부 정상, 홈화면추가로 즉시 앱화·비용$0), **갤럭시(안드로이드) 스토어 배포는 예상 8월**. PWA 이점=지금 쓰기 / 스토어 이점=검색노출·신뢰·설치편의(낯선 유저 확산 단계에서 빛남). Capacitor 안드로이드 UI/UX는 PWA와 사실상 동일(WebView 래핑, 스플래시·상태바만 약간 더 네이티브). **④ 서비스 재검증 전부 green**: 라이브 백/프론트 200, 챗봇 RAG(/chat는 필드명 `question`)—KODEX200 시세·수익률·보유종목 정확답변, 데이터 기준일 2026-07-23(최신)·ETF749/주식1841, 자동수집 GitHub Actions 매일 success(7/18~23), 방문자 Supabase 라이브(누적256), 로컬 테스트 188 passed(Tahoe OK). ⚠️KRX 비번만료 ~10월초 자동수집 멈춤 예정(8월배포 무관). Xcode용 Claude Code는 불필요(앱로직=웹/React라 VS Code+터미널로 충분, Xcode는 빌드·업로드 버튼용). 상세: memory/project_ai_agent_ios_app·project_ai_agent_app_cost)_

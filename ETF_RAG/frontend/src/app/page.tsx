@@ -84,15 +84,25 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
+    // 유휴 재시작(콜드스타트) 중엔 실패가 정상이라, 초반 몇 번은 "연결 실패"로 단정하지 않음
+    let fails = 0;
     const poll = async () => {
       try {
         const h = await getHealth();
         if (cancelled) return;
+        fails = 0;
         setHealth(h);
         if (!h.ready) timer = setTimeout(poll, 3000);
       } catch {
         if (cancelled) return;
-        setHealth({ ready: false, error: "백엔드에 연결할 수 없어요." });
+        fails += 1;
+        setHealth({
+          ready: false,
+          error:
+            fails <= 10
+              ? "서버를 깨우고 있어요 (최대 1분)"
+              : "서버에 연결할 수 없어요. 잠시 후 새로고침해주세요.",
+        });
         timer = setTimeout(poll, 3000);
       }
     };
@@ -201,6 +211,8 @@ export default function Home() {
         }
         setIsLoading(false);
       },
+      // 콜드스타트 재시도 중 — 에러가 아니라 진행 상태로 표시(빨간 문구 방지)
+      onStatus: (msg) => patchLastAssistant({ status: msg, isError: false }),
       onError: (msg) => {
         patchLastAssistant({ content: msg, isError: true, status: undefined });
         setIsLoading(false);
@@ -220,10 +232,10 @@ export default function Home() {
   };
 
   const statusText = !health
-    ? "백엔드 상태 확인 중…"
+    ? "서버 상태 확인 중…"
     : health.ready
       ? "준비 완료"
-      : `백엔드 준비 중… ${health.error ? `(${health.error})` : ""}`;
+      : (health.error ?? "서버 준비 중…");
 
   // 마지막 assistant 메시지의 후속질문 (스트리밍 끝났을 때만)
   const lastMsg = messages[messages.length - 1];
@@ -320,7 +332,7 @@ export default function Home() {
           disabled={inputDisabled}
           onSend={handleSend}
           placeholder={
-            health?.ready ? "메시지를 입력하세요…" : "백엔드 준비 중…"
+            health?.ready ? "메시지를 입력하세요…" : "서버 준비 중…"
           }
         />
       </div>
