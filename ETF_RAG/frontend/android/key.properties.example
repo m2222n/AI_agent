@@ -1,0 +1,21 @@
+# 릴리스 서명 설정 템플릿
+#
+# 사용법: 이 파일을 같은 디렉토리에 key.properties 로 복사한 뒤 실제 값을 채운다.
+#   cp key.properties.example key.properties
+#
+# ⚠️ key.properties 와 *.keystore 는 .gitignore 로 커밋이 차단되어 있다.
+#    절대 커밋하지 말 것 (유출 시 제3자가 이 앱으로 위장한 앱에 서명할 수 있음).
+# ⚠️ keystore 파일 + 아래 비밀번호 3종은 반드시 백업할 것.
+#    분실하면 이 앱(ai.jusunsaeng.app)은 두 번 다시 업데이트할 수 없다.
+
+# keystore 파일 경로 (절대경로 권장. ~ 확장 안 되므로 /Users/... 로 적을 것)
+storeFile=/Users/m2222n/jusunsaeng-release.keystore
+
+# keytool -genkey 때 입력한 키 저장소 비밀번호
+storePassword=
+
+# keytool -genkey 의 -alias 값
+keyAlias=jusunsaeng
+
+# 키 비밀번호 (keytool에서 따로 안 정했으면 storePassword 와 동일)
+keyPassword=
