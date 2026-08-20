@@ -16,13 +16,14 @@
 | 2 | 번들 ID 통일 `ai.jusunsaeng.app` | ✅ 완료 (2026-07-31) | 파일 4곳 + 디렉토리 `ai/jusunsaeng/app` 이동 |
 | 3 | Android Studio 설치 | ⬜ 사용자 | 무료, `brew install --cask android-studio` 또는 공식 다운로드 |
 | 4 | 에뮬레이터 빌드·동작 확인 | ⬜ | `cap open android` → Pixel 에뮬 Run → 체크리스트(로그인/챗봇/탭/오프라인) |
-| 5 | 앱 서명 keystore 생성 | ⬜ | `keytool -genkey` → **분실 시 앱 업데이트 영구 불가, 반드시 백업** |
-| 6 | 앱 아이콘·스플래시 최종 | 🔶 임시 있음 | 512 소스 사용 중. Play는 512×512 아이콘 필요(현 자산으로 가능) |
+| 5 | 앱 서명 keystore 생성 | ⬜ **사용자** | `keytool -genkey` → **분실 시 앱 업데이트 영구 불가, 반드시 백업**. 배선은 아래 5-1 완료 상태 |
+| 5-1 | 서명 배선 (key.properties/gradle) | ✅ 완료 (2026-08-20) | 조건부 서명 — keystore 없으면 자동 미서명 빌드. `.gitignore`로 키/비번 커밋 차단(실검증) |
+| 6 | 앱 아이콘·스플래시 최종 | ✅ 완료 (2026-08-20) | `assets/icon-1024.png` 생성. Play 스토어 등록용 512는 `public/icons/icon-512.png` |
 | 7 | 스크린샷 준비 | ⬜ | 폰 2장+ 필수(에뮬 캡처 가능). 태블릿은 선택 |
-| 8 | 개인정보처리방침 URL | ⬜ | **Play 필수**. 간단한 페이지 1개 필요(수집 항목: 이메일/성별/나이대 명시) |
+| 8 | 개인정보처리방침 URL | ✅ 완료 (2026-08-01) | `https://radiant-abundance-production-bdf0.up.railway.app/privacy` (라이브 200) |
 | 9 | Google Play Console 등록 | ⬜ | **$25 평생 1회**. 개인 계정 |
 | 10 | 테스터 12명 14일 옵트인 | ⬜ | **2026 신규 개인계정 정식출시 요건**. 지인 12명 2주 연속 |
-| 11 | AAB 빌드 → 업로드 → 심사 제출 | ⬜ | `./gradlew bundleRelease` 또는 Android Studio |
+| 11 | AAB 빌드 → 업로드 → 심사 제출 | 🔶 파이프라인 검증됨 | `./gradlew bundleRelease` **드라이런 성공**(3.6MB, 미서명). keystore만 꽂으면 서명 AAB |
 
 ---
 
@@ -49,6 +50,33 @@ keytool -genkey -v -keystore ~/jusunsaeng-release.keystore \
 - 이 keystore + 비밀번호를 **분실하면 그 앱은 두 번 다시 업데이트 못 함**(새 앱으로 다시 내야 함).
 - **백업 필수**: 안전한 곳(비밀번호 관리자/암호화 백업)에 keystore 파일 + alias + 비번 보관.
 - Google Play App Signing(권장) 쓰면 업로드 키 분실 시 재설정 가능하나, 최초 등록 키는 여전히 신중히.
+
+**입력 항목 안내** (`keytool`이 순서대로 물어봄):
+| 프롬프트 | 넣을 값 |
+|---|---|
+| 키 저장소 비밀번호 | 직접 정함(6자 이상). **어딘가 반드시 기록** |
+| 이름(CN) | `Taemin Jung` 또는 `Jusunsaeng` |
+| 조직 단위(OU)/조직(O) | 비워도 됨(엔터). 개인이면 생략 가능 |
+| 도시(L)/시도(ST) | 비워도 됨 |
+| 국가 코드(C) | `KR` |
+| 키 비밀번호 | 엔터 치면 저장소 비밀번호와 동일(권장) |
+
+> 이 값들은 스토어 화면에 노출되지 않음(APK 서명 인증서 안에만 존재). 다만 한번 정하면 못 바꾸므로 실명 넣기 싫으면 `Jusunsaeng`으로.
+
+**5-1. 서명 배선 (✅ 이미 완료 — keystore 만든 뒤 이것만 하면 됨)**
+```bash
+cd frontend/android
+cp key.properties.example key.properties
+#   → key.properties 를 열어 storePassword / keyPassword / storeFile 경로 채우기
+#   (key.properties, *.keystore 는 .gitignore로 커밋 차단됨 — 검증 완료)
+
+cd ..
+npm run build:static && npx cap sync android
+cd android && ./gradlew bundleRelease
+#   → app/build/outputs/bundle/release/app-release.aab (서명됨) → Play Console 업로드
+```
+- `key.properties`가 **없으면** 릴리스도 미서명으로 빌드됨(빌드가 깨지지 않음). 있으면 자동으로 릴리스 키 서명.
+- 드라이런 결과(2026-08-20): 미서명 AAB **3.6MB**, appId `ai.jusunsaeng.app`, appName `주선생`, `/privacy` 포함 확인.
 
 ### 8. 개인정보처리방침
 - 수집 항목(현재): **이메일(=ID), 비밀번호(해시), 성별, 나이대, 관심종목/가상투자 기록**.

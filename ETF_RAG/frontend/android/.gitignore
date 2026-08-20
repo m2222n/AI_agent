@@ -53,9 +53,10 @@ captures/
 .idea/navEditor.xml
 
 # Keystore files
-# Uncomment the following lines if you do not want to check your keystore files in.
-#*.jks
-#*.keystore
+# 릴리스 서명 키/비밀번호는 절대 커밋 금지 (유출 시 앱 위조 서명 가능)
+*.jks
+*.keystore
+key.properties
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
