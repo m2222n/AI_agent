@@ -2685,11 +2685,63 @@ Explore 조사 후 공통 `components/Feedback.tsx`(Spinner/Loading/ErrorText/No
 **촬영 팁**: 에뮬 스크린샷은 Device Manager 카메라 아이콘 또는 `adb exec-out screencap -p > shot.png`. Play 스토어 등록용 스크린샷(폰 2장+)은 어차피 필요하니 **S10 찍을 때 같이** 확보하면 일이 줄어듦.
 
 ### 📌 다음 ToDo (사용자 결정으로 보류)
-1. **keystore 생성** (`ANDROID_RELEASE.md` 5단계) — `keytool -genkey -v -keystore ~/jusunsaeng-release.keystore -alias jusunsaeng -keyalg RSA -keysize 2048 -validity 10000`. **사용자가 직접 입력해야 하는 작업**(비밀번호가 대화 로그에 남으면 안 됨·분실 시 앱 업데이트 영구 불가). 이후 제 작업분 = **`key.properties` + `build.gradle` 릴리스 서명 배선(비번 gitignore 처리 필수)** → `./gradlew bundleRelease`로 AAB.
-2. `fix/coldstart-ux` 머지·배포.
-3. 아이콘 1024(현재 512 업스케일)·스크린샷 2장+·Play 등록 $25·**테스터 12명 14일 옵트인(실질 최대 허들)**.
+1. **keystore 생성** (`ANDROID_RELEASE.md` 5단계) — `keytool -genkey -v -keystore ~/jusunsaeng-release.keystore -alias jusunsaeng -keyalg RSA -keysize 2048 -validity 10000`. **사용자가 직접 입력해야 하는 작업**(비밀번호가 대화 로그에 남으면 안 됨·분실 시 앱 업데이트 영구 불가). ~~이후 제 작업분 = key.properties + build.gradle 서명 배선~~ → **2026-08-20 완료**(아래 참조).
+2. ~~`fix/coldstart-ux` 머지·배포~~ → **2026-08-03 머지 완료**(`f2faf09`).
+3. ~~아이콘 1024~~ → **2026-08-20 완료**. 스크린샷 2장+·Play 등록 $25·**테스터 12명 14일 옵트인(실질 최대 허들)**.
 
 ---
+
+## 릴리스 서명 배선 + AAB 파이프라인 검증 (2026-08-20, 브랜치 `chore/android-signing-prep` `7867fc7`, 미푸시)
+
+**세션 성격**: 17일 공백 후 복귀. 개발은 8-03 이후 멈춰 있었고 그 사이 커밋 17개는 **전부 자동 데이터 수집**(`chore: update deploy data`). keystore(사용자 직접 작업) 앞뒤로 내가 할 수 있는 준비를 마무리.
+
+### 복귀 시 상태 점검 (전부 정상)
+- 로컬 main이 origin보다 **17커밋 뒤**였음 → `git pull --ff-only`로 동기화. 17개 전부 자동수집분(신규 개발 0).
+- 라이브: 백엔드 `/health` 200, 프론트 `/` 200, **`/privacy` 200**(Play 제출용 URL 유효 유지).
+- 데이터 최신일 **20260819**(ETF 769·주식 1843), GitHub Actions 자동수집 **5/5 success**(8-15~19).
+- **의미**: 17일간 무개입으로 자동수집·라이브가 유지됨 → 포트폴리오에서 "만들었다"가 아니라 **"운영했다"**의 근거. 블로그 9편에 쓸 만한 사실.
+
+### ⚠️ 보안 이슈 1건 실제 발견·수정 (이번 세션 최대 수확)
+- **Capacitor 안드로이드 템플릿의 `.gitignore`는 keystore 줄이 주석 처리돼 있음**:
+  ```
+  # Uncomment the following lines if you do not want to check your keystore files in.
+  #*.jks
+  #*.keystore
+  ```
+  게다가 `key.properties`는 **아예 항목이 없었음**(루트 `.gitignore`에도 없음).
+- 그대로 서명 배선을 했으면 **릴리스 서명 비밀번호가 공개 리포에 커밋될 수 있었음**(유출 시 제3자가 이 앱으로 위장한 앱에 서명 가능 — 되돌릴 수 없는 종류의 사고).
+- 수정: 주석 해제 + `key.properties` 추가.
+- **가정 아닌 실측으로 검증**: 더미 `key.properties`·`test-dummy.keystore`를 실제로 만들고 `git check-ignore -v`로 차단 확인 후 삭제. 커밋 직전 `git diff --cached --name-only | grep -iE 'key\.properties$|\.keystore$|\.jks$'`로 혼입 0 재확인.
+
+### 조건부 서명 배선 (`android/app/build.gradle`)
+- `rootProject.file("key.properties")` 존재 여부로 분기 → **파일 없으면 릴리스도 미서명 빌드**. 로컬/CI/다른 머신에서 빌드가 깨지지 않게 하는 게 핵심(무조건 서명하면 keystore 없는 환경에서 전부 실패).
+- `signingConfigs { if (hasReleaseSigning) { release {...} } }` + `buildTypes.release`에서 조건부 `signingConfig` 지정.
+- `android/key.properties.example` 신설 — 채울 항목만(실값 없음). `storeFile`은 **절대경로**(gradle에서 `~` 확장 안 됨) 주의 명시.
+
+### AAB 드라이런 (keystore 없이 파이프라인 전체 검증)
+- `npm run build:static` → `npx cap sync android` → `./gradlew bundleRelease` **BUILD SUCCESSFUL (57s)**, `app-release.aab` **3.6MB**.
+- 산출물 검증: `capacitor.config.json`의 appId **`ai.jusunsaeng.app`** / appName **`주선생`**, `/privacy` 포함(엔트리 8건).
+- ⚠️ **AAB에 서명 블록이 없는 것은 정상** — 처음엔 `META-INF/*.RSA`를 찾다가 "서명 실패?"로 의심했으나, **AAB는 APK와 서명 구조가 다르고**(jarsigner 블록은 실제 키 설정 시에만 생김) keystore가 없으니 `signReleaseBundle`이 no-op으로 지난 것. 즉 **디버그 키로 몰래 서명되지 않았다는 뜻이라 오히려 의도한 동작**(디버그 서명 AAB는 Play가 거부). 검색 중 나온 `base/root/META-INF/*.version`은 라이브러리 버전 파일로, 서명과 무관 — 이걸 서명 흔적으로 오독하지 말 것.
+- gradle 환경: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/...`(AS 기본 JVM 25는 Gradle 8.14.3과 비호환 — 7-31 "Use JVM 21"과 같은 이유), `ANDROID_HOME=$HOME/Library/Android/sdk`, aapt2는 `$ANDROID_HOME/build-tools/36.0.0/aapt2`.
+
+### 회귀 검증
+- 백엔드 **911 passed**(기존 baseline과 정확히 일치 — 서명 배선은 파이썬 코드 무관이나 확인), 프론트 **22 passed**, `tsc` 0, `build:static` 정상(`out/privacy.html` + 라이브 백엔드 URL 주입 확인).
+- 라우트 수 표기 주의: 빌드 로그 목록은 14줄로 보이지만 실제 HTML은 privacy 포함 전부 생성됨(로그 표기와 산출물을 따로 확인할 것).
+
+### 사용자 질문 3건에 대한 판단 (기록 — 다음 세션에서 재논의 방지)
+1. **"배포 + 블로그로 마무리?" → 찬성.** 근거: ①Phase 0~F 완료·테스트 911·Hit Rate 100%·라이브 운영 실증(17일 무개입) ②재우 하차로 원동기 절반 소멸, 남은 목적=포트폴리오+홍보이고 스토어 출시 1회로 달성 ③남은 후보(다종목비교·스크리너)는 "기능 하나 더"일 뿐 이력 한 줄이 새로 안 생김. **단 테스터 12명 14일이 진짜 관문** — 못 모을 것 같으면 내부테스트까지만 하고 블로그를 "제출까지의 전 과정"으로 쓰는 것도 완결로 충분(흐지부지가 최악).
+2. **"GitHub private으로 돌려야?" → 하지 말 것(반대).** ①포트폴리오는 남이 봐야 가치 있음 — private면 면접에서 링크 못 보여주고, 블로그 8편이 가리키는 코드가 404면 시리즈가 반쪽 ②보안상 불필요 — 7/31 실증대로 실제 `.env` 미추적·시크릿은 Railway에만·노출은 `NEXT_PUBLIC_API_BASE`(공개OK)뿐 ③유일한 구멍이던 keystore/key.properties를 이번에 막음. private가 맞는 건 "상용화해서 로직 감추기"뿐인데 현 방향과 불일치.
+3. **"배포 전 리팩터링 필요?" → 불필요.** ①7-10 #110에서 이미 한 라운드(프론트 실버그3+백엔드 중복제거·N+1, 순 -81줄) ②그 이후 **신규 코드가 사실상 없음**(17커밋 전부 자동수집)이라 리팩터링 대상 자체가 없음 ③출시 직전 리팩터링은 리스크만 추가 — 지금이 "에뮬에서 RAG 답변까지 실증된 작동 상태"이고, 7-31 안드 작업의 원칙 **"빌드되는 상태를 건드리지 않는다"** 적용. 대신 값어치 있는 건 **출시 직전 최종 회귀 검증**(이번에 911/22/tsc0/AAB로 수행).
+
+### 📌 다음 세션 ToDo (2026-08-20 사용자 결정 — "다음주 여유있을 때")
+1. **`chore/android-signing-prep` 브랜치 푸시·머지** (미푸시 상태로 남겨둠 — 사용자 확인 대기).
+2. **keystore 생성 — 사용자 직접**. 📸 **터미널 화면은 1회성이라 캡처 먼저**(블로그 S3). 입력 항목표는 `ANDROID_RELEASE.md` 5단계에 정리(실명 싫으면 CN=`Jusunsaeng`, 국가=KR, 나머지 엔터 가능). **비밀번호는 대화에 알려주지 말고** `key.properties`에 직접 기입 → 이후 `./gradlew bundleRelease` 한 방으로 서명 AAB.
+3. 스크린샷(에뮬 `adb exec-out screencap -p > shot.png`, Play용 폰 2장+와 겸용) → Play $25 등록 → 테스터 12명 14일 → AAB 제출.
+4. 블로그 9편 집필. 스크린샷 체크리스트는 위 "📸 블로그 9편" 섹션 유지.
+
+---
+
+_2026-08-20 (**릴리스 서명 배선 + AAB 파이프라인 검증**, 브랜치 `chore/android-signing-prep` `7867fc7` **미푸시**). 17일 공백 후 복귀 — 그사이 커밋 17개는 **전부 자동수집**(신규 개발 0), 로컬 main이 17커밋 뒤여서 pull. **복귀 점검 전부 정상**: 라이브 백/프론트/`/privacy` 200, 데이터 최신일 **20260819**(ETF769·주식1843), 자동수집 **5/5 success** → **17일 무개입 운영 실증**(블로그 소재: "만들었다"가 아니라 "운영했다"). **① ⚠️보안 이슈 1건 실제 발견·수정**: Capacitor 템플릿 `.gitignore`는 `#*.jks`/`#*.keystore`가 **주석 처리**돼 있고 `key.properties`는 **항목 자체가 없었음** → 그대로 서명 배선했으면 **릴리스 서명 비번이 공개 리포에 커밋**될 수 있었음(유출 시 앱 위장 서명 가능·되돌릴 수 없는 사고). 주석 해제+`key.properties` 추가 후 **더미 파일로 `git check-ignore` 실측 검증**(가정 아님) + 커밋 직전 스테이징 grep으로 혼입 0 재확인. **② 조건부 서명 배선**: `key.properties` 있으면 릴리스 서명, **없으면 미서명 빌드로 폴백**(무조건 서명하면 keystore 없는 로컬/CI가 전부 깨짐). `key.properties.example` 신설(`storeFile`은 절대경로 — gradle은 `~` 미확장). **③ AAB 드라이런 성공**: build:static→cap sync→`bundleRelease` **BUILD SUCCESSFUL 57s**, **3.6MB**, appId `ai.jusunsaeng.app`·앱명 `주선생`·`/privacy` 포함 확인. ⚠️**AAB 무서명은 정상** — `META-INF/*.RSA` 없다고 서명실패로 의심했으나 AAB는 APK와 서명구조가 다르고 keystore 없으니 `signReleaseBundle`이 no-op, 즉 **디버그키로 몰래 서명 안 됐다는 뜻**(디버그 서명 AAB는 Play 거부)이라 의도된 동작. `base/root/META-INF/*.version`은 라이브러리 버전파일로 서명과 무관 — 오독 금지. **④ 아이콘 1024 생성**(512 업스케일 상태 해소). **⑤ 회귀 all green**: 백엔드 **911**·프론트 **22**·tsc0·`out/privacy.html`+백엔드URL 주입. **⑥ 사용자 질문 3건 판단(재논의 방지)**: 배포+블로그로 **마무리 찬성**(단 테스터 12명이 진짜 관문, 못 모으면 내부테스트+"제출까지의 전과정" 블로그로 완결) / GitHub **private 전환 반대**(포트폴리오는 남이 봐야 가치·시크릿은 이미 다 밖에 있고 유일 구멍인 keystore를 이번에 막음) / **리팩터링 불필요**(7-10 #110에서 했고 이후 신규코드 없음, 출시직전 리팩터링은 리스크만 — "빌드되는 상태를 건드리지 않는다"). 다음: 브랜치 푸시·머지 → **keystore(사용자 직접·📸1회성 캡처 먼저)** → 스크린샷 → Play $25 → 테스터 12명 14일 → AAB 제출 → 블로그 9편_
 
 _2026-08-01 (**머지 + /privacy 라이브 + 콜드스타트 UX**). **① feat/ios-capacitor→main 머지 완료** `ca45449` — 계기는 `/privacy`가 브랜치에만 있어 **라이브 404**(Play 제출 필수 URL). 충돌 2건 해소(원인=CORS 수정이 feat `eb02564`·main `cdc36a5` 양쪽에 별도 존재): main.py 주석+**미사용 상수 `CAPACITOR_ORIGIN` 제거**(죽은 코드), test_api.py **합집합 정리**(브랜치 통합테스트 살림). ⚠️`git merge-tree` 구문법 출력을 오독해 "충돌 없음"으로 판단했다가 실제 충돌 발생 — **실제 `git merge`가 진실**. 검증 백엔드 **911 passed**(895→911)·tsc0·Vitest17·build:static 16라우트. `cap sync android`로 앱 번들에 privacy 반영(어제 APK엔 없었음). 라이브 `/privacy` **404→200** 확인, 배포 중 백엔드 502→200 자동회복. **✅Play용 처리방침 URL 확보**. 이후 작업은 main에서(main이 feat보다 18커밋 앞섬). **② 콜드스타트 UX** 브랜치 `fix/coldstart-ux` `b10ab89` **미배포** — `streamChat.onerror`가 모든 실패를 "연결 오류"로 뭉개고 즉시 포기하던 것(에뮬 2회 재현)을 재시도가능코드+토큰미수신 시 **4초×5회 자동 재시도**로, `onStatus` 신설해 **"서버를 깨우고 있어요"** 진행표시(빨간에러 아님). `gotData` 가드로 토큰 수신 후엔 재시도 금지(중복방지), abort 연동, health 폴링도 10회까지 단정 보류, 문구 "백엔드"→"서버". **검증 2층**: mock 4개 + **실제 HTTP 1개**(가짜 백엔드 502·502·200에 진짜 접속, 8초=실대기 2회) → 프론트 **22 passed**(17→22). Playwright 없어 브라우저 육안확인은 미실시(렌더 경로는 기존 상태줄과 동일). **③ 📸 블로그 9편 스크린샷 체크리스트 신설**(사용자 요청 — 포스팅 완료까지 유지·미리 알려주기): 1회성 최우선 5건(Play $25결제·keystore터미널·테스터12명카운터·AAB제출·스토어등록페이지) + 확보분(JVM팝업·AVD·앱첫실행·**"연결오류" before**·CORS후 정상답변) + 지금가능 6건(콜드스타트 after S7은 배포후 유휴때만 보임·주의). 상세 memory/project_ai_agent_blog9_screenshots. **④ 다음 ToDo**: keystore(사용자 직접 입력 — 비번이 로그에 남으면 안 되고 분실 시 업데이트 영구불가, 이후 제 몫은 key.properties+build.gradle 서명배선·gitignore·AAB) → coldstart 머지·배포 → 아이콘1024·스크린샷·Play$25·테스터12명14일_
 
