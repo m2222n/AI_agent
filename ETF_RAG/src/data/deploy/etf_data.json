@@ -1,7 +1,7 @@
 {
   "metadata": {
     "collection_date": "20260904",
-    "collected_at": "2026-09-05T12:56:58.353824",
+    "collected_at": "2026-09-06T13:04:25.742569",
     "total_etfs": 1167,
     "holdings_collected": 50
   },
@@ -16624,14 +16624,14 @@
           "weight": 0.0
         },
         {
-          "stock_ticker": "S03061",
+          "stock_ticker": "S0141P",
           "stock_name": "",
           "shares": 0.0,
           "amount": 790004,
           "weight": 0.0
         },
         {
-          "stock_ticker": "S0141P",
+          "stock_ticker": "S03061",
           "stock_name": "",
           "shares": 0.0,
           "amount": 790004,
