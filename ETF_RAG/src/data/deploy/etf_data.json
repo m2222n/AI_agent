@@ -1,7 +1,7 @@
 {
   "metadata": {
     "collection_date": "20260911",
-    "collected_at": "2026-09-12T13:02:08.928613",
+    "collected_at": "2026-09-13T13:54:15.180691",
     "total_etfs": 1168,
     "holdings_collected": 50
   },
@@ -16520,28 +16520,28 @@
           "weight": 0.0
         },
         {
-          "stock_ticker": "S28899",
-          "stock_name": "",
-          "shares": 0.0,
-          "amount": 1241450,
-          "weight": 0.0
-        },
-        {
-          "stock_ticker": "S01576",
-          "stock_name": "",
-          "shares": 0.0,
-          "amount": 1241450,
-          "weight": 0.0
-        },
-        {
-          "stock_ticker": "S01576",
-          "stock_name": "",
-          "shares": 0.0,
-          "amount": 1241450,
-          "weight": 0.0
-        },
-        {
           "stock_ticker": "S03049",
+          "stock_name": "",
+          "shares": 0.0,
+          "amount": 1241450,
+          "weight": 0.0
+        },
+        {
+          "stock_ticker": "S01576",
+          "stock_name": "",
+          "shares": 0.0,
+          "amount": 1241450,
+          "weight": 0.0
+        },
+        {
+          "stock_ticker": "S01576",
+          "stock_name": "",
+          "shares": 0.0,
+          "amount": 1241450,
+          "weight": 0.0
+        },
+        {
+          "stock_ticker": "S28899",
           "stock_name": "",
           "shares": 0.0,
           "amount": 1241450,
