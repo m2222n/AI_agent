@@ -1,7 +1,7 @@
 {
   "metadata": {
     "collection_date": "20260923",
-    "collected_at": "2026-09-26T13:51:11.964800",
+    "collected_at": "2026-09-27T14:49:54.582412",
     "total_etfs": 1175,
     "holdings_collected": 50
   },
@@ -16786,14 +16786,14 @@
           "weight": 0.0
         },
         {
-          "stock_ticker": "S28899",
+          "stock_ticker": "S03049",
           "stock_name": "",
           "shares": 0.0,
           "amount": 1081584,
           "weight": 0.0
         },
         {
-          "stock_ticker": "S03049",
+          "stock_ticker": "S28899",
           "stock_name": "",
           "shares": 0.0,
           "amount": 1081584,
