@@ -42,6 +42,11 @@ HTTP로만 결합된 **독립 2서비스**다. 기존 Streamlit 앱은 그대로
      --autogenerate` → CI drift 게이트(`alembic check`)가 리비전 누락을 감지.
 3. 배포 → **첫 부팅 동작**: lifespan `run_init()`이 DB 다운로드(3~5분) + FAISS 인덱스 빌드(~90s).
    그동안 `/health`는 `{ready:false}`, 완료되면 `{ready:true}`. 이후 부팅은 (볼륨 있으면) 빠름.
+   - **헬스체크**: `ETF_RAG/railway.json`이 `deploy.healthcheckPath=/health`(timeout 360s)를 선언한다.
+     새 배포가 포트를 열지 못하면(import 실패·크래시) Railway가 **이전 정상 배포를 유지**한다.
+     2026-09-26 장애(아래 트러블슈팅)는 헬스체크가 없어 크래시 배포가 정상 배포를 밀어낸 사례.
+   - **의존성 드리프트 주의**: `requirements.txt`가 범위 핀(`>=`)이라 **코드 변경 없는 데이터 커밋도
+     Docker 재빌드에서 새 버전을 끌어온다.** `sqlalchemy<2.1` 핀은 이 이유(아래 참조)로 필수.
 4. 백엔드 **public URL** 확보 (예: `https://etf-backend-production.up.railway.app`).
 
 ## 2단계: 프론트 배포 (백엔드 URL 확보 후)
@@ -93,6 +98,15 @@ OPENAI_API_KEY=sk-... docker compose up --build
 
 ## 트러블슈팅
 
+- **`/health`가 502 "Application failed to respond"** (`ready:false`가 아니라 응답 자체가 없음) → **프로세스가 포트를 못 열었다**는 뜻.
+  `run_init` 실패는 lifespan이 잡아 `ready:false`로 보고하므로, 502는 그 **바깥** — import 실패·모듈 레벨 예외·크래시.
+  재배포 직후 1분 내면 콜드스타트 정상, 5분 넘게 지속이면 크래시. Railway 배포 로그 확인 → 직전 정상 배포로 롤백.
+  - **2026-09-26~30 실제 사례(5일 장애)**: SQLAlchemy 2.1(09-24 릴리스)이 `postgresql://` 기본 드라이버를
+    psycopg2→psycopg(v3)로 바꿨는데 requirements엔 psycopg2-binary만 있어 `api/db.py`의 모듈 레벨
+    `create_engine`이 `ModuleNotFoundError: psycopg` → `import api.main` 실패 → 502. 로컬은 SQLite라 재현 불가.
+    수정: `sqlalchemy<2.1` 핀 + `tests/test_db_driver.py` 회귀 테스트 + railway.json 헬스체크 + keep-alive 백엔드 감시.
+  - 의심 시 로컬 재현: `requirements.txt`로 새 venv 만들고 `python -c "from sqlalchemy import create_engine; create_engine('postgresql://u:p@h/db')"`
+    (DB 없이도 드라이버를 eager import 하므로 즉시 판별).
 - `/health`가 계속 `ready:false` → `OPENAI_API_KEY` 확인, 로그에서 DB 다운로드 진행 확인(3~5분).
 - CORS 에러 → 백엔드 `CORS_ORIGINS`를 프론트 URL로 설정했는지.
 - 프론트가 `localhost:8000` 호출 → `NEXT_PUBLIC_API_BASE`를 올바른 백엔드 URL로 **재빌드**.

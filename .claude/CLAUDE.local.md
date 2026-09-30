@@ -2835,3 +2835,46 @@ _2026-06-25 (프로덕션 라이브 점검 전부 정상 + 코드 점검 라운�
 _2026-06-24 (✅영속볼륨 적용·검증 완료 #84 — Railway 볼륨/data+ETF_DATA_DIR 설정 후 full DB(1.8GB) 안착, 콜드스타트 제거. 기간가격 정상(days=120/750/2500 다 다름). 직전: #2 days미전달 #83 + 종목클릭 #80 + 비교단기 #79 + 시세정확성 #77 + 가상투자 #69~71. 전체 838. 다음: 후원/블로그9편)_
 _2026-06-16 (PR #50~#54 KIS + 모바일드로워 #51 + 웹푸시 #55·#56 + 코드점검 #57 + F-3 로컬감성 #58). 테스트 766_
 _운영 장애 2건 회복 + 데이터 완전성 복구 + 외부 공개 자료 완성 (2026-06-01) → Phase F SaaS 전환 착수 (2026-06-08)_
+
+---
+
+## 🔴 프로덕션 백엔드 5일 장애 — 의존성 드리프트 (2026-09-26~30, 09-30 진단·수정)
+
+### 증상·범위
+- 사용자 보고 "웹 로그인이 안 된다"(09-30). 로그인은 `/auth/login`이라 백엔드 의존 → 백엔드 `/health` **502 "Application failed to respond"** 지속. 프론트 200. 5분 폴링 무회복 → 콜드스타트 아닌 **크래시**.
+- **데이터 수집은 전 기간 정상**: 9월 Daily Collect 29회 success·실패 0, 데이터 최신일 20260930, Release DB 09-29 갱신. 수집(GitHub Actions)과 서빙(Railway)은 별개 인프라라 수집 성공이 서비스 정상을 뜻하지 않음.
+- **감시 사각지대로 5일 무알림**: daily-collect의 백엔드 호출 3건은 `continue-on-error` + `|| echo "실패(무시)"`로 502를 삼키고 job은 success. watchdog은 수집만 검사. keep-alive는 Streamlit/Supabase만 ping.
+
+### 장애 시작 특정 (Railway 로그인 없이)
+Actions 로그에서 백엔드 호출 결과를 날짜별로 이분탐색: 09-12·17·22·24·25 = `{"ok":true,"refreshed":true}` / 09-26·28·29 = `curl: (22) 502`. 09-25 14:57 UTC 데이터 커밋 → Railway 재빌드 → 그 다음 호출부터 502. **코드 변경 0**(그 사이 커밋 전부 자동수집).
+
+### 근본 원인 — 3중 확증
+1. **SQLAlchemy 2.1.0(2026-09-24 20:12 UTC 릴리스): "Default PostgreSQL driver changed to psycopg (psycopg 3)"**. requirements엔 `psycopg2-binary`만.
+2. `requirements.txt`의 `sqlalchemy>=2.0,<3` 범위 핀 → 데이터 커밋이 유발한 Docker 재빌드에서 2.1 유입. (39개 의존성 전부 `>=` 범위, `==` 0개.)
+3. `api/db.py:27` `engine = create_engine(DATABASE_URL, …)`이 **모듈 레벨** → `import api.main` 시점에 `ModuleNotFoundError: No module named 'psycopg'` → uvicorn이 앱을 로드 못 해 포트 바인드 실패 → 502. `main.py` lifespan의 try/except는 `run_init`만 감싸므로(`init_models()`도 try 밖) 무력.
+- **로컬에서 재현되지 않은 이유 = SQLite**. requirements.txt로 fresh venv를 만들어 Railway 빌드를 재현했는데 `import api.main` OK·서버 기동 `ready:true`·**911 테스트 전부 통과**. 그런데도 프로덕션은 죽어 있었음 → **"로컬 OK ≠ 프로덕션 OK"**. 차이는 `DATABASE_URL=postgresql://`.
+- **결정적 재현**: `create_engine("postgresql://u:p@localhost/db")`는 **DB 연결 없이도** DBAPI를 eager import → fresh venv(2.1.1)에서 즉시 `ModuleNotFoundError: psycopg`, 구 venv(2.0.49)에서 `driver=psycopg2 OK`.
+- 502 vs `ready:false` 구분이 진단의 열쇠: 예외가 lifespan try 안이면 200+`ready:false`, **502는 프로세스 미기동** → import/모듈레벨로 범위 축소.
+
+### 후보 압축 방법 (재사용 가치)
+- PyPI JSON(`https://pypi.org/pypi/<pkg>/json`)으로 39개 의존성의 09-20~30 릴리스 스캔 → 12개(SQLAlchemy 2.1.0/2.1.1, kiwipiepy 0.24.0, uvicorn 0.54, fastapi 0.142, openai 3.x…). 샌드박스 Python은 SSL 검증 실패 → **curl로 받아 파일 파싱**.
+- fresh venv `pip freeze` diff로 버전 점프 표(SQLAlchemy 2.0.49→2.1.1, starlette 0.49→1.7, pandas 2.3→3.0, numpy 2.0→2.4, kiwipiepy 0.23→0.24 등). Linux cp311 wheel 존재 확인으로 "빌드 실패" 가설 배제.
+- Railway CLI `--browserless` 로그인 코드는 몇 분 만에 만료 → 사용자 터미널 `railway login` 직접이 낫다(이번엔 결국 불필요).
+
+### 수정 (브랜치 `fix/sqlalchemy-2.1-psycopg-driver`)
+| 파일 | 변경 | 이유 |
+|---|---|---|
+| `requirements.txt` | `sqlalchemy>=2.0,<2.1` + 사유 주석 | 즉시 복구. 2.1 승격은 `psycopg[binary]` 추가+검증 후 별건 |
+| `tests/test_db_driver.py` (신규) | `create_engine("postgresql://…")`의 `dialect.driver=="psycopg2"` | **핀에서 pass·2.1.1에서 fail 양방향 실증** — 프로덕션 URL 형태를 SQLite 테스트 환경에서 직접 검증 |
+| `ETF_RAG/railway.json` (신규) | `deploy.healthcheckPath=/health, healthcheckTimeout=360` | 헬스체크 없어 크래시 배포가 정상 배포를 밀어냄. 있으면 구 배포 유지 |
+| `keep-alive.yml` | 백엔드 `/health` 30s×4회 검사(continue-on-error 없음) + `notify-failure` Issue(중복 방지) + `issues: write` | **유일한 백엔드 모니터** 신설 — 5일 무알림 재발 차단 |
+| `daily-collect.yml` | 백엔드 트리거 3건 `\|\| echo "실패(무시)"` → `::warning::` | 비치명 유지(수집 성공은 성공)하되 run 화면에 보이게 |
+| `DEPLOY.md` | 헬스체크·드리프트 주의 + 트러블슈팅 "502 vs ready:false" 항목 | 운영 문서 |
+- 검증: fresh venv 핀 적용 후 `create_engine` psycopg2 OK·`pip check` 충돌 0 / 신규 테스트 양방향 / 기존 .venv `test_db_driver+test_api` 14 passed / YAML·JSON 파싱 OK.
+
+### 교훈
+- **범위 핀(`>=`)은 코드 변경 없는 데이터 커밋만으로도 프로덕션 의존성을 바꾼다.** 장기적으로 `==` 전체 핀 또는 lock 파일 — **미착수·별건**(검증된 버전 세트 확보 후).
+- 프로덕션-로컬의 **드라이버/DB 차이**는 테스트 스위트가 못 잡는다 → "프로덕션 URL 형태" 자체를 검증하는 테스트를 둘 것.
+- **"수집 success" ≠ "서비스 정상"** — 서빙 계층 감시는 별도로.
+- 헬스체크 없는 PaaS 배포는 크래시 빌드가 정상 빌드를 대체한다.
+- [[project_ai_agent_phase1]] "LLM 점검 오판" 교훈과 대칭: 이번엔 **가설(kiwipiepy/uvicorn 등)을 fresh venv 실측으로 하나씩 기각**하고 남은 것을 3중 확증 — 추측으로 핀하지 않았음.

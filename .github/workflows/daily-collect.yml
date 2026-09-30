@@ -181,7 +181,7 @@ jobs:
           echo "프로덕션 DB 새로고침 트리거: $REFRESH_DB_URL"
           curl -fsS -X POST "$REFRESH_DB_URL" \
             -H "X-Cron-Token: $CRON_TOKEN" \
-            --max-time 300 || echo "DB 새로고침 트리거 실패(무시)"
+            --max-time 300 || echo "::warning::프로덕션 DB 새로고침 트리거 실패 — 백엔드 다운 의심(수집 자체는 성공). keep-alive 헬스체크 결과 확인"
 
       # ── 관심종목 푸시 알림 트리거 (Railway 백엔드 호출) ──────
       # 수집 후 백엔드가 관심종목 ±임계% 종목을 구독 유저에게 push.
@@ -199,7 +199,7 @@ jobs:
           echo "관심종목 알림 트리거: $PUSH_ALERT_URL"
           curl -fsS -X POST "$PUSH_ALERT_URL" \
             -H "X-Cron-Token: $CRON_TOKEN" \
-            --max-time 120 || echo "알림 트리거 실패(무시)"
+            --max-time 120 || echo "::warning::관심종목 알림 트리거 실패 — 백엔드 다운 의심(수집 자체는 성공)"
 
       # ── 가상투자 일별 평가액 스냅샷 트리거 (Railway 백엔드 호출) ──
       # 거래 안 한 날도 시세 변동을 수익률 추이에 반영. 미설정 시 자동 skip(무해).
@@ -216,7 +216,7 @@ jobs:
           echo "가상투자 스냅샷 트리거: $PAPER_SNAPSHOT_URL"
           curl -fsS -X POST "$PAPER_SNAPSHOT_URL" \
             -H "X-Cron-Token: $CRON_TOKEN" \
-            --max-time 120 || echo "스냅샷 트리거 실패(무시)"
+            --max-time 120 || echo "::warning::가상투자 스냅샷 트리거 실패 — 백엔드 다운 의심(수집 자체는 성공)"
 
   # ── 실패 시 GitHub Issue 자동 생성 ──────────────────────
   notify-failure:

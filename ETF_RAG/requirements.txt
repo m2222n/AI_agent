@@ -30,7 +30,10 @@ sse-starlette>=2.0.0,<3.0
 httpx>=0.27.0,<1.0
 websockets>=12.0,<16  # KIS WebSocket 실시간 체결 (kis_ws.py)
 pywebpush>=2.0,<3  # 웹 푸시 알림 (VAPID)
-sqlalchemy>=2.0,<3
+# ⚠️ <2.1 고정: SQLAlchemy 2.1(2026-09-24)부터 postgresql:// 기본 드라이버가 psycopg2→psycopg(v3)로
+# 바뀜. psycopg 미설치라 api/db.py create_engine이 import 시점에 ModuleNotFoundError → 프로덕션
+# 백엔드 부팅 실패(502, 2026-09-26~30 장애). 2.1로 올리려면 psycopg[binary] 추가 + 검증 필요.
+sqlalchemy>=2.0,<2.1
 alembic>=1.13,<2  # 사용자 DB 스키마 마이그레이션 (api/db.py run_migrations)
 psycopg2-binary>=2.9,<3
 PyJWT>=2.8,<3
