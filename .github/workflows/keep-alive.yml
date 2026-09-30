@@ -21,12 +21,34 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
+      # ── Railway 백엔드 가동 감시 (유일한 백엔드 헬스 모니터) ──────────
+      # 2026-09-26~30 장애 교훈: 백엔드가 5일간 502였는데 아무 알림이 없었다.
+      # daily-collect의 백엔드 호출은 continue-on-error+`|| echo`로 실패를 삼키고,
+      # watchdog은 수집만 검사한다. 이 스텝은 실패하면 job을 실패시켜 아래
+      # notify-failure가 Issue를 만든다(continue-on-error 금지).
+      # 콜드스타트(재배포 직후 run_init 수십초~1분)를 오탐하지 않도록 30초 간격 4회 재시도.
+      - name: Check Railway backend health
+        run: |
+          URL="https://aiagent-production-75ca.up.railway.app/health"
+          for i in 1 2 3 4; do
+            CODE=$(curl -sS --max-time 30 -o /tmp/health.json -w "%{http_code}" "$URL" 2>/dev/null || echo "000")
+            echo "try $i: HTTP $CODE $(cat /tmp/health.json 2>/dev/null | head -c 200)"
+            if [ "$CODE" = "200" ]; then
+              echo "✅ 백엔드 정상"
+              exit 0
+            fi
+            [ "$i" -lt 4 ] && sleep 30
+          done
+          echo "::error::Railway 백엔드 /health 가 4회 연속 비정상(HTTP $CODE) — 크래시/배포실패 의심"
+          exit 1
+
       - name: Ping Streamlit app
         continue-on-error: true
         run: |
@@ -80,3 +102,34 @@ jobs:
             -o /dev/null -w "HTTP %{http_code} (%{time_total}s)\n" \
             "$SUPABASE_URL/rest/v1/visitor_stats?select=count&limit=1" \
             || echo "Supabase ping 실패 (무시)"
+
+  # ── 백엔드 다운 시 GitHub Issue 자동 생성 (daily-collect notify-failure와 동일 패턴) ──
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: ping
+    if: failure()
+    steps:
+      - name: Create backend-down issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          # 열린 동일 이슈가 있으면 중복 생성하지 않는다(장애 지속 중 매일 1개씩 쌓임 방지)
+          EXISTING=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --search "Backend health check failed" \
+            --state open --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create \
+              --repo ${{ github.repository }} \
+              --title "🚨 Backend health check failed ($DATE)" \
+              --body "Railway 백엔드 \`/health\`가 keep-alive 점검에서 4회 연속 비정상이었습니다 ($DATE KST).
+
+          확인 순서: Railway 대시보드 → AI_agent 서비스 → 최근 배포 로그(부팅 실패/크래시 여부) → 필요 시 직전 정상 배포로 롤백.
+          의존성 드리프트 의심 시 requirements.txt 범위와 최근 PyPI 릴리스를 대조 (2026-09-26 장애 사례: SQLAlchemy 2.1 기본 PG 드라이버 변경).
+
+          [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          This issue was created automatically." \
+              --label "bug"
+          fi
