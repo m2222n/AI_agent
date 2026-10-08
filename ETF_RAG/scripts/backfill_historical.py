@@ -32,6 +32,7 @@ import argparse
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 # 프로젝트 루트를 sys.path에 추가
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -99,10 +100,35 @@ def get_already_collected(conn: sqlite3.Connection, inst_type: str) -> set:
     return {r[0] for r in rows}
 
 
+# ── 휴장일 판정 ──────────────────────────────────────────────
+#
+# KRX는 휴장일(공휴일·대체공휴일)을 지정일로 조회하면 빈 응답이 아니라
+# 전 종목 시가/고가/저가/종가=0, 거래량=0인 프레임을 돌려준다. 이를 그대로
+# upsert하면 "유령 행"(close=0 전 종목)이 DB에 남는다 — 2026-05-01/05-05/05-25/
+# 09-24/09-25/10-05 여섯 날에 실제로 발생해 2026-10-08 전량 삭제했다.
+# 일일 수집 경로(collector/stock_collector.find_latest_business_day)는
+# `(df["종가"] > 0).any()`로 걸러내는데 백필 경로엔 이 가드가 없었다.
+#
+# 반환 규약 (collect_etf_day / collect_stock_day 공통):
+#   >0   = 저장된 종목 수
+#   0    = 휴장일(KRX 데이터 없음) — 저장 안 함, 실패 아님
+#   None = 수집 실패(예외) — 호출자가 재시도/알림 대상으로 구분해야 함
+# 기존엔 휴장과 실패가 둘 다 0이라 verify_and_recover가 로그인 실패·API 오류를
+# "공휴일"로 오판하고 ✅ 종료했다(2026-10-08 pykrx 구버전 장애 때 실제 발생).
+
+def _is_holiday_frame(df) -> bool:
+    """OHLCV 프레임이 휴장일 응답인지 — 비었거나 종가가 전부 0."""
+    if df is None or df.empty:
+        return True
+    if "종가" not in df.columns:
+        return True
+    return not (df["종가"] > 0).any()
+
+
 # ── ETF 일별 수집 (시세 + 등락률만, 보유종목/괴리율 제외) ────
 
-def collect_etf_day(conn: sqlite3.Connection, date: str) -> int:
-    """ETF 전종목 하루치 시세를 DB에 저장"""
+def collect_etf_day(conn: sqlite3.Connection, date: str) -> Optional[int]:
+    """ETF 전종목 하루치 시세를 DB에 저장. 반환 규약은 위 주석 참조."""
     try:
         # 1) 종목 목록
         tickers = stock.get_etf_ticker_list(date)
@@ -112,6 +138,11 @@ def collect_etf_day(conn: sqlite3.Connection, date: str) -> int:
         # 2) 시세/NAV 일괄
         df_ohlcv = stock.get_etf_ohlcv_by_ticker(date)
         time.sleep(REQUEST_DELAY)
+
+        # 휴장일 가드 — 종가 전부 0이면 저장하지 않는다(유령 행 방지)
+        if _is_holiday_frame(df_ohlcv):
+            logger.info(f"ETF {date}: 휴장일(KRX 데이터 없음) — 저장 생략")
+            return 0
 
         # 3) 등락률 일괄
         try:
@@ -168,17 +199,19 @@ def collect_etf_day(conn: sqlite3.Connection, date: str) -> int:
 
     except Exception as e:
         logger.warning(f"ETF {date} 수집 실패: {e}")
-        return 0
+        return None
 
 
 # ── 주식 일별 수집 (시세 + 시가총액 + 펀더멘털) ──────────────
 
-def collect_stock_day(conn: sqlite3.Connection, date: str) -> int:
-    """주식 전종목 하루치 시세를 DB에 저장"""
+def collect_stock_day(conn: sqlite3.Connection, date: str) -> Optional[int]:
+    """주식 전종목 하루치 시세를 DB에 저장. 반환 규약은 _is_holiday_frame 주석 참조."""
     try:
         # 1) 시세 일괄 (KOSPI + KOSDAQ)
         df_ohlcv = stock.get_market_ohlcv_by_ticker(date, market="ALL")
-        if df_ohlcv.empty:
+        # 휴장일 가드 — 빈 프레임 또는 종가 전부 0이면 저장하지 않는다(유령 행 방지)
+        if _is_holiday_frame(df_ohlcv):
+            logger.info(f"주식 {date}: 휴장일(KRX 데이터 없음) — 저장 생략")
             return 0
         time.sleep(REQUEST_DELAY)
 
@@ -246,7 +279,7 @@ def collect_stock_day(conn: sqlite3.Connection, date: str) -> int:
 
     except Exception as e:
         logger.warning(f"주식 {date} 수집 실패: {e}")
-        return 0
+        return None
 
 
 # ── 메인 ─────────────────────────────────────────────────────
@@ -312,12 +345,14 @@ def main():
                 logger.debug(f"{progress} ETF 스킵 (이미 수집)")
             else:
                 count = collect_etf_day(conn, date)
-                if count > 0:
+                if count is None:
+                    failed_days.append(("etf", date))
+                    logger.warning(f"{progress} ETF 수집 실패")
+                elif count > 0:
                     etf_total += count
                     logger.info(f"{progress} ETF {count}종목 저장")
                 else:
-                    failed_days.append(("etf", date))
-                    logger.warning(f"{progress} ETF 수집 실패")
+                    logger.info(f"{progress} ETF 휴장일 — 스킵")
 
         # 주식
         if args.type in ("stock", "all"):
@@ -325,12 +360,14 @@ def main():
                 logger.debug(f"{progress} 주식 스킵 (이미 수집)")
             else:
                 count = collect_stock_day(conn, date)
-                if count > 0:
+                if count is None:
+                    failed_days.append(("stock", date))
+                    logger.warning(f"{progress} 주식 수집 실패")
+                elif count > 0:
                     stock_total += count
                     logger.info(f"{progress} 주식 {count}종목 저장")
                 else:
-                    failed_days.append(("stock", date))
-                    logger.warning(f"{progress} 주식 수집 실패")
+                    logger.info(f"{progress} 주식 휴장일 — 스킵")
 
         # 10일마다 진행 상황 요약
         if i % 10 == 0:
