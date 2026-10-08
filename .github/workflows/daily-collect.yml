@@ -99,6 +99,31 @@ jobs:
             fi
           done
 
+      # ── 누락 영업일 자동 보충 (최근 10영업일) ──────────────────
+      # collect_full은 '당일'만 수집한다. KRX 비번 만료·장애로 며칠 실패하면 복구된
+      # 뒤에도 그 날들은 영원히 비어 있었다(2026-10-01/05/06/07 Release DB 실제 구멍).
+      # 이 스텝이 수집 직후·업로드 직전에 최근 10영업일을 검증하고 빈 날을 재수집한다.
+      # 휴장일은 0건으로 끝나고(저장 없음), 유령 행(종가 전부 0)은 삭제 후 재검사.
+      # 실패 시 job 실패 → notify-failure가 Issue 생성. 그날 upload/commit은 안 되지만
+      # 다음 실행이 당일+누락분을 함께 복구하므로 손실은 없다.
+      - name: Backfill missing trading days
+        if: steps.download_db.outputs.db_exists == 'true'
+        env:
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
+        run: |
+          cd ETF_RAG
+          for attempt in 1 2; do
+            echo "=== 누락 보충 시도 $attempt/2 ==="
+            if python scripts/verify_and_recover.py --days 10; then
+              echo "누락 보충 완료"
+              exit 0
+            fi
+            [ $attempt -lt 2 ] && { echo "실패 — 60초 후 재시도"; sleep 60; }
+          done
+          echo "::error::최근 10영업일 누락 보충 실패 — Release DB에 구멍이 남아 있을 수 있음"
+          exit 1
+
       # ── DB 업로드 (Release asset으로) ───────────────────────
       - name: Upload DB to release
         if: steps.download_db.outputs.db_exists == 'true'

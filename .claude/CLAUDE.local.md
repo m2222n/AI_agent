@@ -2916,3 +2916,58 @@ Actions 로그에서 백엔드 호출 결과를 날짜별로 이분탐색: 09-12
 
 ### 다음
 사용자 여유시간 날 때: 📸 keystore 터미널 캡처 → keystore 생성(사용자 직접) → 서명 AAB → 스크린샷 → Play $25 → 비공개 테스트 업로드 → 테스터 → 승격 → 블로그 9편 → 포트폴리오. 절차는 `frontend/ANDROID_RELEASE.md`. 별건: requirements `==` 전체 핀(9/30 숙제), Issue 중복 생성 개선, 2027-01 KRX 비번.
+
+---
+
+## 🔴 2026-10-08 후반 — 수집 3중 문제 발견·해결 + Actions 자동 백필 + 로컬 launchd 해제
+
+비번 만료 복구 후 "Release DB에 10/6·10/7이 실제로 있나"를 직접 열어본 것이 출발점. 상세 메모리: `memory/project_ai_agent_backfill_phantom_20261008.md`. 수동 복구 절차: `scripts/README_cron.md`.
+
+### ① 로컬 launchd — 9/29부터 매일 실패, 9일간 무감지
+| 단서 | 내용 |
+|---|---|
+| 로컬 로그 9/29~10/8 | 매일 `KRX 로그인 성공` → 1초 뒤 `JSONDecodeError: Expecting value` |
+| 로컬 DB | max date 20260929 |
+| 로컬 pykrx | **1.0.51** (ETF_RAG/.venv, ~/Work/.venv 둘 다 Python **3.9.2**) |
+| PyPI | pykrx 1.2.9(2026-09-19) `requires_python>=3.10` → 3.9에선 1.0.51이 최신 |
+| raw 응답 | 로그인 CD001 정상 → 데이터 POST(bld 포함) **HTTP 400 "LOGOUT"** / pykrx 경로는 HTML 5.7KB |
+| Actions | `pip install pykrx` → 1.2.9, Python 3.11 → 정상 |
+- 즉 KRX가 9월 중 API를 바꿨고 pykrx 1.2.9가 대응했는데, 로컬은 Python 3.9 때문에 영원히 못 따라감. **비번 만료(10/5)와 무관한 별개 장애**가 먼저 있었다.
+- **결정(사용자 "그렇게 해줘")**: `launchctl unload` 2개(daily-collect, dart-backfill). plist 심볼릭링크·`daily_collect.sh`는 보존, 헤더에 해제 사유 기재. README_cron.md 전면 개정(Actions 단일 파이프라인 + 수동 복구 절차).
+- 판단 근거(사용자 질문 "어떤 방향이 완성된 프로젝트에 적합?"): A(로컬 3.11로 고침)는 감시 안 되는 두 번째 경로를 유지하는 것(6월·9월 두 번 조용히 죽음) / B(끄기)만 하면 누락 보충 능력이 사라짐 → **B + 보충 기능을 Actions로 이전**이 정답. 포트폴리오에서 보이는 건 Actions 워크플로.
+
+### ② Release DB 거래일 구멍
+- `--check`: 9/24·9/25(추석)·10/1·10/5·10/6·10/7 "데이터 없음". Actions `collect_full.py`는 당일만 수집하고 과거 보충 스텝이 없었음(로컬 launchd에만 있었는데 그것도 죽음).
+- **첫 복구 시도(py3.9 venv)는 5초 만에 "공휴일 6일 ✅"** — 실패(HTML 응답)를 공휴일로 오판. 로그인 성공 로그만 보고 믿었으면 구멍이 그대로 남았음.
+- 두 번째(py3.11 임시 venv `collect_venv`, pykrx 1.2.9, `ETF_DATA_DIR=/scratch/reldb`): 6일 전부 "보충 완료 ETF 1171 + 주식 ~2873" — 그런데 **9/24·9/25는 추석 휴장인데 보충됐다**는 게 ③의 단서.
+- 업로드: zstd -19 -T0(1.79GB→408MB, 5분) → `gh release upload --clobber`(1분) → 재다운로드 `cmp` **BYTE-IDENTICAL**. 프로덕션 반영은 다음 Actions `/admin/refresh-db`.
+
+### ③ 휴장일 유령 행 — 종가 전부 0
+- 검사: 9/24 4041행 전부 `close=0`, 주식 volume 0·ETF volume NULL. 전수 검사 `GROUP BY date HAVING SUM(close=0)=COUNT(*)` → **5/1·5/5·5/25·9/24·9/25·10/5** 6일(5월분은 6월 백필 때부터 존재). 10/5=개천절 대체공휴일 확인([tossinvest 2026 휴장일](https://corp.tossinvest.com/en/post?type=notice&id=21740&category=52)).
+- 원리: KRX는 휴장일을 지정일로 조회하면 빈 응답이 아니라 **전 종목 0 프레임**을 돌려줌. 일일 경로(`find_latest_business_day`)는 `(df["종가"]>0).any()`로 거르는데 백필 경로엔 가드 없음. 정상일에도 거래정지로 close=0이 110~140개 섞이므로 **"전부 0"만** 유령.
+- 삭제: daily_prices 15,998 + stock_fundamentals 11,514 + collection_log 4(5월·10/5분) + 9/24·25분 8,082/5,740/2 → VACUUM → quick_check ok, **9,126,185행**, max 20261008.
+- 백필 날 주식 2873 vs 일일 2766 = KONEX 107개(`market=""`), pykrx `market="ALL"` 차이. 12년 백필이 같은 스크립트라 과거와 동일 구성 — 이번 변경 아님, 기록만.
+
+### ④ 코드 수정 (브랜치 `fix/backfill-holiday-guard-actions-recover`)
+| 파일 | 변경 |
+|---|---|
+| `scripts/backfill_historical.py` | `_is_holiday_frame`(비었거나/종가 컬럼 없거나/종가 전부 0) → 저장 생략·0. **반환 규약 >0 저장 / 0 휴장 / None 실패** (예외 시 None). main 루프 None/0 분기. `Optional` import |
+| `scripts/verify_and_recover.py` | `purge_date`(date 컬럼 가진 4테이블) + `find_missing_dates`가 유령(행 있고 `close>0` 0건) 감지 시 삭제·"없음" 재분류 / `recover_missing` None→failed(부분 None도 실패) / 로그인: 자격증명 없을 때만 무로그인, 있는데 실패면 exit 1 / `datetime.now(KST)` / `osascript` 있을 때만 알림 |
+| `.github/workflows/daily-collect.yml` | **`Backfill missing trading days`** 스텝 — Collect 직후·Upload 직전, `cd ETF_RAG && python scripts/verify_and_recover.py --days 10` 2회 재시도, 실패 시 `::error::`+exit 1 → notify-failure Issue. db_exists일 때만 |
+| `tests/test_verify_recover.py` | +10: 유령 감지·삭제 / 일부 0은 정상(3800행 유지) / recover None·부분None·0/0·>0 / `_is_holiday_frame` / `collect_stock_day` 휴장 시 `conn.execute` 미호출·예외 시 None / `collect_etf_day` 휴장 |
+| `scripts/README_cron.md`, `daily_collect.sh` 헤더 | launchd 해제 사유·Actions 파이프라인 도식·수동 복구 절차 |
+- 검증: 신규 15 passed → 전체 **922 passed**(112s). YAML 스텝 순서 Collect→Backfill→Upload 확인. pyflakes 신규 경고 0(기존 4건은 무관). CI는 `pip install pykrx`(1.2.9, py3.11)라 테스트 import OK.
+- 설계 메모: 백필 스텝 실패 시 그날 upload/commit도 안 되지만 다음 실행이 당일+누락을 함께 복구하므로 손실 없음 — 조용히 넘기는 것보다 Issue가 낫다는 판단.
+
+### 교훈 (MEMORY.md 주요 교훈에 추가)
+- **"로그인 성공" ≠ 수집 성공.** 데이터 응답까지 봐야 한다.
+- **외부 API의 "없음"이 빈 응답이 아닐 수 있다.** 저장 전 의미값 검사.
+- **복구 스크립트가 몇 초 만에 ✅면 의심.** 실제 건수 로그를 확인.
+- **환경 드리프트는 양방향** — 9월(SQLAlchemy 최신이 깨뜨림)·10월(pykrx 구버전 고착). 근본은 로컬 3.9 vs CI 3.11. `==` 전체 핀 숙제는 여전히 별건.
+
+### 메모리 정리 (사용자 요청)
+삭제 3: `project_pending_tasks_20260417`(본문이 "유효하지 않음"), `project_ai_agent_todo_phase_e`(Phase E 완료, timeline에 있음), `project_schedule_2026`(5~9월 계획 지남). 색인 복구 1: `project_ai_agent_cleanup_20260608`(코드점검·LLM 오판 기각 기록). 고민·오류수정 기록은 전부 유지. MEMORY.md 자동수집 항목·테스트 수(922)·교훈 갱신, 일정 계획 섹션 제거.
+
+### 다음
+- 머지 후 **오늘 18:30 KST Actions**가 새 Backfill 스텝을 처음 실행 — 내일 run 로그에서 "최근 10영업일 데이터 정상 ✅" 또는 10/9(한글날) 휴장 0건 처리 확인.
+- 앱 출시 ToDo는 그대로(keystore 📸 먼저). 별건: requirements `==` 핀, Issue 중복 생성 개선(날짜별 2개씩 쌓임), 2027-01 KRX 비번.

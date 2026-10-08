@@ -1,6 +1,11 @@
 #!/bin/bash
-# ETF + 주식 일배치 수집 스크립트
-# 매일 장마감 후(18:30) 실행 — launchd 또는 cron으로 등록
+# ETF + 주식 일배치 수집 스크립트 — **수동 실행용** (launchd 해제됨, 2026-10-08)
+#
+# 자동 수집은 .github/workflows/daily-collect.yml(GitHub Actions)이 단일 경로다.
+# 로컬 launchd는 Python 3.9 venv가 pykrx>=1.2.9(Python>=3.10 필수)를 못 받아
+# 2026-09-29부터 조용히 실패했고, 감시도 없어 해제했다. 상세: scripts/README_cron.md
+# 아래 PYTHON 경로는 3.9 venv라 현재 KRX 데이터 요청이 실패한다 — 다시 쓰려면
+# Python 3.11 venv(pykrx>=1.2.9)로 바꿀 것.
 #
 # 사용법:
 #   ./scripts/daily_collect.sh              # 최근 영업일 기준
