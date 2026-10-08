@@ -57,6 +57,9 @@ def _safe_get_ticker_name(getter_fn, ticker: str) -> str:
     except BaseException:
         return ""
 
+# logs/는 gitignore라 fresh checkout(CI·Actions 러너)엔 없다 — FileHandler가 import 시점에
+# 열리므로 먼저 만들어야 한다. 없으면 verify_and_recover(→ 이 모듈 import)가 통째로 죽는다.
+(PROJECT_ROOT / "logs").mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
