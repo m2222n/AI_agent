@@ -2971,3 +2971,11 @@ Actions 로그에서 백엔드 호출 결과를 날짜별로 이분탐색: 09-12
 ### 다음
 - 머지 후 **오늘 18:30 KST Actions**가 새 Backfill 스텝을 처음 실행 — 내일 run 로그에서 "최근 10영업일 데이터 정상 ✅" 또는 10/9(한글날) 휴장 0건 처리 확인.
 - 앱 출시 ToDo는 그대로(keystore 📸 먼저). 별건: requirements `==` 핀, Issue 중복 생성 개선(날짜별 2개씩 쌓임), 2027-01 KRX 비번.
+
+### ⑤ 머지 후 CI 실패 → PR #142 (2026-10-08, 실수 기록)
+- #141 머지 직후 CI `test` job **fail 8건** 확인 — `gh pr merge`는 체크로 안 막히고 watch 출력을 제대로 안 읽은 실수. 원인 `backfill_historical.py` 모듈 레벨 `logging.FileHandler(logs/backfill.log)`: `logs/`가 gitignore라 CI·Actions 러너엔 없음 → import 시 FileNotFoundError. **Actions Backfill 스텝도 첫 실행에서 똑같이 죽었을 것**(verify_and_recover → import) — 신규 테스트가 먼저 잡아줌.
+- 수정 `mkdir(exist_ok=True)` 선행. 로컬 `logs/` 제거해 CI 조건 재현 → 15 passed. PR #142 **CI green 확인 후** 머지 `d00394f`. 크래시 예정이던 수동 run 37719364973은 cancel(취소는 notify-failure 안 탐). 8월 말 잔여 Issue #128~130(8/31 자가복구된 건) 정리.
+- **규칙: 머지는 `gh pr checks`에서 `test pass`를 grep으로 확인한 뒤에만.**
+
+### ⑥ 엔드투엔드 실증 (run 37719837383, `d00394f`, 11:50~11:55 KST)
+수동 트리거 → 전 스텝 success. Backfill 로그: 10영업일 중 7일 정상(백필분 10/1·10/6·10/7 = ETF 1171/주식 2873), **9/24·9/25·10/5는 "공휴일 감지 — KRX 데이터 없음(정상)" 0건 처리 = 유령 행 가드 작동 실증**. Upload→commit→refresh-db 통과, 프로덕션 삼성전자 `last_date=20261008`. 이 경로가 매일 18:30 자동으로 돈다.
