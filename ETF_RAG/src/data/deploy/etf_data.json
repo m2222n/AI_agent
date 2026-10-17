@@ -1,7 +1,7 @@
 {
   "metadata": {
     "collection_date": "20261016",
-    "collected_at": "2026-10-16T14:09:51.705824",
+    "collected_at": "2026-10-17T13:08:01.456719",
     "total_etfs": 1176,
     "holdings_collected": 50
   },
@@ -18,7 +18,7 @@
         "volume": 2,
         "trade_value": 101090,
         "nav": 50535.29,
-        "base_index": 103.99,
+        "base_index": 104.03,
         "change": 20,
         "change_pct": 0.04
       },
@@ -98,7 +98,7 @@
         "volume": 35,
         "trade_value": 329510,
         "nav": 9372.08,
-        "base_index": 1563.91,
+        "base_index": 1564.8,
         "change": 210,
         "change_pct": 2.3
       },
@@ -203,7 +203,7 @@
         "volume": 1488,
         "trade_value": 50234645,
         "nav": 33366.53,
-        "base_index": 1165.59,
+        "base_index": 1165.63,
         "change": 685,
         "change_pct": 2.09
       },
@@ -229,7 +229,7 @@
         "volume": 2,
         "trade_value": 202210,
         "nav": 101111.95,
-        "base_index": 116.95,
+        "base_index": 116.99,
         "change": 15,
         "change_pct": 0.01
       },
@@ -280,7 +280,7 @@
         "volume": 1864,
         "trade_value": 57710865,
         "nav": 30767.74,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 415,
         "change_pct": 1.37
       },
@@ -307,7 +307,7 @@
         "volume": 1036,
         "trade_value": 8622035,
         "nav": 8282.21,
-        "base_index": 2103.44,
+        "base_index": 2105.05,
         "change": 515,
         "change_pct": 6.59
       },
@@ -334,7 +334,7 @@
         "volume": 353,
         "trade_value": 2596790,
         "nav": 7517.61,
-        "base_index": 897.19,
+        "base_index": 897.29,
         "change": 485,
         "change_pct": 6.88
       },
@@ -359,7 +359,7 @@
         "volume": 243,
         "trade_value": 17068865,
         "nav": 70039.93,
-        "base_index": 6810.26,
+        "base_index": 6812.62,
         "change": 1345,
         "change_pct": 1.96
       },
@@ -386,7 +386,7 @@
         "volume": 2053,
         "trade_value": 182617780,
         "nav": 88350.19,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1320,
         "change_pct": 1.51
       },
@@ -466,7 +466,7 @@
         "volume": 2234,
         "trade_value": 225421955,
         "nav": 100914.11,
-        "base_index": 113.33,
+        "base_index": 113.44,
         "change": 0,
         "change_pct": 0.0
       },
@@ -492,7 +492,7 @@
         "volume": 2050,
         "trade_value": 206849780,
         "nav": 100907.56,
-        "base_index": 117.15,
+        "base_index": 117.18,
         "change": 10,
         "change_pct": 0.01
       },
@@ -517,7 +517,7 @@
         "volume": 5006,
         "trade_value": 65466955,
         "nav": 13500.88,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 665,
         "change_pct": 5.18
       },
@@ -593,7 +593,7 @@
         "volume": 287901,
         "trade_value": 14647889595,
         "nav": 50449.49,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 985,
         "change_pct": 1.99
       },
@@ -647,7 +647,7 @@
         "volume": 2503,
         "trade_value": 51250020,
         "nav": 20210.75,
-        "base_index": 1545.79,
+        "base_index": 1546.67,
         "change": 245,
         "change_pct": 1.23
       },
@@ -674,7 +674,7 @@
         "volume": 6754,
         "trade_value": 445861030,
         "nav": 65162.52,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": 2545,
         "change_pct": 4.06
       },
@@ -701,7 +701,7 @@
         "volume": 1359362,
         "trade_value": 150842955,
         "nav": 112.35,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -5,
         "change_pct": -4.31
       },
@@ -728,7 +728,7 @@
         "volume": 61362,
         "trade_value": 96703121,
         "nav": 1583.9,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -33,
         "change_pct": -2.04
       },
@@ -755,7 +755,7 @@
         "volume": 942895,
         "trade_value": 9846793359,
         "nav": 10422.76,
-        "base_index": 1348.8,
+        "base_index": 1353.33,
         "change": 170,
         "change_pct": 1.66
       },
@@ -782,7 +782,7 @@
         "volume": 2487970,
         "trade_value": 224177547065,
         "nav": 89466.62,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1855,
         "change_pct": 2.12
       },
@@ -880,7 +880,7 @@
         "volume": 3323,
         "trade_value": 296688297,
         "nav": 88665.66,
-        "base_index": 2777.5,
+        "base_index": 2778.4,
         "change": 620,
         "change_pct": 0.7
       },
@@ -907,7 +907,7 @@
         "volume": 522,
         "trade_value": 26725375,
         "nav": 51188.34,
-        "base_index": 113.26,
+        "base_index": 113.29,
         "change": 5,
         "change_pct": 0.01
       },
@@ -1095,7 +1095,7 @@
         "volume": 277136,
         "trade_value": 4998935790,
         "nav": 18044.7,
-        "base_index": 10781.4,
+        "base_index": 10800.43,
         "change": 490,
         "change_pct": 2.79
       },
@@ -1149,7 +1149,7 @@
         "volume": 18535,
         "trade_value": 1999663600,
         "nav": 107897.66,
-        "base_index": 1479.8,
+        "base_index": 1480.19,
         "change": 20,
         "change_pct": 0.02
       },
@@ -1176,7 +1176,7 @@
         "volume": 65113,
         "trade_value": 2510942970,
         "nav": 38469.85,
-        "base_index": 6175.41,
+        "base_index": 6175.5,
         "change": 610,
         "change_pct": 1.61
       },
@@ -1203,7 +1203,7 @@
         "volume": 83594,
         "trade_value": 1545637230,
         "nav": 18558.99,
-        "base_index": 2332.95,
+        "base_index": 2336.48,
         "change": 745,
         "change_pct": 4.17
       },
@@ -1338,7 +1338,7 @@
         "volume": 47,
         "trade_value": 1912500,
         "nav": 40564.81,
-        "base_index": 3840.57,
+        "base_index": 3840.88,
         "change": 865,
         "change_pct": 2.18
       },
@@ -1580,7 +1580,7 @@
         "volume": 1271,
         "trade_value": 126757220,
         "nav": 99692.87,
-        "base_index": 108.79,
+        "base_index": 109.1,
         "change": 130,
         "change_pct": 0.13
       },
@@ -1661,7 +1661,7 @@
         "volume": 14193,
         "trade_value": 192632855,
         "nav": 13515.99,
-        "base_index": 80.15,
+        "base_index": 80.13,
         "change": 100,
         "change_pct": 0.74
       },
@@ -1769,7 +1769,7 @@
         "volume": 341361,
         "trade_value": 2960268698,
         "nav": 8832.78,
-        "base_index": 20664.56,
+        "base_index": 20162.83,
         "change": 135,
         "change_pct": 1.58
       },
@@ -1794,7 +1794,7 @@
         "volume": 2727,
         "trade_value": 23556862,
         "nav": 8619.55,
-        "base_index": 5300.08,
+        "base_index": 5227.06,
         "change": 60,
         "change_pct": 0.7
       },
@@ -1820,7 +1820,7 @@
         "volume": 3896,
         "trade_value": 38942830,
         "nav": 9995.27,
-        "base_index": 3268.28,
+        "base_index": 3265.53,
         "change": -145,
         "change_pct": -1.43
       },
@@ -1847,7 +1847,7 @@
         "volume": 172,
         "trade_value": 2092490,
         "nav": 12111.59,
-        "base_index": 1650.79,
+        "base_index": 1628.17,
         "change": -5,
         "change_pct": -0.04
       },
@@ -1874,7 +1874,7 @@
         "volume": 4672,
         "trade_value": 45153335,
         "nav": 9590.52,
-        "base_index": 2929.85,
+        "base_index": 2940.9,
         "change": -30,
         "change_pct": -0.31
       },
@@ -1928,7 +1928,7 @@
         "volume": 18935,
         "trade_value": 266143978,
         "nav": 13941.31,
-        "base_index": 3441.82,
+        "base_index": 3439.49,
         "change": -330,
         "change_pct": -2.3
       },
@@ -1955,7 +1955,7 @@
         "volume": 8621,
         "trade_value": 264973144,
         "nav": 30463.15,
-        "base_index": 4443.04,
+        "base_index": 4415.95,
         "change": 110,
         "change_pct": 0.36
       },
@@ -1982,7 +1982,7 @@
         "volume": 26584,
         "trade_value": 386228435,
         "nav": 14504.4,
-        "base_index": 1994.87,
+        "base_index": 1993.71,
         "change": 10,
         "change_pct": 0.07
       },
@@ -2009,7 +2009,7 @@
         "volume": 1563,
         "trade_value": 26700430,
         "nav": 17037.55,
-        "base_index": 2584.6,
+        "base_index": 2581.8,
         "change": -150,
         "change_pct": -0.87
       },
@@ -2036,7 +2036,7 @@
         "volume": 2230,
         "trade_value": 19250605,
         "nav": 8550.96,
-        "base_index": 1053.36,
+        "base_index": 1044.87,
         "change": -85,
         "change_pct": -0.98
       },
@@ -2063,7 +2063,7 @@
         "volume": 366,
         "trade_value": 17014150,
         "nav": 46477.8,
-        "base_index": 5108.9,
+        "base_index": 4998.73,
         "change": 155,
         "change_pct": 0.33
       },
@@ -2090,7 +2090,7 @@
         "volume": 3,
         "trade_value": 301195,
         "nav": 100375.12,
-        "base_index": 140.99,
+        "base_index": 141.14,
         "change": 5,
         "change_pct": 0.0
       },
@@ -2117,7 +2117,7 @@
         "volume": 5623,
         "trade_value": 58579325,
         "nav": 10462.37,
-        "base_index": 1431.27,
+        "base_index": 1432.2,
         "change": 280,
         "change_pct": 2.75
       },
@@ -2144,7 +2144,7 @@
         "volume": 348280,
         "trade_value": 16894495382,
         "nav": 48436.84,
-        "base_index": 6656.79,
+        "base_index": 6661.31,
         "change": 815,
         "change_pct": 1.72
       },
@@ -2171,7 +2171,7 @@
         "volume": 2916,
         "trade_value": 336174536,
         "nav": 115298.28,
-        "base_index": 141.2,
+        "base_index": 141.26,
         "change": 5,
         "change_pct": 0.0
       },
@@ -2198,7 +2198,7 @@
         "volume": 2161,
         "trade_value": 247607599,
         "nav": 114597.54,
-        "base_index": 129.43,
+        "base_index": 129.47,
         "change": 35,
         "change_pct": 0.03
       },
@@ -2252,7 +2252,7 @@
         "volume": 1235,
         "trade_value": 63231220,
         "nav": 51187.64,
-        "base_index": 117.71,
+        "base_index": 117.74,
         "change": 15,
         "change_pct": 0.03
       },
@@ -2306,7 +2306,7 @@
         "volume": 1446,
         "trade_value": 15154125,
         "nav": 10366.5,
-        "base_index": 3496.98,
+        "base_index": 3505.63,
         "change": 285,
         "change_pct": 2.82
       },
@@ -2332,7 +2332,7 @@
         "volume": 113777,
         "trade_value": 6338325043,
         "nav": 55713.49,
-        "base_index": 121.84,
+        "base_index": 121.87,
         "change": 0,
         "change_pct": 0.0
       },
@@ -2359,7 +2359,7 @@
         "volume": 303084,
         "trade_value": 2455626743,
         "nav": 8048.65,
-        "base_index": 560.53,
+        "base_index": 560.51,
         "change": -65,
         "change_pct": -0.8
       },
@@ -2413,7 +2413,7 @@
         "volume": 30186,
         "trade_value": 225045246,
         "nav": 7382.18,
-        "base_index": 927.85,
+        "base_index": 927.71,
         "change": -30,
         "change_pct": -0.4
       },
@@ -2494,7 +2494,7 @@
         "volume": 18485,
         "trade_value": 165204853,
         "nav": 8830.18,
-        "base_index": 4959.99,
+        "base_index": 4830.64,
         "change": -85,
         "change_pct": -0.95
       },
@@ -2546,7 +2546,7 @@
         "volume": 14058,
         "trade_value": 252216825,
         "nav": 17850.53,
-        "base_index": 7573.59,
+        "base_index": 7401.19,
         "change": 70,
         "change_pct": 0.39
       },
@@ -2573,7 +2573,7 @@
         "volume": 10755,
         "trade_value": 98213856,
         "nav": 9096.98,
-        "base_index": 389.07,
+        "base_index": 385.0,
         "change": 15,
         "change_pct": 0.17
       },
@@ -2599,7 +2599,7 @@
         "volume": 106,
         "trade_value": 1166345,
         "nav": 10960.44,
-        "base_index": 3155.88,
+        "base_index": 3120.86,
         "change": -25,
         "change_pct": -0.23
       },
@@ -2626,7 +2626,7 @@
         "volume": 92718,
         "trade_value": 2087329079,
         "nav": 22336.53,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -65,
         "change_pct": -0.29
       },
@@ -2653,7 +2653,7 @@
         "volume": 52235,
         "trade_value": 953176050,
         "nav": 18286.63,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 135,
         "change_pct": 0.74
       },
@@ -2680,7 +2680,7 @@
         "volume": 1371,
         "trade_value": 15656570,
         "nav": 11300.28,
-        "base_index": 1332.69,
+        "base_index": 1342.33,
         "change": 120,
         "change_pct": 1.07
       },
@@ -2734,7 +2734,7 @@
         "volume": 14202,
         "trade_value": 154008785,
         "nav": 10789.76,
-        "base_index": 4236.98,
+        "base_index": 4261.88,
         "change": -25,
         "change_pct": -0.23
       },
@@ -2760,7 +2760,7 @@
         "volume": 1273,
         "trade_value": 12559030,
         "nav": 9728.85,
-        "base_index": 69.29,
+        "base_index": 68.98,
         "change": 65,
         "change_pct": 0.67
       },
@@ -2787,7 +2787,7 @@
         "volume": 114780,
         "trade_value": 3395635546,
         "nav": 29420.82,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -10,
         "change_pct": -0.03
       },
@@ -2814,7 +2814,7 @@
         "volume": 30937,
         "trade_value": 365121050,
         "nav": 11693.68,
-        "base_index": 268.4,
+        "base_index": 268.58,
         "change": -110,
         "change_pct": -0.93
       },
@@ -2841,7 +2841,7 @@
         "volume": 1172,
         "trade_value": 13856225,
         "nav": 11731.02,
-        "base_index": 126.29,
+        "base_index": 126.3,
         "change": -20,
         "change_pct": -0.17
       },
@@ -2868,7 +2868,7 @@
         "volume": 165,
         "trade_value": 1594430,
         "nav": 9762.38,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 120,
         "change_pct": 1.25
       },
@@ -2895,7 +2895,7 @@
         "volume": 49919,
         "trade_value": 1645712199,
         "nav": 32931.8,
-        "base_index": 2630.0,
+        "base_index": 2519.93,
         "change": -125,
         "change_pct": -0.38
       },
@@ -2922,7 +2922,7 @@
         "volume": 39263,
         "trade_value": 1209519255,
         "nav": 30979.0,
-        "base_index": 2630.0,
+        "base_index": 2519.93,
         "change": 145,
         "change_pct": 0.47
       },
@@ -2949,7 +2949,7 @@
         "volume": 10473,
         "trade_value": 55343850,
         "nav": 5330.2,
-        "base_index": 2630.0,
+        "base_index": 2519.93,
         "change": -155,
         "change_pct": -2.87
       },
@@ -3003,7 +3003,7 @@
         "volume": 6297,
         "trade_value": 102858822,
         "nav": 16230.82,
-        "base_index": 6788.97,
+        "base_index": 6512.85,
         "change": 410,
         "change_pct": 2.58
       },
@@ -3056,7 +3056,7 @@
         "volume": 56553,
         "trade_value": 482645485,
         "nav": 8403.11,
-        "base_index": 3262.38,
+        "base_index": 3113.06,
         "change": 110,
         "change_pct": 1.32
       },
@@ -3108,7 +3108,7 @@
         "volume": 17,
         "trade_value": 79855,
         "nav": 4746.54,
-        "base_index": 194.31,
+        "base_index": 193.79,
         "change": 40,
         "change_pct": 0.85
       },
@@ -3135,7 +3135,7 @@
         "volume": 504,
         "trade_value": 5778230,
         "nav": 11415.29,
-        "base_index": 194.31,
+        "base_index": 193.79,
         "change": -45,
         "change_pct": -0.39
       },
@@ -3162,7 +3162,7 @@
         "volume": 173,
         "trade_value": 1358745,
         "nav": 7874.67,
-        "base_index": 194.31,
+        "base_index": 193.79,
         "change": 80,
         "change_pct": 1.03
       },
@@ -3189,7 +3189,7 @@
         "volume": 1862,
         "trade_value": 22711305,
         "nav": 12079.73,
-        "base_index": 1934.2,
+        "base_index": 1992.72,
         "change": -275,
         "change_pct": -2.22
       },
@@ -3270,7 +3270,7 @@
         "volume": 188574,
         "trade_value": 1414726450,
         "nav": 7546.28,
-        "base_index": 2049.61,
+        "base_index": 2049.78,
         "change": 555,
         "change_pct": 7.97
       },
@@ -3324,7 +3324,7 @@
         "volume": 32699,
         "trade_value": 471142570,
         "nav": 14299.25,
-        "base_index": 3181.44,
+        "base_index": 3201.06,
         "change": -110,
         "change_pct": -0.76
       },
@@ -3378,7 +3378,7 @@
         "volume": 377770,
         "trade_value": 3163214636,
         "nav": 8356.38,
-        "base_index": 3507.36,
+        "base_index": 3508.13,
         "change": 160,
         "change_pct": 1.95
       },
@@ -3402,7 +3402,7 @@
         "volume": 146756,
         "trade_value": 2157976650,
         "nav": 14747.95,
-        "base_index": 2635.41,
+        "base_index": 2637.92,
         "change": -10,
         "change_pct": -0.07
       },
@@ -3552,7 +3552,7 @@
         "volume": 880,
         "trade_value": 20183235,
         "nav": 22886.89,
-        "base_index": 22612.64,
+        "base_index": 22630.69,
         "change": 170,
         "change_pct": 0.75
       },
@@ -3633,7 +3633,7 @@
         "volume": 6677,
         "trade_value": 112225660,
         "nav": 16781.95,
-        "base_index": 6168.26,
+        "base_index": 6204.23,
         "change": 170,
         "change_pct": 1.02
       },
@@ -3660,7 +3660,7 @@
         "volume": 5996,
         "trade_value": 46680390,
         "nav": 7849.92,
-        "base_index": 3502.33,
+        "base_index": 3559.01,
         "change": -25,
         "change_pct": -0.32
       },
@@ -3687,7 +3687,7 @@
         "volume": 1663,
         "trade_value": 21143395,
         "nav": 12677.17,
-        "base_index": 3053.93,
+        "base_index": 3113.51,
         "change": 165,
         "change_pct": 1.31
       },
@@ -3714,7 +3714,7 @@
         "volume": 2049,
         "trade_value": 29742225,
         "nav": 14422.6,
-        "base_index": 2036.17,
+        "base_index": 2035.17,
         "change": 20,
         "change_pct": 0.14
       },
@@ -3741,7 +3741,7 @@
         "volume": 12641,
         "trade_value": 201916814,
         "nav": 15871.0,
-        "base_index": 2384.16,
+        "base_index": 2382.6,
         "change": -20,
         "change_pct": -0.13
       },
@@ -3768,7 +3768,7 @@
         "volume": 85509,
         "trade_value": 1446135098,
         "nav": 16753.0,
-        "base_index": 2575.24,
+        "base_index": 2573.22,
         "change": -5,
         "change_pct": -0.03
       },
@@ -3795,7 +3795,7 @@
         "volume": 630,
         "trade_value": 65859502,
         "nav": 104615.26,
-        "base_index": 121.71,
+        "base_index": 122.01,
         "change": 60,
         "change_pct": 0.06
       },
@@ -3822,7 +3822,7 @@
         "volume": 418,
         "trade_value": 34213530,
         "nav": 80819.8,
-        "base_index": 3269.33,
+        "base_index": 3269.4,
         "change": 1155,
         "change_pct": 1.45
       },
@@ -3849,7 +3849,7 @@
         "volume": 247,
         "trade_value": 2175800,
         "nav": 8782.89,
-        "base_index": 69.55,
+        "base_index": 69.81,
         "change": 110,
         "change_pct": 1.27
       },
@@ -3876,7 +3876,7 @@
         "volume": 1374,
         "trade_value": 16098090,
         "nav": 11727.45,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": -45,
         "change_pct": -0.38
       },
@@ -3903,7 +3903,7 @@
         "volume": 3159,
         "trade_value": 64711610,
         "nav": 20447.32,
-        "base_index": 3997.86,
+        "base_index": 4010.2,
         "change": -165,
         "change_pct": -0.81
       },
@@ -3984,7 +3984,7 @@
         "volume": 75,
         "trade_value": 8166700,
         "nav": 108835.56,
-        "base_index": 150.13,
+        "base_index": 150.39,
         "change": -5,
         "change_pct": 0.0
       },
@@ -4011,7 +4011,7 @@
         "volume": 15852,
         "trade_value": 160079300,
         "nav": 9908.47,
-        "base_index": 4639.24,
+        "base_index": 4643.73,
         "change": 210,
         "change_pct": 2.15
       },
@@ -4037,7 +4037,7 @@
         "volume": 424,
         "trade_value": 4072615,
         "nav": 9669.1,
-        "base_index": 8117.63,
+        "base_index": 8128.25,
         "change": 215,
         "change_pct": 2.28
       },
@@ -4064,7 +4064,7 @@
         "volume": 32,
         "trade_value": 255475,
         "nav": 8067.1,
-        "base_index": 10364.42,
+        "base_index": 10369.53,
         "change": -175,
         "change_pct": -2.16
       },
@@ -4091,7 +4091,7 @@
         "volume": 19390,
         "trade_value": 130137540,
         "nav": 6591.65,
-        "base_index": 927.36,
+        "base_index": 930.19,
         "change": 30,
         "change_pct": 0.45
       },
@@ -4118,7 +4118,7 @@
         "volume": 4461,
         "trade_value": 26425535,
         "nav": 5825.69,
-        "base_index": 4102.31,
+        "base_index": 4108.24,
         "change": 85,
         "change_pct": 1.47
       },
@@ -4172,7 +4172,7 @@
         "volume": 896913,
         "trade_value": 12703496439,
         "nav": 14116.45,
-        "base_index": 2829.84,
+        "base_index": 2832.67,
         "change": 190,
         "change_pct": 1.37
       },
@@ -4199,7 +4199,7 @@
         "volume": 90692,
         "trade_value": 2435930709,
         "nav": 26729.76,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 590,
         "change_pct": 2.25
       },
@@ -4252,7 +4252,7 @@
         "volume": 444941,
         "trade_value": 2948865390,
         "nav": 6917.57,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": 560,
         "change_pct": 8.85
       },
@@ -4279,7 +4279,7 @@
         "volume": 20605,
         "trade_value": 52633090,
         "nav": 2510.48,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": -130,
         "change_pct": -4.9
       },
@@ -4306,7 +4306,7 @@
         "volume": 174864,
         "trade_value": 2310493353,
         "nav": 13317.45,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 610,
         "change_pct": 4.8
       },
@@ -4439,7 +4439,7 @@
         "volume": 587,
         "trade_value": 2214840,
         "nav": 3798.67,
-        "base_index": 625.11,
+        "base_index": 617.98,
         "change": -145,
         "change_pct": -3.73
       },
@@ -4466,7 +4466,7 @@
         "volume": 11686,
         "trade_value": 59339865,
         "nav": 5075.58,
-        "base_index": 625.11,
+        "base_index": 617.98,
         "change": 110,
         "change_pct": 2.21
       },
@@ -4574,7 +4574,7 @@
         "volume": 966295,
         "trade_value": 6495641131,
         "nav": 6735.85,
-        "base_index": 1852.24,
+        "base_index": 1856.73,
         "change": 285,
         "change_pct": 4.43
       },
@@ -4600,7 +4600,7 @@
         "volume": 6223,
         "trade_value": 86531430,
         "nav": 14067.53,
-        "base_index": 2179.11,
+        "base_index": 2179.85,
         "change": 500,
         "change_pct": 3.68
       },
@@ -4627,7 +4627,7 @@
         "volume": 5497,
         "trade_value": 641507890,
         "nav": 116586.49,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 2615,
         "change_pct": 2.29
       },
@@ -4654,7 +4654,7 @@
         "volume": 819,
         "trade_value": 65682385,
         "nav": 79458.32,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": 2940,
         "change_pct": 3.87
       },
@@ -4681,7 +4681,7 @@
         "volume": 2715,
         "trade_value": 7746235,
         "nav": 2874.34,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -65,
         "change_pct": -2.22
       },
@@ -4708,7 +4708,7 @@
         "volume": 174143,
         "trade_value": 15679599336,
         "nav": 89190.86,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1715,
         "change_pct": 1.96
       },
@@ -4735,7 +4735,7 @@
         "volume": 539,
         "trade_value": 5509236,
         "nav": 10228.38,
-        "base_index": 110.84,
+        "base_index": 110.87,
         "change": 0,
         "change_pct": 0.0
       },
@@ -4761,7 +4761,7 @@
         "volume": 13994,
         "trade_value": 142738709,
         "nav": 10197.76,
-        "base_index": 109.83,
+        "base_index": 109.86,
         "change": 0,
         "change_pct": 0.0
       },
@@ -4788,7 +4788,7 @@
         "volume": 3513,
         "trade_value": 189116070,
         "nav": 53811.63,
-        "base_index": 108.12,
+        "base_index": 108.4,
         "change": -55,
         "change_pct": -0.1
       },
@@ -4896,7 +4896,7 @@
         "volume": 370,
         "trade_value": 2759650,
         "nav": 7432.22,
-        "base_index": 1785.66,
+        "base_index": 1787.21,
         "change": 265,
         "change_pct": 3.69
       },
@@ -4950,7 +4950,7 @@
         "volume": 1760192,
         "trade_value": 80340807893,
         "nav": 45618.79,
-        "base_index": 13577.36,
+        "base_index": 13581.56,
         "change": 800,
         "change_pct": 1.79
       },
@@ -5075,7 +5075,7 @@
         "volume": 3662,
         "trade_value": 142651230,
         "nav": 38908.9,
-        "base_index": 6611.57,
+        "base_index": 6620.45,
         "change": 835,
         "change_pct": 2.21
       },
@@ -5129,7 +5129,7 @@
         "volume": 3980,
         "trade_value": 64082605,
         "nav": 15976.01,
-        "base_index": 3630.52,
+        "base_index": 3634.69,
         "change": 220,
         "change_pct": 1.39
       },
@@ -5156,7 +5156,7 @@
         "volume": 18616,
         "trade_value": 444135425,
         "nav": 23644.5,
-        "base_index": 3865.29,
+        "base_index": 3869.44,
         "change": 305,
         "change_pct": 1.31
       },
@@ -5183,7 +5183,7 @@
         "volume": 8101,
         "trade_value": 77773910,
         "nav": 9766.89,
-        "base_index": 1880.66,
+        "base_index": 1882.6,
         "change": 240,
         "change_pct": 2.51
       },
@@ -5264,7 +5264,7 @@
         "volume": 66,
         "trade_value": 2589140,
         "nav": 38934.2,
-        "base_index": 3840.57,
+        "base_index": 3840.88,
         "change": 1170,
         "change_pct": 3.09
       },
@@ -5291,7 +5291,7 @@
         "volume": 3698,
         "trade_value": 80645138,
         "nav": 21598.04,
-        "base_index": 3196.74,
+        "base_index": 3197.02,
         "change": 185,
         "change_pct": 0.86
       },
@@ -5344,7 +5344,7 @@
         "volume": 8865,
         "trade_value": 348853150,
         "nav": 39427.21,
-        "base_index": 3992.84,
+        "base_index": 3994.65,
         "change": 1210,
         "change_pct": 3.16
       },
@@ -5398,7 +5398,7 @@
         "volume": 18613,
         "trade_value": 564427472,
         "nav": 30075.5,
-        "base_index": 2473.52,
+        "base_index": 2507.63,
         "change": 525,
         "change_pct": 1.77
       },
@@ -5425,7 +5425,7 @@
         "volume": 1794,
         "trade_value": 32214685,
         "nav": 17821.51,
-        "base_index": 4100.81,
+        "base_index": 4117.22,
         "change": 265,
         "change_pct": 1.51
       },
@@ -5452,7 +5452,7 @@
         "volume": 1604,
         "trade_value": 66618990,
         "nav": 41274.4,
-        "base_index": 18686.6,
+        "base_index": 18283.27,
         "change": 25,
         "change_pct": 0.06
       },
@@ -5479,7 +5479,7 @@
         "volume": 6113,
         "trade_value": 66898570,
         "nav": 10929.83,
-        "base_index": 687.36,
+        "base_index": 688.55,
         "change": 465,
         "change_pct": 4.51
       },
@@ -5506,7 +5506,7 @@
         "volume": 95128,
         "trade_value": 2200023476,
         "nav": 23064.29,
-        "base_index": 16650.07,
+        "base_index": 16133.21,
         "change": 260,
         "change_pct": 1.14
       },
@@ -5533,7 +5533,7 @@
         "volume": 14361,
         "trade_value": 152347185,
         "nav": 10535.79,
-        "base_index": 1309.39,
+        "base_index": 1308.26,
         "change": -40,
         "change_pct": -0.38
       },
@@ -5560,7 +5560,7 @@
         "volume": 1653,
         "trade_value": 88454085,
         "nav": 53512.31,
-        "base_index": 120.39,
+        "base_index": 120.42,
         "change": 5,
         "change_pct": 0.01
       },
@@ -5587,7 +5587,7 @@
         "volume": 37626,
         "trade_value": 298351236,
         "nav": 7840.85,
-        "base_index": 7828.83,
+        "base_index": 7285.13,
         "change": -25,
         "change_pct": -0.31
       },
@@ -5613,7 +5613,7 @@
         "volume": 318665,
         "trade_value": 2637473105,
         "nav": 8248.94,
-        "base_index": 12093.38,
+        "base_index": 11422.36,
         "change": 35,
         "change_pct": 0.43
       },
@@ -5639,7 +5639,7 @@
         "volume": 1971,
         "trade_value": 20178505,
         "nav": 10158.92,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -80,
         "change_pct": -0.78
       },
@@ -5664,7 +5664,7 @@
         "volume": 5399,
         "trade_value": 104654840,
         "nav": 19224.32,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -30,
         "change_pct": -0.16
       },
@@ -5691,7 +5691,7 @@
         "volume": 25673,
         "trade_value": 269074891,
         "nav": 10410.64,
-        "base_index": 4868.83,
+        "base_index": 4688.91,
         "change": 10,
         "change_pct": 0.1
       },
@@ -5797,7 +5797,7 @@
         "volume": 181,
         "trade_value": 1719230,
         "nav": 9421.92,
-        "base_index": 524.75,
+        "base_index": 538.44,
         "change": 65,
         "change_pct": 0.7
       },
@@ -5851,7 +5851,7 @@
         "volume": 30069,
         "trade_value": 3205100210,
         "nav": 106631.01,
-        "base_index": 116.0,
+        "base_index": 116.28,
         "change": 10,
         "change_pct": 0.01
       },
@@ -5878,7 +5878,7 @@
         "volume": 6,
         "trade_value": 608110,
         "nav": 101351.09,
-        "base_index": 113.7,
+        "base_index": 113.79,
         "change": -15,
         "change_pct": -0.01
       },
@@ -5904,7 +5904,7 @@
         "volume": 79640,
         "trade_value": 826449721,
         "nav": 10392.83,
-        "base_index": 3916.44,
+        "base_index": 3927.69,
         "change": 400,
         "change_pct": 4.01
       },
@@ -5930,7 +5930,7 @@
         "volume": 109,
         "trade_value": 2926555,
         "nav": 26640.48,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 710,
         "change_pct": 2.73
       },
@@ -5957,7 +5957,7 @@
         "volume": 82061,
         "trade_value": 487856332,
         "nav": 6199.73,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": 560,
         "change_pct": 9.97
       },
@@ -5984,7 +5984,7 @@
         "volume": 46517,
         "trade_value": 612281296,
         "nav": 13399.18,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 625,
         "change_pct": 4.9
       },
@@ -6038,7 +6038,7 @@
         "volume": 99,
         "trade_value": 8913095,
         "nav": 89201.01,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1680,
         "change_pct": 1.92
       },
@@ -6119,7 +6119,7 @@
         "volume": 336,
         "trade_value": 30126625,
         "nav": 89645.27,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1920,
         "change_pct": 2.19
       },
@@ -6251,7 +6251,7 @@
         "volume": 2603,
         "trade_value": 233577760,
         "nav": 89233.59,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1745,
         "change_pct": 1.99
       },
@@ -6357,7 +6357,7 @@
         "volume": 106572,
         "trade_value": 834289477,
         "nav": 7856.38,
-        "base_index": 4284.3,
+        "base_index": 4286.41,
         "change": 260,
         "change_pct": 3.42
       },
@@ -6406,7 +6406,7 @@
         "volume": 3,
         "trade_value": 301620,
         "nav": 100553.63,
-        "base_index": 116.93,
+        "base_index": 116.97,
         "change": 5,
         "change_pct": 0.0
       },
@@ -6431,7 +6431,7 @@
         "volume": 905,
         "trade_value": 7724000,
         "nav": 8573.34,
-        "base_index": 3478.39,
+        "base_index": 3478.46,
         "change": 495,
         "change_pct": 6.13
       },
@@ -6456,7 +6456,7 @@
         "volume": 328,
         "trade_value": 13083500,
         "nav": 39719.79,
-        "base_index": 4895.76,
+        "base_index": 4902.96,
         "change": 570,
         "change_pct": 1.46
       },
@@ -6483,7 +6483,7 @@
         "volume": 1201,
         "trade_value": 36422595,
         "nav": 31235.49,
-        "base_index": 3856.6,
+        "base_index": 3858.44,
         "change": 1115,
         "change_pct": 3.72
       },
@@ -6510,7 +6510,7 @@
         "volume": 122,
         "trade_value": 3641485,
         "nav": 30129.36,
-        "base_index": 794.19,
+        "base_index": 794.58,
         "change": 1475,
         "change_pct": 5.17
       },
@@ -6563,7 +6563,7 @@
         "volume": 118513,
         "trade_value": 12152323020,
         "nav": 102535.8,
-        "base_index": 119.31,
+        "base_index": 119.34,
         "change": 10,
         "change_pct": 0.01
       },
@@ -6589,7 +6589,7 @@
         "volume": 112041,
         "trade_value": 5844284437,
         "nav": 51865.3,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 1045,
         "change_pct": 2.06
       },
@@ -6616,7 +6616,7 @@
         "volume": 4331,
         "trade_value": 48399025,
         "nav": 11116.18,
-        "base_index": 1107.8,
+        "base_index": 1107.89,
         "change": 200,
         "change_pct": 1.83
       },
@@ -6643,7 +6643,7 @@
         "volume": 6656,
         "trade_value": 82240771,
         "nav": 12298.47,
-        "base_index": 1263.43,
+        "base_index": 1263.74,
         "change": 480,
         "change_pct": 4.08
       },
@@ -6670,7 +6670,7 @@
         "volume": 21429871,
         "trade_value": 1922679675659,
         "nav": 89132.36,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1785,
         "change_pct": 2.05
       },
@@ -6822,7 +6822,7 @@
         "volume": 106086,
         "trade_value": 5794480236,
         "nav": 53862.11,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": 1945,
         "change_pct": 3.74
       },
@@ -6849,7 +6849,7 @@
         "volume": 185088679,
         "trade_value": 20954976141,
         "nav": 115.25,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -3,
         "change_pct": -2.52
       },
@@ -6957,7 +6957,7 @@
         "volume": 102685,
         "trade_value": 1747093999,
         "nav": 16955.47,
-        "base_index": 2901.22,
+        "base_index": 2901.57,
         "change": 270,
         "change_pct": 1.62
       },
@@ -6984,7 +6984,7 @@
         "volume": 41799,
         "trade_value": 750292717,
         "nav": 17982.54,
-        "base_index": 1903.69,
+        "base_index": 1904.02,
         "change": 790,
         "change_pct": 4.6
       },
@@ -7011,7 +7011,7 @@
         "volume": 725,
         "trade_value": 39160012,
         "nav": 54010.86,
-        "base_index": 122.4,
+        "base_index": 122.44,
         "change": -3,
         "change_pct": -0.01
       },
@@ -7038,7 +7038,7 @@
         "volume": 69032,
         "trade_value": 6907261030,
         "nav": 100059.63,
-        "base_index": 111.39,
+        "base_index": 111.46,
         "change": 10,
         "change_pct": 0.01
       },
@@ -7065,7 +7065,7 @@
         "volume": 5523969,
         "trade_value": 57103708983,
         "nav": 10278.52,
-        "base_index": 3603.59,
+        "base_index": 3608.0,
         "change": -20,
         "change_pct": -0.19
       },
@@ -7244,7 +7244,7 @@
         "volume": 1833583,
         "trade_value": 23949389561,
         "nav": 13135.22,
-        "base_index": 2725.81,
+        "base_index": 2730.45,
         "change": 305,
         "change_pct": 2.39
       },
@@ -7595,7 +7595,7 @@
         "volume": 90758,
         "trade_value": 1845633741,
         "nav": 20723.92,
-        "base_index": 3972.61,
+        "base_index": 3973.88,
         "change": 795,
         "change_pct": 4.0
       },
@@ -7649,7 +7649,7 @@
         "volume": 1154,
         "trade_value": 45834750,
         "nav": 39697.71,
-        "base_index": 3840.57,
+        "base_index": 3840.88,
         "change": 660,
         "change_pct": 1.69
       },
@@ -7703,7 +7703,7 @@
         "volume": 6002,
         "trade_value": 126505775,
         "nav": 21213.11,
-        "base_index": 3990.31,
+        "base_index": 3990.34,
         "change": 285,
         "change_pct": 1.37
       },
@@ -7811,7 +7811,7 @@
         "volume": 4654,
         "trade_value": 110830790,
         "nav": 23888.98,
-        "base_index": 3452.15,
+        "base_index": 3452.41,
         "change": 590,
         "change_pct": 2.55
       },
@@ -7838,7 +7838,7 @@
         "volume": 108,
         "trade_value": 3151480,
         "nav": 28971.9,
-        "base_index": 3916.91,
+        "base_index": 3918.01,
         "change": 510,
         "change_pct": 1.8
       },
@@ -7865,7 +7865,7 @@
         "volume": 8887,
         "trade_value": 353503780,
         "nav": 39556.44,
-        "base_index": 3992.84,
+        "base_index": 3994.65,
         "change": 860,
         "change_pct": 2.22
       },
@@ -7946,7 +7946,7 @@
         "volume": 146,
         "trade_value": 2334620,
         "nav": 15897.51,
-        "base_index": 3588.45,
+        "base_index": 3642.91,
         "change": -150,
         "change_pct": -0.93
       },
@@ -8028,7 +8028,7 @@
         "volume": 9689,
         "trade_value": 303884256,
         "nav": 30845.35,
-        "base_index": 774.52,
+        "base_index": 775.46,
         "change": -145,
         "change_pct": -0.46
       },
@@ -8055,7 +8055,7 @@
         "volume": 194867,
         "trade_value": 860144920,
         "nav": 4364.56,
-        "base_index": 539.65,
+        "base_index": 539.58,
         "change": 85,
         "change_pct": 1.99
       },
@@ -8082,7 +8082,7 @@
         "volume": 1517,
         "trade_value": 18370490,
         "nav": 12072.91,
-        "base_index": 1194.6,
+        "base_index": 1194.77,
         "change": 510,
         "change_pct": 4.43
       },
@@ -8109,7 +8109,7 @@
         "volume": 3879,
         "trade_value": 39444985,
         "nav": 10163.77,
-        "base_index": 1612.48,
+        "base_index": 1612.54,
         "change": 180,
         "change_pct": 1.8
       },
@@ -8243,7 +8243,7 @@
         "volume": 33633,
         "trade_value": 419971558,
         "nav": 12434.64,
-        "base_index": 5255.9,
+        "base_index": 5248.84,
         "change": 115,
         "change_pct": 0.93
       },
@@ -8270,7 +8270,7 @@
         "volume": 126821,
         "trade_value": 2428851770,
         "nav": 18896.28,
-        "base_index": 3209.02,
+        "base_index": 3046.68,
         "change": 170,
         "change_pct": 0.9
       },
@@ -8297,7 +8297,7 @@
         "volume": 77614,
         "trade_value": 2217739873,
         "nav": 28309.75,
-        "base_index": 9646.89,
+        "base_index": 9385.37,
         "change": 80,
         "change_pct": 0.28
       },
@@ -8324,7 +8324,7 @@
         "volume": 9779,
         "trade_value": 111960950,
         "nav": 11354.33,
-        "base_index": 1179.77,
+        "base_index": 1179.57,
         "change": -40,
         "change_pct": -0.35
       },
@@ -8351,7 +8351,7 @@
         "volume": 6791,
         "trade_value": 69568828,
         "nav": 10195.92,
-        "base_index": 2796.16,
+        "base_index": 2795.59,
         "change": 15,
         "change_pct": 0.15
       },
@@ -8405,7 +8405,7 @@
         "volume": 2938,
         "trade_value": 68884040,
         "nav": 23347.95,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -220,
         "change_pct": -0.93
       },
@@ -8432,7 +8432,7 @@
         "volume": 5560,
         "trade_value": 77814670,
         "nav": 13898.71,
-        "base_index": 7627.0,
+        "base_index": 7258.12,
         "change": 310,
         "change_pct": 2.28
       },
@@ -8459,7 +8459,7 @@
         "volume": 2439,
         "trade_value": 64883615,
         "nav": 26434.07,
-        "base_index": 5999.39,
+        "base_index": 5992.55,
         "change": 140,
         "change_pct": 0.54
       },
@@ -8540,7 +8540,7 @@
         "volume": 3090343,
         "trade_value": 15458291225,
         "nav": 5030.71,
-        "base_index": 2431.88,
+        "base_index": 2432.81,
         "change": 310,
         "change_pct": 6.6
       },
@@ -8593,7 +8593,7 @@
         "volume": 25406,
         "trade_value": 1455792284,
         "nav": 57304.48,
-        "base_index": 13782.46,
+        "base_index": 13786.27,
         "change": -10,
         "change_pct": -0.02
       },
@@ -8647,7 +8647,7 @@
         "volume": 12821,
         "trade_value": 83310754,
         "nav": 6491.67,
-        "base_index": 3419.9,
+        "base_index": 3457.53,
         "change": -100,
         "change_pct": -1.52
       },
@@ -8701,7 +8701,7 @@
         "volume": 13392,
         "trade_value": 124876183,
         "nav": 9380.94,
-        "base_index": 740.56,
+        "base_index": 742.78,
         "change": 90,
         "change_pct": 0.98
       },
@@ -8755,7 +8755,7 @@
         "volume": 3495126,
         "trade_value": 13955179544,
         "nav": 4003.89,
-        "base_index": 1637.96,
+        "base_index": 1640.62,
         "change": 35,
         "change_pct": 0.89
       },
@@ -8782,7 +8782,7 @@
         "volume": 7002,
         "trade_value": 68165995,
         "nav": 9768.0,
-        "base_index": 940.8,
+        "base_index": 942.21,
         "change": 55,
         "change_pct": 0.57
       },
@@ -8809,7 +8809,7 @@
         "volume": 250480,
         "trade_value": 26050405322,
         "nav": 104009.25,
-        "base_index": 120.25,
+        "base_index": 120.28,
         "change": 15,
         "change_pct": 0.01
       },
@@ -8863,7 +8863,7 @@
         "volume": 230075,
         "trade_value": 7680213090,
         "nav": 33259.61,
-        "base_index": 371.89,
+        "base_index": 371.93,
         "change": 225,
         "change_pct": 0.68
       },
@@ -9050,7 +9050,7 @@
         "volume": 72988,
         "trade_value": 891266946,
         "nav": 12097.02,
-        "base_index": 8708.89,
+        "base_index": 8674.08,
         "change": 45,
         "change_pct": 0.37
       },
@@ -9077,7 +9077,7 @@
         "volume": 72408,
         "trade_value": 726407639,
         "nav": 9947.0,
-        "base_index": 297.23,
+        "base_index": 295.66,
         "change": -35,
         "change_pct": -0.35
       },
@@ -9102,7 +9102,7 @@
         "volume": 41597,
         "trade_value": 537380309,
         "nav": 12818.67,
-        "base_index": 2019.56,
+        "base_index": 2030.37,
         "change": 35,
         "change_pct": 0.27
       },
@@ -9129,7 +9129,7 @@
         "volume": 35540633,
         "trade_value": 918591300261,
         "nav": 25617.53,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -50,
         "change_pct": -0.19
       },
@@ -9227,7 +9227,7 @@
         "volume": 136661,
         "trade_value": 2449978473,
         "nav": 17909.5,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 130,
         "change_pct": 0.73
       },
@@ -9254,7 +9254,7 @@
         "volume": 201340,
         "trade_value": 7791353573,
         "nav": 38193.55,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 45,
         "change_pct": 0.12
       },
@@ -9281,7 +9281,7 @@
         "volume": 4779804,
         "trade_value": 850249529346,
         "nav": 176608.47,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 260,
         "change_pct": 0.15
       },
@@ -9379,7 +9379,7 @@
         "volume": 185962,
         "trade_value": 4312688070,
         "nav": 23213.54,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 225,
         "change_pct": 0.98
       },
@@ -9433,7 +9433,7 @@
         "volume": 35171,
         "trade_value": 374954389,
         "nav": 10642.69,
-        "base_index": 1411.61,
+        "base_index": 1381.96,
         "change": 110,
         "change_pct": 1.04
       },
@@ -9460,7 +9460,7 @@
         "volume": 160,
         "trade_value": 3005920,
         "nav": 18658.5,
-        "base_index": 1802.42,
+        "base_index": 1760.02,
         "change": 340,
         "change_pct": 1.86
       },
@@ -9487,7 +9487,7 @@
         "volume": 10761,
         "trade_value": 366845745,
         "nav": 33839.05,
-        "base_index": 52177.69,
+        "base_index": 52002.41,
         "change": 90,
         "change_pct": 0.27
       },
@@ -9514,7 +9514,7 @@
         "volume": 76080,
         "trade_value": 4455022580,
         "nav": 58138.28,
-        "base_index": 1262.9,
+        "base_index": 1263.03,
         "change": -610,
         "change_pct": -1.04
       },
@@ -9568,7 +9568,7 @@
         "volume": 5365,
         "trade_value": 81022360,
         "nav": 14918.98,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": -275,
         "change_pct": -1.81
       },
@@ -9595,7 +9595,7 @@
         "volume": 2745,
         "trade_value": 15436725,
         "nav": 5696.66,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 100,
         "change_pct": 1.79
       },
@@ -9649,7 +9649,7 @@
         "volume": 2656107,
         "trade_value": 38582441124,
         "nav": 14421.42,
-        "base_index": 7222.66,
+        "base_index": 7276.4,
         "change": -55,
         "change_pct": -0.38
       },
@@ -9676,7 +9676,7 @@
         "volume": 273920,
         "trade_value": 2600720339,
         "nav": 9421.32,
-        "base_index": 319.77,
+        "base_index": 322.35,
         "change": -15,
         "change_pct": -0.16
       },
@@ -9756,7 +9756,7 @@
         "volume": 90745,
         "trade_value": 1061070814,
         "nav": 11619.91,
-        "base_index": 179.53,
+        "base_index": 179.4,
         "change": -75,
         "change_pct": -0.64
       },
@@ -9783,7 +9783,7 @@
         "volume": 722360,
         "trade_value": 6714357882,
         "nav": 9230.52,
-        "base_index": 121.97,
+        "base_index": 122.01,
         "change": -100,
         "change_pct": -1.07
       },
@@ -9837,7 +9837,7 @@
         "volume": 16890,
         "trade_value": 150331899,
         "nav": 8855.28,
-        "base_index": 1552.48,
+        "base_index": 1511.07,
         "change": 20,
         "change_pct": 0.23
       },
@@ -9862,7 +9862,7 @@
         "volume": 505092,
         "trade_value": 15673850117,
         "nav": 30829.91,
-        "base_index": 9988.68,
+        "base_index": 9784.45,
         "change": 10,
         "change_pct": 0.03
       },
@@ -9889,7 +9889,7 @@
         "volume": 188118,
         "trade_value": 3645906856,
         "nav": 19422.02,
-        "base_index": 9988.68,
+        "base_index": 9784.45,
         "change": 190,
         "change_pct": 0.99
       },
@@ -9943,7 +9943,7 @@
         "volume": 9393,
         "trade_value": 424973465,
         "nav": 45264.84,
-        "base_index": 91.87,
+        "base_index": 91.77,
         "change": 125,
         "change_pct": 0.28
       },
@@ -9970,7 +9970,7 @@
         "volume": 541089,
         "trade_value": 11112298231,
         "nav": 20476.44,
-        "base_index": 2403.77,
+        "base_index": 2319.99,
         "change": -250,
         "change_pct": -1.21
       },
@@ -9997,7 +9997,7 @@
         "volume": 1967630,
         "trade_value": 79227130977,
         "nav": 40107.42,
-        "base_index": 11581.22,
+        "base_index": 11137.29,
         "change": -270,
         "change_pct": -0.67
       },
@@ -10122,7 +10122,7 @@
         "volume": 1520832,
         "trade_value": 10010313622,
         "nav": 6651.11,
-        "base_index": 2049.61,
+        "base_index": 2049.78,
         "change": 395,
         "change_pct": 6.33
       },
@@ -10149,7 +10149,7 @@
         "volume": 323161,
         "trade_value": 39495000446,
         "nav": 123487.71,
-        "base_index": 12311.01,
+        "base_index": 12313.69,
         "change": 4465,
         "change_pct": 3.77
       },
@@ -10557,7 +10557,7 @@
         "volume": 7082,
         "trade_value": 151689116,
         "nav": 21542.02,
-        "base_index": 4951.92,
+        "base_index": 4967.56,
         "change": 790,
         "change_pct": 3.82
       },
@@ -10611,7 +10611,7 @@
         "volume": 2318,
         "trade_value": 40994403,
         "nav": 17550.44,
-        "base_index": 2372.76,
+        "base_index": 2393.26,
         "change": 70,
         "change_pct": 0.4
       },
@@ -10638,7 +10638,7 @@
         "volume": 33630,
         "trade_value": 234187618,
         "nav": 6944.23,
-        "base_index": 415.75,
+        "base_index": 411.66,
         "change": 140,
         "change_pct": 2.05
       },
@@ -10745,7 +10745,7 @@
         "volume": 46242,
         "trade_value": 495102561,
         "nav": 10667.51,
-        "base_index": 22997.35,
+        "base_index": 23146.15,
         "change": -5,
         "change_pct": -0.05
       },
@@ -10772,7 +10772,7 @@
         "volume": 4275,
         "trade_value": 100256315,
         "nav": 23386.45,
-        "base_index": 22997.35,
+        "base_index": 23146.15,
         "change": -55,
         "change_pct": -0.24
       },
@@ -10826,7 +10826,7 @@
         "volume": 3183900,
         "trade_value": 4280722971,
         "nav": 1354.51,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -27,
         "change_pct": -1.96
       },
@@ -10853,7 +10853,7 @@
         "volume": 187571,
         "trade_value": 630010100,
         "nav": 3420.44,
-        "base_index": 860.81,
+        "base_index": 861.95,
         "change": 180,
         "change_pct": 5.55
       },
@@ -10934,7 +10934,7 @@
         "volume": 41551,
         "trade_value": 325339842,
         "nav": 7798.7,
-        "base_index": 428.05,
+        "base_index": 427.73,
         "change": 15,
         "change_pct": 0.19
       },
@@ -10961,7 +10961,7 @@
         "volume": 202959,
         "trade_value": 2384199215,
         "nav": 11621.89,
-        "base_index": 492.54,
+        "base_index": 489.78,
         "change": -10,
         "change_pct": -0.09
       },
@@ -10988,7 +10988,7 @@
         "volume": 640727,
         "trade_value": 11460006536,
         "nav": 17639.13,
-        "base_index": 2707.47,
+        "base_index": 2711.4,
         "change": 115,
         "change_pct": 0.66
       },
@@ -11149,7 +11149,7 @@
         "volume": 5627,
         "trade_value": 104743392,
         "nav": 18418.39,
-        "base_index": 8463.79,
+        "base_index": 8471.64,
         "change": 115,
         "change_pct": 0.63
       },
@@ -11203,7 +11203,7 @@
         "volume": 11682,
         "trade_value": 135416037,
         "nav": 11477.33,
-        "base_index": 8117.63,
+        "base_index": 8128.25,
         "change": 10,
         "change_pct": 0.09
       },
@@ -11230,7 +11230,7 @@
         "volume": 192909,
         "trade_value": 2166868132,
         "nav": 11112.05,
-        "base_index": 1355.52,
+        "base_index": 1358.65,
         "change": 70,
         "change_pct": 0.64
       },
@@ -11257,7 +11257,7 @@
         "volume": 450,
         "trade_value": 3840145,
         "nav": 8478.82,
-        "base_index": 1916.51,
+        "base_index": 1920.8,
         "change": 10,
         "change_pct": 0.12
       },
@@ -11284,7 +11284,7 @@
         "volume": 9988,
         "trade_value": 79727995,
         "nav": 7760.45,
-        "base_index": 1663.27,
+        "base_index": 1646.48,
         "change": -35,
         "change_pct": -0.45
       },
@@ -11311,7 +11311,7 @@
         "volume": 401483,
         "trade_value": 4329303443,
         "nav": 10588.04,
-        "base_index": 255.13,
+        "base_index": 255.19,
         "change": 100,
         "change_pct": 0.95
       },
@@ -11338,7 +11338,7 @@
         "volume": 84743,
         "trade_value": 724469117,
         "nav": 8473.73,
-        "base_index": 1800.48,
+        "base_index": 1800.33,
         "change": -65,
         "change_pct": -0.77
       },
@@ -11365,7 +11365,7 @@
         "volume": 15563,
         "trade_value": 65893065,
         "nav": 4206.27,
-        "base_index": 1800.48,
+        "base_index": 1800.33,
         "change": -50,
         "change_pct": -1.19
       },
@@ -11392,7 +11392,7 @@
         "volume": 153,
         "trade_value": 1205425,
         "nav": 7835.3,
-        "base_index": 2216.57,
+        "base_index": 2207.33,
         "change": -110,
         "change_pct": -1.4
       },
@@ -11418,7 +11418,7 @@
         "volume": 879,
         "trade_value": 5520125,
         "nav": 6247.46,
-        "base_index": 1638.54,
+        "base_index": 1647.18,
         "change": 35,
         "change_pct": 0.57
       },
@@ -11472,7 +11472,7 @@
         "volume": 24274,
         "trade_value": 100453295,
         "nav": 4117.74,
-        "base_index": 4102.31,
+        "base_index": 4108.24,
         "change": 110,
         "change_pct": 2.76
       },
@@ -11499,7 +11499,7 @@
         "volume": 1070485,
         "trade_value": 6477792234,
         "nav": 5972.11,
-        "base_index": 4102.31,
+        "base_index": 4108.24,
         "change": 30,
         "change_pct": 0.5
       },
@@ -11579,7 +11579,7 @@
         "volume": 759824,
         "trade_value": 23687117597,
         "nav": 31039.88,
-        "base_index": 10768.62,
+        "base_index": 10772.98,
         "change": 805,
         "change_pct": 2.66
       },
@@ -11606,7 +11606,7 @@
         "volume": 28892,
         "trade_value": 303095865,
         "nav": 10415.51,
-        "base_index": 2664.06,
+        "base_index": 2664.38,
         "change": 160,
         "change_pct": 1.55
       },
@@ -11633,7 +11633,7 @@
         "volume": 72499,
         "trade_value": 1070605971,
         "nav": 14655.63,
-        "base_index": 1973.84,
+        "base_index": 1996.76,
         "change": 195,
         "change_pct": 1.34
       },
@@ -11660,7 +11660,7 @@
         "volume": 68845,
         "trade_value": 1850687434,
         "nav": 26688.57,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 600,
         "change_pct": 2.3
       },
@@ -11687,7 +11687,7 @@
         "volume": 1908446,
         "trade_value": 26555971677,
         "nav": 13793.42,
-        "base_index": 3006.33,
+        "base_index": 3015.41,
         "change": 215,
         "change_pct": 1.59
       },
@@ -11767,7 +11767,7 @@
         "volume": 13779329,
         "trade_value": 186817002862,
         "nav": 13640.74,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 605,
         "change_pct": 4.65
       },
@@ -11865,7 +11865,7 @@
         "volume": 29449,
         "trade_value": 710267592,
         "nav": 24423.72,
-        "base_index": 1252.01,
+        "base_index": 1252.4,
         "change": 1130,
         "change_pct": 4.83
       },
@@ -11892,7 +11892,7 @@
         "volume": 305136,
         "trade_value": 3239601947,
         "nav": 10624.9,
-        "base_index": 3712.77,
+        "base_index": 3713.28,
         "change": 755,
         "change_pct": 7.67
       },
@@ -11919,7 +11919,7 @@
         "volume": 604854,
         "trade_value": 1517538829,
         "nav": 2485.15,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": -135,
         "change_pct": -5.13
       },
@@ -11946,7 +11946,7 @@
         "volume": 7410,
         "trade_value": 110707315,
         "nav": 14879.6,
-        "base_index": 1880.89,
+        "base_index": 1880.98,
         "change": 575,
         "change_pct": 4.03
       },
@@ -12134,7 +12134,7 @@
         "volume": 47725,
         "trade_value": 585159916,
         "nav": 12151.0,
-        "base_index": 1245.79,
+        "base_index": 1241.86,
         "change": -30,
         "change_pct": -0.25
       },
@@ -12242,7 +12242,7 @@
         "volume": 28111,
         "trade_value": 957671247,
         "nav": 34195.67,
-        "base_index": 3478.46,
+        "base_index": 3479.02,
         "change": 2080,
         "change_pct": 6.47
       },
@@ -12347,7 +12347,7 @@
         "volume": 14104,
         "trade_value": 135784651,
         "nav": 9562.31,
-        "base_index": 1539.64,
+        "base_index": 1531.01,
         "change": -85,
         "change_pct": -0.88
       },
@@ -12374,7 +12374,7 @@
         "volume": 1765,
         "trade_value": 24397464,
         "nav": 13760.35,
-        "base_index": 2070.2,
+        "base_index": 2043.34,
         "change": 95,
         "change_pct": 0.69
       },
@@ -12401,7 +12401,7 @@
         "volume": 790,
         "trade_value": 16241710,
         "nav": 20641.79,
-        "base_index": 5562.74,
+        "base_index": 5624.55,
         "change": 75,
         "change_pct": 0.37
       },
@@ -12455,7 +12455,7 @@
         "volume": 19015,
         "trade_value": 237951930,
         "nav": 12414.28,
-        "base_index": 845.53,
+        "base_index": 851.77,
         "change": -15,
         "change_pct": -0.12
       },
@@ -12509,7 +12509,7 @@
         "volume": 403435,
         "trade_value": 44692961323,
         "nav": 110612.79,
-        "base_index": 11461.22,
+        "base_index": 11462.7,
         "change": 2145,
         "change_pct": 1.98
       },
@@ -12607,7 +12607,7 @@
         "volume": 500576,
         "trade_value": 3253423149,
         "nav": 6499.34,
-        "base_index": 649.54,
+        "base_index": 649.68,
         "change": 195,
         "change_pct": 3.11
       },
@@ -12634,7 +12634,7 @@
         "volume": 333,
         "trade_value": 7368685,
         "nav": 21991.47,
-        "base_index": 2166.98,
+        "base_index": 2167.41,
         "change": 515,
         "change_pct": 2.41
       },
@@ -12661,7 +12661,7 @@
         "volume": 12485,
         "trade_value": 191771192,
         "nav": 15201.64,
-        "base_index": 1545.79,
+        "base_index": 1546.67,
         "change": 130,
         "change_pct": 0.86
       },
@@ -12688,7 +12688,7 @@
         "volume": 45063,
         "trade_value": 730366376,
         "nav": 16166.61,
-        "base_index": 1593.71,
+        "base_index": 1593.77,
         "change": 105,
         "change_pct": 0.66
       },
@@ -12715,7 +12715,7 @@
         "volume": 100458,
         "trade_value": 1022158074,
         "nav": 10108.04,
-        "base_index": 963.2,
+        "base_index": 963.52,
         "change": 265,
         "change_pct": 2.7
       },
@@ -12742,7 +12742,7 @@
         "volume": 19373,
         "trade_value": 184962960,
         "nav": 9499.52,
-        "base_index": 942.21,
+        "base_index": 942.4,
         "change": 90,
         "change_pct": 0.96
       },
@@ -12796,7 +12796,7 @@
         "volume": 5945,
         "trade_value": 95186380,
         "nav": 15953.67,
-        "base_index": 15926.55,
+        "base_index": 15928.13,
         "change": 315,
         "change_pct": 2.02
       },
@@ -12850,7 +12850,7 @@
         "volume": 97,
         "trade_value": 1403260,
         "nav": 14546.69,
-        "base_index": 1617.72,
+        "base_index": 1620.63,
         "change": 135,
         "change_pct": 0.94
       },
@@ -12877,7 +12877,7 @@
         "volume": 6153,
         "trade_value": 78948569,
         "nav": 12926.35,
-        "base_index": 1393.09,
+        "base_index": 1396.55,
         "change": 125,
         "change_pct": 0.98
       },
@@ -12904,7 +12904,7 @@
         "volume": 4083,
         "trade_value": 278762388,
         "nav": 68285.81,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 1025,
         "change_pct": 1.52
       },
@@ -12931,7 +12931,7 @@
         "volume": 11564,
         "trade_value": 26012622,
         "nav": 2245.43,
-        "base_index": 1174.68,
+        "base_index": 1174.71,
         "change": -20,
         "change_pct": -0.88
       },
@@ -13012,7 +13012,7 @@
         "volume": 22370,
         "trade_value": 267453455,
         "nav": 12004.36,
-        "base_index": 5325.8,
+        "base_index": 5197.06,
         "change": 100,
         "change_pct": 0.85
       },
@@ -13039,7 +13039,7 @@
         "volume": 15580,
         "trade_value": 529498921,
         "nav": 33844.65,
-        "base_index": 7004.46,
+        "base_index": 6824.82,
         "change": 685,
         "change_pct": 2.06
       },
@@ -13066,7 +13066,7 @@
         "volume": 15,
         "trade_value": 204190,
         "nav": 13631.84,
-        "base_index": 77.7,
+        "base_index": 77.55,
         "change": -15,
         "change_pct": -0.11
       },
@@ -13120,7 +13120,7 @@
         "volume": 1210,
         "trade_value": 27918920,
         "nav": 23231.73,
-        "base_index": 4097.53,
+        "base_index": 4027.84,
         "change": 200,
         "change_pct": 0.87
       },
@@ -13174,7 +13174,7 @@
         "volume": 369319,
         "trade_value": 4186307087,
         "nav": 11249.97,
-        "base_index": 394.61,
+        "base_index": 390.48,
         "change": -20,
         "change_pct": -0.18
       },
@@ -13201,7 +13201,7 @@
         "volume": 1443729,
         "trade_value": 14684051235,
         "nav": 10114.16,
-        "base_index": 471.82,
+        "base_index": 460.19,
         "change": 0,
         "change_pct": 0.0
       },
@@ -13228,7 +13228,7 @@
         "volume": 302578,
         "trade_value": 3194779147,
         "nav": 10475.62,
-        "base_index": 690.93,
+        "base_index": 695.83,
         "change": -85,
         "change_pct": -0.81
       },
@@ -13255,7 +13255,7 @@
         "volume": 72671,
         "trade_value": 1077744105,
         "nav": 14712.72,
-        "base_index": 9508.35,
+        "base_index": 9369.7,
         "change": -30,
         "change_pct": -0.2
       },
@@ -13282,7 +13282,7 @@
         "volume": 5873,
         "trade_value": 194967390,
         "nav": 32917.95,
-        "base_index": 6546.73,
+        "base_index": 6551.83,
         "change": 400,
         "change_pct": 1.23
       },
@@ -13407,7 +13407,7 @@
         "volume": 3289,
         "trade_value": 382128295,
         "nav": 116227.55,
-        "base_index": 136.53,
+        "base_index": 136.68,
         "change": 0,
         "change_pct": 0.0
       },
@@ -13434,7 +13434,7 @@
         "volume": 812269,
         "trade_value": 847545762,
         "nav": 1040.54,
-        "base_index": 266.0,
+        "base_index": 265.97,
         "change": -24,
         "change_pct": -2.25
       },
@@ -13461,7 +13461,7 @@
         "volume": 168,
         "trade_value": 2553925,
         "nav": 15215.61,
-        "base_index": 6168.26,
+        "base_index": 6204.23,
         "change": -105,
         "change_pct": -0.69
       },
@@ -13488,7 +13488,7 @@
         "volume": 3181,
         "trade_value": 71616604,
         "nav": 22716.81,
-        "base_index": 6168.26,
+        "base_index": 6204.23,
         "change": -95,
         "change_pct": -0.42
       },
@@ -13542,7 +13542,7 @@
         "volume": 1676,
         "trade_value": 89984900,
         "nav": 53710.0,
-        "base_index": 116.41,
+        "base_index": 116.69,
         "change": 40,
         "change_pct": 0.07
       },
@@ -13569,7 +13569,7 @@
         "volume": 4395,
         "trade_value": 81938985,
         "nav": 18538.77,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": -220,
         "change_pct": -1.2
       },
@@ -13596,7 +13596,7 @@
         "volume": 291,
         "trade_value": 1786040,
         "nav": 6236.66,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": 35,
         "change_pct": 0.56
       },
@@ -13623,7 +13623,7 @@
         "volume": 47431,
         "trade_value": 523164763,
         "nav": 11013.77,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": -85,
         "change_pct": -0.78
       },
@@ -13650,7 +13650,7 @@
         "volume": 7431,
         "trade_value": 168762409,
         "nav": 22578.04,
-        "base_index": 4528.15,
+        "base_index": 4530.7,
         "change": 145,
         "change_pct": 0.65
       },
@@ -13677,7 +13677,7 @@
         "volume": 131509,
         "trade_value": 9518943652,
         "nav": 71863.22,
-        "base_index": 11581.22,
+        "base_index": 11137.29,
         "change": -805,
         "change_pct": -1.11
       },
@@ -13704,7 +13704,7 @@
         "volume": 660,
         "trade_value": 50763032,
         "nav": 76051.8,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1175,
         "change_pct": 1.57
       },
@@ -13731,7 +13731,7 @@
         "volume": 14341,
         "trade_value": 172385537,
         "nav": 12247.8,
-        "base_index": 9740.76,
+        "base_index": 9750.23,
         "change": 500,
         "change_pct": 4.26
       },
@@ -13784,7 +13784,7 @@
         "volume": 673,
         "trade_value": 5638010,
         "nav": 8348.21,
-        "base_index": 1095.93,
+        "base_index": 1090.2,
         "change": 30,
         "change_pct": 0.36
       },
@@ -13811,7 +13811,7 @@
         "volume": 333,
         "trade_value": 6309445,
         "nav": 19020.53,
-        "base_index": 2883.83,
+        "base_index": 2884.44,
         "change": 455,
         "change_pct": 2.44
       },
@@ -13863,7 +13863,7 @@
         "volume": 1014274,
         "trade_value": 32860672738,
         "nav": 32160.47,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 610,
         "change_pct": 1.93
       },
@@ -13917,7 +13917,7 @@
         "volume": 9667,
         "trade_value": 380511275,
         "nav": 39305.76,
-        "base_index": 1162.76,
+        "base_index": 1162.85,
         "change": 755,
         "change_pct": 1.95
       },
@@ -13944,7 +13944,7 @@
         "volume": 78643,
         "trade_value": 3525258159,
         "nav": 44777.0,
-        "base_index": 13583.96,
+        "base_index": 13585.72,
         "change": 535,
         "change_pct": 1.21
       },
@@ -13971,7 +13971,7 @@
         "volume": 1327,
         "trade_value": 29392285,
         "nav": 21961.14,
-        "base_index": 474.49,
+        "base_index": 474.57,
         "change": 640,
         "change_pct": 2.99
       },
@@ -13998,7 +13998,7 @@
         "volume": 224,
         "trade_value": 5557075,
         "nav": 24559.88,
-        "base_index": 11995.56,
+        "base_index": 11996.71,
         "change": 485,
         "change_pct": 2.01
       },
@@ -14106,7 +14106,7 @@
         "volume": 877041,
         "trade_value": 16240351587,
         "nav": 18412.19,
-        "base_index": 4276.92,
+        "base_index": 4277.86,
         "change": 90,
         "change_pct": 0.49
       },
@@ -14133,7 +14133,7 @@
         "volume": 11710245636,
         "trade_value": 1217944722336,
         "nav": 105.97,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -4,
         "change_pct": -3.64
       },
@@ -14189,7 +14189,7 @@
         "volume": 666599,
         "trade_value": 17111279847,
         "nav": 25543.39,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 515,
         "change_pct": 2.06
       },
@@ -14313,7 +14313,7 @@
         "volume": 7662312,
         "trade_value": 125988800408,
         "nav": 16357.61,
-        "base_index": 2624.74,
+        "base_index": 2625.5,
         "change": 265,
         "change_pct": 1.65
       },
@@ -14411,7 +14411,7 @@
         "volume": 4515,
         "trade_value": 46032841,
         "nav": 10193.77,
-        "base_index": 111.25,
+        "base_index": 111.28,
         "change": 5,
         "change_pct": 0.05
       },
@@ -14437,7 +14437,7 @@
         "volume": 26426,
         "trade_value": 288628202,
         "nav": 10922.99,
-        "base_index": 122.28,
+        "base_index": 122.32,
         "change": 0,
         "change_pct": 0.0
       },
@@ -14464,7 +14464,7 @@
         "volume": 322137,
         "trade_value": 3294854267,
         "nav": 10226.83,
-        "base_index": 110.42,
+        "base_index": 110.47,
         "change": 15,
         "change_pct": 0.15
       },
@@ -14491,7 +14491,7 @@
         "volume": 23417,
         "trade_value": 233561546,
         "nav": 9968.56,
-        "base_index": 103.62,
+        "base_index": 103.71,
         "change": 12,
         "change_pct": 0.12
       },
@@ -14740,7 +14740,7 @@
         "volume": 6597,
         "trade_value": 70215995,
         "nav": 10634.45,
-        "base_index": 112.66,
+        "base_index": 112.91,
         "change": 10,
         "change_pct": 0.09
       },
@@ -14767,7 +14767,7 @@
         "volume": 66876,
         "trade_value": 560829525,
         "nav": 8390.52,
-        "base_index": 17.27,
+        "base_index": 17.2,
         "change": -15,
         "change_pct": -0.18
       },
@@ -14794,7 +14794,7 @@
         "volume": 9324,
         "trade_value": 89672245,
         "nav": 9649.15,
-        "base_index": 95.64,
+        "base_index": 96.31,
         "change": 50,
         "change_pct": 0.52
       },
@@ -15240,7 +15240,7 @@
         "volume": 100,
         "trade_value": 11440780,
         "nav": 114410.07,
-        "base_index": 131.63,
+        "base_index": 131.74,
         "change": 0,
         "change_pct": 0.0
       },
@@ -15267,7 +15267,7 @@
         "volume": 117143,
         "trade_value": 6918713086,
         "nav": 59023.91,
-        "base_index": 5083.22,
+        "base_index": 5084.02,
         "change": 1210,
         "change_pct": 2.09
       },
@@ -15294,7 +15294,7 @@
         "volume": 2468,
         "trade_value": 73770077,
         "nav": 29635.11,
-        "base_index": 2810.46,
+        "base_index": 2808.53,
         "change": 565,
         "change_pct": 1.92
       },
@@ -15402,7 +15402,7 @@
         "volume": 115359,
         "trade_value": 4572640735,
         "nav": 39453.51,
-        "base_index": 3840.57,
+        "base_index": 3840.88,
         "change": 730,
         "change_pct": 1.89
       },
@@ -15429,7 +15429,7 @@
         "volume": 490,
         "trade_value": 15496840,
         "nav": 31645.41,
-        "base_index": 15926.55,
+        "base_index": 15928.13,
         "change": 605,
         "change_pct": 1.95
       },
@@ -15456,7 +15456,7 @@
         "volume": 22474,
         "trade_value": 205237302,
         "nav": 9095.59,
-        "base_index": 1407.5,
+        "base_index": 1407.45,
         "change": 270,
         "change_pct": 3.06
       },
@@ -15483,7 +15483,7 @@
         "volume": 1010,
         "trade_value": 27921665,
         "nav": 27739.52,
-        "base_index": 3833.32,
+        "base_index": 3834.76,
         "change": 505,
         "change_pct": 1.87
       },
@@ -15510,7 +15510,7 @@
         "volume": 8714,
         "trade_value": 370828067,
         "nav": 42261.46,
-        "base_index": 2095.42,
+        "base_index": 2045.88,
         "change": 530,
         "change_pct": 1.28
       },
@@ -15537,7 +15537,7 @@
         "volume": 20398,
         "trade_value": 645269040,
         "nav": 31489.99,
-        "base_index": 3992.84,
+        "base_index": 3994.65,
         "change": 565,
         "change_pct": 1.83
       },
@@ -15564,7 +15564,7 @@
         "volume": 29078,
         "trade_value": 1104869542,
         "nav": 37729.84,
-        "base_index": 4941.91,
+        "base_index": 4907.78,
         "change": 85,
         "change_pct": 0.23
       },
@@ -15591,7 +15591,7 @@
         "volume": 2563,
         "trade_value": 53217335,
         "nav": 20648.97,
-        "base_index": 3588.45,
+        "base_index": 3642.91,
         "change": -55,
         "change_pct": -0.26
       },
@@ -15618,7 +15618,7 @@
         "volume": 198,
         "trade_value": 2313170,
         "nav": 11688.29,
-        "base_index": 1630.54,
+        "base_index": 1611.0,
         "change": 135,
         "change_pct": 1.17
       },
@@ -15828,7 +15828,7 @@
         "volume": 5335350,
         "trade_value": 8812182880,
         "nav": 1650.92,
-        "base_index": 266.0,
+        "base_index": 265.97,
         "change": -46,
         "change_pct": -2.7
       },
@@ -15855,7 +15855,7 @@
         "volume": 83608,
         "trade_value": 2368588769,
         "nav": 28302.26,
-        "base_index": 266.0,
+        "base_index": 265.97,
         "change": 880,
         "change_pct": 3.2
       },
@@ -15882,7 +15882,7 @@
         "volume": 70724,
         "trade_value": 731985874,
         "nav": 10254.77,
-        "base_index": 618.22,
+        "base_index": 617.39,
         "change": -70,
         "change_pct": -0.68
       },
@@ -15909,7 +15909,7 @@
         "volume": 543,
         "trade_value": 15727505,
         "nav": 28765.54,
-        "base_index": 16617.16,
+        "base_index": 16624.99,
         "change": 690,
         "change_pct": 2.46
       },
@@ -15963,7 +15963,7 @@
         "volume": 351,
         "trade_value": 4831250,
         "nav": 13599.6,
-        "base_index": 1545.85,
+        "base_index": 1546.08,
         "change": 65,
         "change_pct": 0.48
       },
@@ -16017,7 +16017,7 @@
         "volume": 6344,
         "trade_value": 22814217,
         "nav": 3613.5,
-        "base_index": 245.65,
+        "base_index": 244.65,
         "change": -30,
         "change_pct": -0.83
       },
@@ -16098,7 +16098,7 @@
         "volume": 44360,
         "trade_value": 4680370059,
         "nav": 105471.1,
-        "base_index": 110.66,
+        "base_index": 110.98,
         "change": -10,
         "change_pct": -0.01
       },
@@ -16125,7 +16125,7 @@
         "volume": 23957,
         "trade_value": 2215971915,
         "nav": 92608.24,
-        "base_index": 83.45,
+        "base_index": 84.08,
         "change": 480,
         "change_pct": 0.52
       },
@@ -16152,7 +16152,7 @@
         "volume": 21608,
         "trade_value": 1343427475,
         "nav": 62177.21,
-        "base_index": 205.8,
+        "base_index": 205.78,
         "change": 20,
         "change_pct": 0.03
       },
@@ -16206,7 +16206,7 @@
         "volume": 3411,
         "trade_value": 80302617,
         "nav": 23433.77,
-        "base_index": 1259.77,
+        "base_index": 1252.29,
         "change": -635,
         "change_pct": -2.64
       },
@@ -16233,7 +16233,7 @@
         "volume": 5880,
         "trade_value": 60955350,
         "nav": 10241.48,
-        "base_index": 3019.01,
+        "base_index": 2995.37,
         "change": 155,
         "change_pct": 1.53
       },
@@ -16260,7 +16260,7 @@
         "volume": 50420,
         "trade_value": 590961933,
         "nav": 11642.94,
-        "base_index": 3563.82,
+        "base_index": 3559.19,
         "change": 35,
         "change_pct": 0.3
       },
@@ -16287,7 +16287,7 @@
         "volume": 141757,
         "trade_value": 1746574610,
         "nav": 12216.31,
-        "base_index": 2553.19,
+        "base_index": 2553.72,
         "change": 165,
         "change_pct": 1.37
       },
@@ -16314,7 +16314,7 @@
         "volume": 1155929,
         "trade_value": 12539252134,
         "nav": 10738.07,
-        "base_index": 988.81,
+        "base_index": 989.9,
         "change": 150,
         "change_pct": 1.41
       },
@@ -16341,7 +16341,7 @@
         "volume": 62,
         "trade_value": 626765,
         "nav": 10112.16,
-        "base_index": 119.73,
+        "base_index": 119.8,
         "change": -5,
         "change_pct": -0.05
       },
@@ -16367,7 +16367,7 @@
         "volume": 5117,
         "trade_value": 57865990,
         "nav": 11177.01,
-        "base_index": 1206.24,
+        "base_index": 1206.52,
         "change": 180,
         "change_pct": 1.63
       },
@@ -16394,7 +16394,7 @@
         "volume": 382,
         "trade_value": 8142560,
         "nav": 21232.02,
-        "base_index": 3990.31,
+        "base_index": 3990.34,
         "change": 350,
         "change_pct": 1.68
       },
@@ -16421,7 +16421,7 @@
         "volume": 3894,
         "trade_value": 446018573,
         "nav": 114546.57,
-        "base_index": 149.18,
+        "base_index": 149.22,
         "change": 0,
         "change_pct": 0.0
       },
@@ -16448,7 +16448,7 @@
         "volume": 4262,
         "trade_value": 55465014,
         "nav": 12942.7,
-        "base_index": 4055.75,
+        "base_index": 4111.92,
         "change": 185,
         "change_pct": 1.44
       },
@@ -16502,7 +16502,7 @@
         "volume": 802962,
         "trade_value": 84999074346,
         "nav": 105852.04,
-        "base_index": 121.96,
+        "base_index": 121.99,
         "change": 25,
         "change_pct": 0.02
       },
@@ -16538,7 +16538,7 @@
           "weight": 0.0
         },
         {
-          "stock_ticker": "S28899",
+          "stock_ticker": "S00347",
           "stock_name": "",
           "shares": 0.0,
           "amount": 926029,
@@ -16546,13 +16546,6 @@
         },
         {
           "stock_ticker": "S01117",
-          "stock_name": "",
-          "shares": 0.0,
-          "amount": 926029,
-          "weight": 0.0
-        },
-        {
-          "stock_ticker": "S00347",
           "stock_name": "",
           "shares": 0.0,
           "amount": 926029,
@@ -16567,6 +16560,13 @@
         },
         {
           "stock_ticker": "S01117",
+          "stock_name": "",
+          "shares": 0.0,
+          "amount": 926029,
+          "weight": 0.0
+        },
+        {
+          "stock_ticker": "S28899",
           "stock_name": "",
           "shares": 0.0,
           "amount": 926029,
@@ -16681,7 +16681,7 @@
         "volume": 2723,
         "trade_value": 94633120,
         "nav": 34574.92,
-        "base_index": 11187.64,
+        "base_index": 11194.09,
         "change": 590,
         "change_pct": 1.74
       },
@@ -16708,7 +16708,7 @@
         "volume": 88599,
         "trade_value": 976069215,
         "nav": 10927.06,
-        "base_index": 208.7,
+        "base_index": 206.62,
         "change": -80,
         "change_pct": -0.73
       },
@@ -16735,7 +16735,7 @@
         "volume": 48520,
         "trade_value": 452031274,
         "nav": 9310.42,
-        "base_index": 89.46,
+        "base_index": 90.24,
         "change": 5,
         "change_pct": 0.05
       },
@@ -16762,7 +16762,7 @@
         "volume": 678735,
         "trade_value": 5447586810,
         "nav": 8018.83,
-        "base_index": 68.05,
+        "base_index": 69.26,
         "change": 35,
         "change_pct": 0.44
       },
@@ -16789,7 +16789,7 @@
         "volume": 389,
         "trade_value": 4931175,
         "nav": 12687.85,
-        "base_index": 101.47,
+        "base_index": 101.2,
         "change": -25,
         "change_pct": -0.2
       },
@@ -16816,7 +16816,7 @@
         "volume": 26447,
         "trade_value": 188163446,
         "nav": 7119.12,
-        "base_index": 101.47,
+        "base_index": 101.2,
         "change": 40,
         "change_pct": 0.57
       },
@@ -16843,7 +16843,7 @@
         "volume": 547847,
         "trade_value": 3906013264,
         "nav": 7155.87,
-        "base_index": 898.76,
+        "base_index": 898.55,
         "change": 5,
         "change_pct": 0.07
       },
@@ -16947,7 +16947,7 @@
         "volume": 156004,
         "trade_value": 2198675778,
         "nav": 13963.55,
-        "base_index": 3821.09,
+        "base_index": 3576.46,
         "change": 180,
         "change_pct": 1.3
       },
@@ -16974,7 +16974,7 @@
         "volume": 166871,
         "trade_value": 1556678880,
         "nav": 9276.58,
-        "base_index": 3784.42,
+        "base_index": 3559.26,
         "change": 95,
         "change_pct": 1.03
       },
@@ -16997,7 +16997,7 @@
         "volume": 636901,
         "trade_value": 11198470340,
         "nav": 17419.88,
-        "base_index": 8168.25,
+        "base_index": 7919.36,
         "change": -130,
         "change_pct": -0.74
       },
@@ -17078,7 +17078,7 @@
         "volume": 194452,
         "trade_value": 1986729187,
         "nav": 10158.49,
-        "base_index": 4229.79,
+        "base_index": 3978.94,
         "change": 75,
         "change_pct": 0.75
       },
@@ -17103,7 +17103,7 @@
         "volume": 1657,
         "trade_value": 26094774,
         "nav": 15699.97,
-        "base_index": 3940.68,
+        "base_index": 3965.88,
         "change": 285,
         "change_pct": 1.85
       },
@@ -17130,7 +17130,7 @@
         "volume": 29659867,
         "trade_value": 696695493854,
         "nav": 23285.5,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -30,
         "change_pct": -0.13
       },
@@ -17228,7 +17228,7 @@
         "volume": 964,
         "trade_value": 15855520,
         "nav": 16374.68,
-        "base_index": 2292.68,
+        "base_index": 2274.02,
         "change": 125,
         "change_pct": 0.77
       },
@@ -17255,7 +17255,7 @@
         "volume": 29994,
         "trade_value": 545598984,
         "nav": 18073.89,
-        "base_index": 681.11,
+        "base_index": 684.43,
         "change": 150,
         "change_pct": 0.84
       },
@@ -17282,7 +17282,7 @@
         "volume": 159888,
         "trade_value": 1451898580,
         "nav": 9012.5,
-        "base_index": 408.37,
+        "base_index": 404.06,
         "change": -10,
         "change_pct": -0.11
       },
@@ -17309,7 +17309,7 @@
         "volume": 6023,
         "trade_value": 46880560,
         "nav": 7793.41,
-        "base_index": 110.54,
+        "base_index": 111.19,
         "change": 140,
         "change_pct": 1.83
       },
@@ -17336,7 +17336,7 @@
         "volume": 115,
         "trade_value": 1321325,
         "nav": 11489.12,
-        "base_index": 226.08,
+        "base_index": 225.25,
         "change": -25,
         "change_pct": -0.22
       },
@@ -17363,7 +17363,7 @@
         "volume": 685,
         "trade_value": 7877520,
         "nav": 11507.89,
-        "base_index": 444.45,
+        "base_index": 441.08,
         "change": -20,
         "change_pct": -0.17
       },
@@ -17390,7 +17390,7 @@
         "volume": 248,
         "trade_value": 2777130,
         "nav": 11113.31,
-        "base_index": 3507.97,
+        "base_index": 3469.58,
         "change": -15,
         "change_pct": -0.13
       },
@@ -17444,7 +17444,7 @@
         "volume": 140625,
         "trade_value": 2216063360,
         "nav": 15643.17,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -35,
         "change_pct": -0.22
       },
@@ -17471,7 +17471,7 @@
         "volume": 49615,
         "trade_value": 1036897594,
         "nav": 20733.0,
-        "base_index": 1401.58,
+        "base_index": 1436.87,
         "change": -485,
         "change_pct": -2.27
       },
@@ -17498,7 +17498,7 @@
         "volume": 1615,
         "trade_value": 20987607,
         "nav": 12920.76,
-        "base_index": 843.36,
+        "base_index": 855.21,
         "change": -110,
         "change_pct": -0.84
       },
@@ -17525,7 +17525,7 @@
         "volume": 445327,
         "trade_value": 7702414894,
         "nav": 17293.84,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 125,
         "change_pct": 0.73
       },
@@ -17552,7 +17552,7 @@
         "volume": 2820,
         "trade_value": 49256110,
         "nav": 17367.7,
-        "base_index": 587.53,
+        "base_index": 576.39,
         "change": 280,
         "change_pct": 1.63
       },
@@ -17579,7 +17579,7 @@
         "volume": 21885,
         "trade_value": 480958741,
         "nav": 21812.59,
-        "base_index": 3810.76,
+        "base_index": 3695.14,
         "change": 55,
         "change_pct": 0.25
       },
@@ -17606,7 +17606,7 @@
         "volume": 23276,
         "trade_value": 286983990,
         "nav": 12279.83,
-        "base_index": 876.58,
+        "base_index": 886.37,
         "change": 25,
         "change_pct": 0.2
       },
@@ -17633,7 +17633,7 @@
         "volume": 47547,
         "trade_value": 683528752,
         "nav": 14286.9,
-        "base_index": 1790.57,
+        "base_index": 1785.95,
         "change": 185,
         "change_pct": 1.31
       },
@@ -17660,7 +17660,7 @@
         "volume": 1098,
         "trade_value": 12562820,
         "nav": 11375.17,
-        "base_index": 1215.81,
+        "base_index": 1204.46,
         "change": 205,
         "change_pct": 1.83
       },
@@ -17687,7 +17687,7 @@
         "volume": 29582322,
         "trade_value": 787264722463,
         "nav": 26418.45,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 0,
         "change_pct": 0.0
       },
@@ -17785,7 +17785,7 @@
         "volume": 967812,
         "trade_value": 8364377431,
         "nav": 8590.95,
-        "base_index": 330.15,
+        "base_index": 322.56,
         "change": 10,
         "change_pct": 0.12
       },
@@ -17812,7 +17812,7 @@
         "volume": 101236,
         "trade_value": 2058652362,
         "nav": 20410.12,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 355,
         "change_pct": 1.77
       },
@@ -17839,7 +17839,7 @@
         "volume": 209287,
         "trade_value": 1147569370,
         "nav": 5475.51,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -50,
         "change_pct": -0.9
       },
@@ -17866,7 +17866,7 @@
         "volume": 856,
         "trade_value": 28108960,
         "nav": 32855.41,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 305,
         "change_pct": 0.94
       },
@@ -17893,7 +17893,7 @@
         "volume": 200135,
         "trade_value": 4496464860,
         "nav": 22512.08,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 205,
         "change_pct": 0.92
       },
@@ -17920,7 +17920,7 @@
         "volume": 15124,
         "trade_value": 392031225,
         "nav": 25719.04,
-        "base_index": 2053.72,
+        "base_index": 2007.05,
         "change": -5,
         "change_pct": -0.02
       },
@@ -17947,7 +17947,7 @@
         "volume": 125121,
         "trade_value": 1440139679,
         "nav": 11434.85,
-        "base_index": 126.29,
+        "base_index": 126.3,
         "change": -90,
         "change_pct": -0.78
       },
@@ -17974,7 +17974,7 @@
         "volume": 49478,
         "trade_value": 746160935,
         "nav": 14866.91,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": -260,
         "change_pct": -1.72
       },
@@ -18001,7 +18001,7 @@
         "volume": 62178,
         "trade_value": 350901380,
         "nav": 5728.66,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 100,
         "change_pct": 1.78
       },
@@ -18028,7 +18028,7 @@
         "volume": 24265,
         "trade_value": 202506908,
         "nav": 8407.01,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 80,
         "change_pct": 0.96
       },
@@ -18055,7 +18055,7 @@
         "volume": 122908,
         "trade_value": 1710004941,
         "nav": 13814.5,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": -130,
         "change_pct": -0.93
       },
@@ -18082,7 +18082,7 @@
         "volume": 13276,
         "trade_value": 72820955,
         "nav": 5410.71,
-        "base_index": 3116.09,
+        "base_index": 3030.83,
         "change": 200,
         "change_pct": 3.8
       },
@@ -18108,7 +18108,7 @@
         "volume": 2046,
         "trade_value": 31980959,
         "nav": 15621.1,
-        "base_index": 2767.27,
+        "base_index": 2721.37,
         "change": 215,
         "change_pct": 1.39
       },
@@ -18135,7 +18135,7 @@
         "volume": 680781,
         "trade_value": 9108279361,
         "nav": 13289.8,
-        "base_index": 141.29,
+        "base_index": 139.95,
         "change": -120,
         "change_pct": -0.89
       },
@@ -18162,7 +18162,7 @@
         "volume": 898479,
         "trade_value": 45683537426,
         "nav": 50611.65,
-        "base_index": 16799.65,
+        "base_index": 16229.29,
         "change": -415,
         "change_pct": -0.82
       },
@@ -18260,7 +18260,7 @@
         "volume": 444726,
         "trade_value": 5548600575,
         "nav": 12407.24,
-        "base_index": 7222.66,
+        "base_index": 7276.4,
         "change": -40,
         "change_pct": -0.32
       },
@@ -18287,7 +18287,7 @@
         "volume": 195322,
         "trade_value": 1931376567,
         "nav": 9812.4,
-        "base_index": 598.49,
+        "base_index": 602.61,
         "change": -75,
         "change_pct": -0.76
       },
@@ -18314,7 +18314,7 @@
         "volume": 531137,
         "trade_value": 6477078731,
         "nav": 12086.59,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -15,
         "change_pct": -0.12
       },
@@ -18341,7 +18341,7 @@
         "volume": 204151,
         "trade_value": 2401634620,
         "nav": 11635.52,
-        "base_index": 367.1,
+        "base_index": 368.44,
         "change": 235,
         "change_pct": 2.04
       },
@@ -18368,7 +18368,7 @@
         "volume": 66939,
         "trade_value": 4289033419,
         "nav": 64199.9,
-        "base_index": 19188.35,
+        "base_index": 18581.77,
         "change": 1030,
         "change_pct": 1.63
       },
@@ -18395,7 +18395,7 @@
         "volume": 29959,
         "trade_value": 686347934,
         "nav": 22651.08,
-        "base_index": 6392.87,
+        "base_index": 6187.86,
         "change": 345,
         "change_pct": 1.53
       },
@@ -18422,7 +18422,7 @@
         "volume": 92119,
         "trade_value": 854544586,
         "nav": 9217.97,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 0,
         "change_pct": 0.0
       },
@@ -18448,7 +18448,7 @@
         "volume": 3233,
         "trade_value": 19922335,
         "nav": 6160.01,
-        "base_index": 189.44,
+        "base_index": 183.18,
         "change": 110,
         "change_pct": 1.82
       },
@@ -18475,7 +18475,7 @@
         "volume": 586175,
         "trade_value": 3721315636,
         "nav": 6262.62,
-        "base_index": 4039.37,
+        "base_index": 3827.84,
         "change": 195,
         "change_pct": 3.18
       },
@@ -18501,7 +18501,7 @@
         "volume": 59956,
         "trade_value": 367679195,
         "nav": 6086.7,
-        "base_index": 6813.26,
+        "base_index": 6584.22,
         "change": 140,
         "change_pct": 2.35
       },
@@ -18527,7 +18527,7 @@
         "volume": 17774,
         "trade_value": 1688206525,
         "nav": 94921.01,
-        "base_index": 124.56,
+        "base_index": 124.58,
         "change": 155,
         "change_pct": 0.16
       },
@@ -18554,7 +18554,7 @@
         "volume": 1194,
         "trade_value": 9443340,
         "nav": 7896.9,
-        "base_index": 588.4,
+        "base_index": 568.14,
         "change": -60,
         "change_pct": -0.76
       },
@@ -18608,7 +18608,7 @@
         "volume": 51281,
         "trade_value": 746183869,
         "nav": 14463.66,
-        "base_index": 10013.24,
+        "base_index": 9775.97,
         "change": 20,
         "change_pct": 0.14
       },
@@ -18662,7 +18662,7 @@
         "volume": 4252683,
         "trade_value": 493195647410,
         "nav": 116849.66,
-        "base_index": 12311.01,
+        "base_index": 12313.69,
         "change": 3915,
         "change_pct": 3.49
       },
@@ -18858,7 +18858,7 @@
         "volume": 377188,
         "trade_value": 3005718324,
         "nav": 8096.62,
-        "base_index": 2400.7,
+        "base_index": 2403.6,
         "change": 330,
         "change_pct": 4.25
       },
@@ -19224,7 +19224,7 @@
         "volume": 2059,
         "trade_value": 109261819,
         "nav": 52993.14,
-        "base_index": 10356.06,
+        "base_index": 10373.53,
         "change": 850,
         "change_pct": 1.63
       },
@@ -19251,7 +19251,7 @@
         "volume": 50,
         "trade_value": 2824785,
         "nav": 55912.61,
-        "base_index": 117.39,
+        "base_index": 117.44,
         "change": -315,
         "change_pct": -0.56
       },
@@ -19278,7 +19278,7 @@
         "volume": 3375,
         "trade_value": 83505735,
         "nav": 24743.25,
-        "base_index": 14515.2,
+        "base_index": 14517.5,
         "change": 430,
         "change_pct": 1.78
       },
@@ -19359,7 +19359,7 @@
         "volume": 11856,
         "trade_value": 91505820,
         "nav": 7657.18,
-        "base_index": 2912.04,
+        "base_index": 2931.63,
         "change": 70,
         "change_pct": 0.92
       },
@@ -19386,7 +19386,7 @@
         "volume": 2469,
         "trade_value": 28940580,
         "nav": 11737.11,
-        "base_index": 1383.29,
+        "base_index": 1376.69,
         "change": -150,
         "change_pct": -1.26
       },
@@ -19467,7 +19467,7 @@
         "volume": 6371,
         "trade_value": 64142945,
         "nav": 9961.77,
-        "base_index": 22997.35,
+        "base_index": 23146.15,
         "change": -45,
         "change_pct": -0.45
       },
@@ -19494,7 +19494,7 @@
         "volume": 70965,
         "trade_value": 775643531,
         "nav": 10895.86,
-        "base_index": 22997.35,
+        "base_index": 23146.15,
         "change": 25,
         "change_pct": 0.23
       },
@@ -19521,7 +19521,7 @@
         "volume": 13446,
         "trade_value": 127723690,
         "nav": 9405.65,
-        "base_index": 59025.75,
+        "base_index": 59129.75,
         "change": -140,
         "change_pct": -1.47
       },
@@ -19548,7 +19548,7 @@
         "volume": 16848,
         "trade_value": 118393875,
         "nav": 7010.45,
-        "base_index": 13912.45,
+        "base_index": 13953.65,
         "change": -15,
         "change_pct": -0.21
       },
@@ -19575,7 +19575,7 @@
         "volume": 7456,
         "trade_value": 78085886,
         "nav": 10525.28,
-        "base_index": 1671.93,
+        "base_index": 1670.26,
         "change": 35,
         "change_pct": 0.33
       },
@@ -19602,7 +19602,7 @@
         "volume": 65350,
         "trade_value": 1583123628,
         "nav": 24222.55,
-        "base_index": 2467.16,
+        "base_index": 2468.06,
         "change": 780,
         "change_pct": 3.34
       },
@@ -19656,7 +19656,7 @@
         "volume": 81521,
         "trade_value": 7252732935,
         "nav": 89156.95,
-        "base_index": 288.57,
+        "base_index": 289.86,
         "change": 5,
         "change_pct": 0.01
       },
@@ -19683,7 +19683,7 @@
         "volume": 23481,
         "trade_value": 322548215,
         "nav": 13669.79,
-        "base_index": 1818.28,
+        "base_index": 1817.0,
         "change": 40,
         "change_pct": 0.29
       },
@@ -19710,7 +19710,7 @@
         "volume": 29876,
         "trade_value": 462331367,
         "nav": 15373.97,
-        "base_index": 2132.44,
+        "base_index": 2128.43,
         "change": 25,
         "change_pct": 0.16
       },
@@ -19737,7 +19737,7 @@
         "volume": 92745,
         "trade_value": 1504289044,
         "nav": 16115.96,
-        "base_index": 2487.46,
+        "base_index": 2479.83,
         "change": 60,
         "change_pct": 0.37
       },
@@ -19764,7 +19764,7 @@
         "volume": 30700,
         "trade_value": 333711931,
         "nav": 10790.12,
-        "base_index": 2581.81,
+        "base_index": 2572.0,
         "change": 30,
         "change_pct": 0.28
       },
@@ -19888,7 +19888,7 @@
         "volume": 1506269,
         "trade_value": 9276257827,
         "nav": 6086.35,
-        "base_index": 3801.36,
+        "base_index": 3806.53,
         "change": 105,
         "change_pct": 1.75
       },
@@ -19914,7 +19914,7 @@
         "volume": 139093,
         "trade_value": 15489371064,
         "nav": 111501.65,
-        "base_index": 263.03,
+        "base_index": 263.65,
         "change": -45,
         "change_pct": -0.04
       },
@@ -19967,7 +19967,7 @@
         "volume": 557712,
         "trade_value": 8477858207,
         "nav": 15234.77,
-        "base_index": 1542.18,
+        "base_index": 1541.92,
         "change": 670,
         "change_pct": 4.61
       },
@@ -19994,7 +19994,7 @@
         "volume": 3396,
         "trade_value": 25226250,
         "nav": 7358.77,
-        "base_index": 1776.48,
+        "base_index": 1778.61,
         "change": -65,
         "change_pct": -0.88
       },
@@ -20021,7 +20021,7 @@
         "volume": 426708,
         "trade_value": 4513161586,
         "nav": 10365.1,
-        "base_index": 5224.96,
+        "base_index": 5253.37,
         "change": 40,
         "change_pct": 0.39
       },
@@ -20047,7 +20047,7 @@
         "volume": 7850,
         "trade_value": 155244320,
         "nav": 19385.01,
-        "base_index": 1955.63,
+        "base_index": 1958.55,
         "change": 210,
         "change_pct": 1.09
       },
@@ -20074,7 +20074,7 @@
         "volume": 121584,
         "trade_value": 1656535078,
         "nav": 13469.16,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": -80,
         "change_pct": -0.59
       },
@@ -20101,7 +20101,7 @@
         "volume": 359,
         "trade_value": 8218735,
         "nav": 22856.14,
-        "base_index": 13485.52,
+        "base_index": 13506.56,
         "change": -245,
         "change_pct": -1.07
       },
@@ -20128,7 +20128,7 @@
         "volume": 11375,
         "trade_value": 24597765,
         "nav": 2137.5,
-        "base_index": 8117.63,
+        "base_index": 8128.25,
         "change": 30,
         "change_pct": 1.42
       },
@@ -20155,7 +20155,7 @@
         "volume": 3983,
         "trade_value": 80081335,
         "nav": 19868.87,
-        "base_index": 8117.63,
+        "base_index": 8128.25,
         "change": -45,
         "change_pct": -0.23
       },
@@ -20182,7 +20182,7 @@
         "volume": 20946,
         "trade_value": 240953220,
         "nav": 11360.5,
-        "base_index": 1355.52,
+        "base_index": 1358.65,
         "change": 85,
         "change_pct": 0.76
       },
@@ -20209,7 +20209,7 @@
         "volume": 10357,
         "trade_value": 127228785,
         "nav": 12047.14,
-        "base_index": 2772.1,
+        "base_index": 2772.38,
         "change": -125,
         "change_pct": -1.03
       },
@@ -20236,7 +20236,7 @@
         "volume": 44673,
         "trade_value": 349910740,
         "nav": 7778.92,
-        "base_index": 2459.75,
+        "base_index": 2463.1,
         "change": 20,
         "change_pct": 0.26
       },
@@ -20263,7 +20263,7 @@
         "volume": 39279,
         "trade_value": 236886747,
         "nav": 5953.87,
-        "base_index": 4102.31,
+        "base_index": 4108.24,
         "change": 35,
         "change_pct": 0.59
       },
@@ -20290,7 +20290,7 @@
         "volume": 661401,
         "trade_value": 4383669430,
         "nav": 6598.11,
-        "base_index": 1795.2,
+        "base_index": 1827.47,
         "change": 70,
         "change_pct": 1.07
       },
@@ -20317,7 +20317,7 @@
         "volume": 5253,
         "trade_value": 100752380,
         "nav": 19093.99,
-        "base_index": 11482.14,
+        "base_index": 11484.15,
         "change": 560,
         "change_pct": 2.99
       },
@@ -20371,7 +20371,7 @@
         "volume": 4973,
         "trade_value": 131237277,
         "nav": 26254.43,
-        "base_index": 6546.73,
+        "base_index": 6551.83,
         "change": 665,
         "change_pct": 2.59
       },
@@ -20398,7 +20398,7 @@
         "volume": 32764,
         "trade_value": 503372430,
         "nav": 15385.36,
-        "base_index": 2461.42,
+        "base_index": 2461.48,
         "change": 110,
         "change_pct": 0.72
       },
@@ -20425,7 +20425,7 @@
         "volume": 192456,
         "trade_value": 5149618209,
         "nav": 26573.69,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 470,
         "change_pct": 1.8
       },
@@ -20503,7 +20503,7 @@
         "volume": 104,
         "trade_value": 2385385,
         "nav": 22824.77,
-        "base_index": 3477.54,
+        "base_index": 3479.99,
         "change": 645,
         "change_pct": 2.92
       },
@@ -20530,7 +20530,7 @@
         "volume": 50729795,
         "trade_value": 671498467830,
         "nav": 13381.46,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 610,
         "change_pct": 4.78
       },
@@ -20753,7 +20753,7 @@
         "volume": 61877398,
         "trade_value": 154736189914,
         "nav": 2481.72,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": -125,
         "change_pct": -4.79
       },
@@ -20802,7 +20802,7 @@
         "volume": 19215,
         "trade_value": 278176564,
         "nav": 14566.83,
-        "base_index": 1880.89,
+        "base_index": 1880.98,
         "change": 640,
         "change_pct": 4.62
       },
@@ -20991,7 +20991,7 @@
         "volume": 18908,
         "trade_value": 400502379,
         "nav": 20889.74,
-        "base_index": 727.29,
+        "base_index": 716.76,
         "change": -370,
         "change_pct": -1.73
       },
@@ -21018,7 +21018,7 @@
         "volume": 75488,
         "trade_value": 587416255,
         "nav": 7754.03,
-        "base_index": 1664.61,
+        "base_index": 1657.5,
         "change": 45,
         "change_pct": 0.58
       },
@@ -21045,7 +21045,7 @@
         "volume": 24819,
         "trade_value": 235157431,
         "nav": 9453.67,
-        "base_index": 1703.32,
+        "base_index": 1703.64,
         "change": 290,
         "change_pct": 3.18
       },
@@ -21099,7 +21099,7 @@
         "volume": 403633,
         "trade_value": 1647015526,
         "nav": 4099.45,
-        "base_index": 1206.65,
+        "base_index": 1210.24,
         "change": 30,
         "change_pct": 0.74
       },
@@ -21180,7 +21180,7 @@
         "volume": 41668,
         "trade_value": 640143016,
         "nav": 15535.55,
-        "base_index": 3478.46,
+        "base_index": 3479.02,
         "change": 925,
         "change_pct": 6.34
       },
@@ -21234,7 +21234,7 @@
         "volume": 795155,
         "trade_value": 4137272095,
         "nav": 5186.09,
-        "base_index": 1953.66,
+        "base_index": 1954.53,
         "change": 195,
         "change_pct": 3.92
       },
@@ -21260,7 +21260,7 @@
         "volume": 37148597,
         "trade_value": 3319523654072,
         "nav": 88803.4,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1725,
         "change_pct": 1.98
       },
@@ -21358,7 +21358,7 @@
         "volume": 100,
         "trade_value": 1041545,
         "nav": 10437.47,
-        "base_index": 1089.42,
+        "base_index": 1087.92,
         "change": 95,
         "change_pct": 0.92
       },
@@ -21385,7 +21385,7 @@
         "volume": 14587,
         "trade_value": 486450700,
         "nav": 33376.24,
-        "base_index": 1174.68,
+        "base_index": 1174.71,
         "change": 235,
         "change_pct": 0.71
       },
@@ -21412,7 +21412,7 @@
         "volume": 8351,
         "trade_value": 85202660,
         "nav": 10104.89,
-        "base_index": 126.31,
+        "base_index": 126.62,
         "change": -100,
         "change_pct": -0.98
       },
@@ -21439,7 +21439,7 @@
         "volume": 18769,
         "trade_value": 194303176,
         "nav": 10249.48,
-        "base_index": 333.89,
+        "base_index": 333.58,
         "change": -80,
         "change_pct": -0.77
       },
@@ -21520,7 +21520,7 @@
         "volume": 2447953,
         "trade_value": 14316734672,
         "nav": 5787.51,
-        "base_index": 1164.52,
+        "base_index": 1164.64,
         "change": 125,
         "change_pct": 2.22
       },
@@ -21726,7 +21726,7 @@
         "volume": 82379,
         "trade_value": 1567247495,
         "nav": 18822.72,
-        "base_index": 3919.24,
+        "base_index": 3922.7,
         "change": 70,
         "change_pct": 0.37
       },
@@ -21780,7 +21780,7 @@
         "volume": 41111,
         "trade_value": 550869000,
         "nav": 13280.52,
-        "base_index": 2651.78,
+        "base_index": 2652.35,
         "change": 60,
         "change_pct": 0.45
       },
@@ -21807,7 +21807,7 @@
         "volume": 55836,
         "trade_value": 370595357,
         "nav": 6572.46,
-        "base_index": 1335.63,
+        "base_index": 1335.69,
         "change": -100,
         "change_pct": -1.49
       },
@@ -21834,7 +21834,7 @@
         "volume": 1042300742,
         "trade_value": 1259467119797,
         "nav": 1218.45,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -25,
         "change_pct": -2.01
       },
@@ -21883,7 +21883,7 @@
         "volume": 23599,
         "trade_value": 263936954,
         "nav": 11152.53,
-        "base_index": 2264.61,
+        "base_index": 2264.79,
         "change": 230,
         "change_pct": 2.11
       },
@@ -21910,7 +21910,7 @@
         "volume": 7525,
         "trade_value": 198009498,
         "nav": 26546.15,
-        "base_index": 5140.05,
+        "base_index": 5152.36,
         "change": 1160,
         "change_pct": 4.56
       },
@@ -21937,7 +21937,7 @@
         "volume": 34940,
         "trade_value": 525314075,
         "nav": 15011.53,
-        "base_index": 6771.55,
+        "base_index": 6776.38,
         "change": 430,
         "change_pct": 2.96
       },
@@ -21964,7 +21964,7 @@
         "volume": 186134,
         "trade_value": 1798338963,
         "nav": 9568.69,
-        "base_index": 5451.0,
+        "base_index": 5453.39,
         "change": 75,
         "change_pct": 0.79
       },
@@ -22015,7 +22015,7 @@
         "volume": 27406,
         "trade_value": 720297975,
         "nav": 26092.67,
-        "base_index": 7488.61,
+        "base_index": 7237.91,
         "change": 70,
         "change_pct": 0.27
       },
@@ -22042,7 +22042,7 @@
         "volume": 73756,
         "trade_value": 919146369,
         "nav": 12437.42,
-        "base_index": 8823.62,
+        "base_index": 8800.1,
         "change": 270,
         "change_pct": 2.23
       },
@@ -22068,7 +22068,7 @@
         "volume": 2308,
         "trade_value": 20772030,
         "nav": 8983.78,
-        "base_index": 1252.67,
+        "base_index": 1292.08,
         "change": 530,
         "change_pct": 6.21
       },
@@ -22094,7 +22094,7 @@
         "volume": 15063,
         "trade_value": 279412759,
         "nav": 18466.98,
-        "base_index": 773.92,
+        "base_index": 776.78,
         "change": 550,
         "change_pct": 3.06
       },
@@ -22121,7 +22121,7 @@
         "volume": 5749,
         "trade_value": 155591535,
         "nav": 26876.46,
-        "base_index": 7442.27,
+        "base_index": 7428.2,
         "change": -170,
         "change_pct": -0.63
       },
@@ -22148,7 +22148,7 @@
         "volume": 197893,
         "trade_value": 3500736989,
         "nav": 17558.89,
-        "base_index": 26713.03,
+        "base_index": 26140.03,
         "change": 115,
         "change_pct": 0.66
       },
@@ -22202,7 +22202,7 @@
         "volume": 19389,
         "trade_value": 169340325,
         "nav": 8696.25,
-        "base_index": 4029.72,
+        "base_index": 3857.93,
         "change": 55,
         "change_pct": 0.63
       },
@@ -22228,7 +22228,7 @@
         "volume": 8468,
         "trade_value": 94950525,
         "nav": 11170.98,
-        "base_index": 2273.23,
+        "base_index": 2213.44,
         "change": 115,
         "change_pct": 1.04
       },
@@ -22254,7 +22254,7 @@
         "volume": 27605,
         "trade_value": 274218891,
         "nav": 9805.18,
-        "base_index": 1942.23,
+        "base_index": 1995.37,
         "change": -240,
         "change_pct": -2.37
       },
@@ -22281,7 +22281,7 @@
         "volume": 1292,
         "trade_value": 16137975,
         "nav": 12433.53,
-        "base_index": 2800.3,
+        "base_index": 2747.7,
         "change": 120,
         "change_pct": 0.98
       },
@@ -22389,7 +22389,7 @@
         "volume": 959,
         "trade_value": 21403384,
         "nav": 22193.92,
-        "base_index": 759.43,
+        "base_index": 751.34,
         "change": -155,
         "change_pct": -0.69
       },
@@ -22442,7 +22442,7 @@
         "volume": 62539,
         "trade_value": 505705625,
         "nav": 8090.12,
-        "base_index": 970.42,
+        "base_index": 988.33,
         "change": 110,
         "change_pct": 1.38
       },
@@ -22468,7 +22468,7 @@
         "volume": 39226,
         "trade_value": 1029343727,
         "nav": 26076.72,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 420,
         "change_pct": 1.64
       },
@@ -22574,7 +22574,7 @@
         "volume": 9007,
         "trade_value": 127714312,
         "nav": 14354.49,
-        "base_index": 2179.11,
+        "base_index": 2179.85,
         "change": 425,
         "change_pct": 3.04
       },
@@ -22628,7 +22628,7 @@
         "volume": 1122134,
         "trade_value": 10749824013,
         "nav": 9528.19,
-        "base_index": 2624.74,
+        "base_index": 2625.5,
         "change": 195,
         "change_pct": 2.08
       },
@@ -22654,7 +22654,7 @@
         "volume": 3420,
         "trade_value": 178984680,
         "nav": 52334.07,
-        "base_index": 110.6,
+        "base_index": 110.63,
         "change": 10,
         "change_pct": 0.02
       },
@@ -22681,7 +22681,7 @@
         "volume": 6529,
         "trade_value": 329484035,
         "nav": 50463.37,
-        "base_index": 104.52,
+        "base_index": 104.56,
         "change": 20,
         "change_pct": 0.04
       },
@@ -22832,7 +22832,7 @@
         "volume": 7849475,
         "trade_value": 193850406333,
         "nav": 25047.04,
-        "base_index": 4341.99,
+        "base_index": 4351.23,
         "change": 1135,
         "change_pct": 4.77
       },
@@ -22930,7 +22930,7 @@
         "volume": 155176,
         "trade_value": 7777107223,
         "nav": 50116.33,
-        "base_index": 121.41,
+        "base_index": 121.44,
         "change": 15,
         "change_pct": 0.03
       },
@@ -23091,7 +23091,7 @@
         "volume": 16450778,
         "trade_value": 171911561494,
         "nav": 10660.67,
-        "base_index": 7113.88,
+        "base_index": 7102.76,
         "change": -105,
         "change_pct": -0.97
       },
@@ -23166,7 +23166,7 @@
         "volume": 427,
         "trade_value": 18174265,
         "nav": 42479.13,
-        "base_index": 79.73,
+        "base_index": 80.29,
         "change": 5,
         "change_pct": 0.01
       },
@@ -23274,7 +23274,7 @@
         "volume": 61168,
         "trade_value": 3092888144,
         "nav": 50461.7,
-        "base_index": 22244.96,
+        "base_index": 22271.97,
         "change": 335,
         "change_pct": 0.67
       },
@@ -23301,7 +23301,7 @@
         "volume": 777960,
         "trade_value": 6214506616,
         "nav": 7920.66,
-        "base_index": 12687.35,
+        "base_index": 12696.25,
         "change": 130,
         "change_pct": 1.67
       },
@@ -23325,7 +23325,7 @@
         "volume": 2460,
         "trade_value": 33800275,
         "nav": 13744.74,
-        "base_index": 687.36,
+        "base_index": 688.55,
         "change": -315,
         "change_pct": -2.25
       },
@@ -23379,7 +23379,7 @@
         "volume": 7857,
         "trade_value": 414413078,
         "nav": 52740.74,
-        "base_index": 122.14,
+        "base_index": 122.17,
         "change": 0,
         "change_pct": 0.0
       },
@@ -23406,7 +23406,7 @@
         "volume": 12332,
         "trade_value": 100542840,
         "nav": 8132.93,
-        "base_index": 54.76,
+        "base_index": 54.9,
         "change": 30,
         "change_pct": 0.37
       },
@@ -23487,7 +23487,7 @@
         "volume": 54708,
         "trade_value": 1332953492,
         "nav": 24268.88,
-        "base_index": 12334.4,
+        "base_index": 11815.68,
         "change": -90,
         "change_pct": -0.37
       },
@@ -23568,7 +23568,7 @@
         "volume": 65397,
         "trade_value": 1408047775,
         "nav": 21368.61,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -35,
         "change_pct": -0.16
       },
@@ -23595,7 +23595,7 @@
         "volume": 7700,
         "trade_value": 157096080,
         "nav": 20248.0,
-        "base_index": 684.69,
+        "base_index": 677.18,
         "change": 15,
         "change_pct": 0.07
       },
@@ -23622,7 +23622,7 @@
         "volume": 87232,
         "trade_value": 923334645,
         "nav": 10487.71,
-        "base_index": 489.28,
+        "base_index": 486.78,
         "change": -10,
         "change_pct": -0.1
       },
@@ -23649,7 +23649,7 @@
         "volume": 589,
         "trade_value": 6244840,
         "nav": 10547.99,
-        "base_index": 3155.88,
+        "base_index": 3120.86,
         "change": 110,
         "change_pct": 1.04
       },
@@ -23676,7 +23676,7 @@
         "volume": 80965,
         "trade_value": 1286036420,
         "nav": 15795.7,
-        "base_index": 2265.0,
+        "base_index": 2276.02,
         "change": -25,
         "change_pct": -0.16
       },
@@ -23703,7 +23703,7 @@
         "volume": 82671,
         "trade_value": 1389394200,
         "nav": 16741.82,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -10,
         "change_pct": -0.06
       },
@@ -23756,7 +23756,7 @@
         "volume": 7272,
         "trade_value": 89527285,
         "nav": 12210.56,
-        "base_index": 18846.66,
+        "base_index": 18989.98,
         "change": -50,
         "change_pct": -0.41
       },
@@ -23783,7 +23783,7 @@
         "volume": 335119,
         "trade_value": 4451371146,
         "nav": 13216.03,
-        "base_index": 7222.66,
+        "base_index": 7276.4,
         "change": -45,
         "change_pct": -0.34
       },
@@ -23810,7 +23810,7 @@
         "volume": 228868,
         "trade_value": 2436459421,
         "nav": 10554.05,
-        "base_index": 1384.43,
+        "base_index": 1393.65,
         "change": -50,
         "change_pct": -0.47
       },
@@ -23864,7 +23864,7 @@
         "volume": 105312,
         "trade_value": 624151394,
         "nav": 5886.75,
-        "base_index": 2964.43,
+        "base_index": 2802.72,
         "change": 160,
         "change_pct": 2.76
       },
@@ -23917,7 +23917,7 @@
         "volume": 144485,
         "trade_value": 2437849857,
         "nav": 16745.16,
-        "base_index": 2957.73,
+        "base_index": 2897.25,
         "change": -10,
         "change_pct": -0.06
       },
@@ -23944,7 +23944,7 @@
         "volume": 4182548,
         "trade_value": 91564806237,
         "nav": 22148.8,
-        "base_index": 4359.98,
+        "base_index": 4369.18,
         "change": 1085,
         "change_pct": 5.14
       },
@@ -24192,7 +24192,7 @@
         "volume": 1288,
         "trade_value": 15479245,
         "nav": 12087.65,
-        "base_index": 255.35,
+        "base_index": 255.62,
         "change": -150,
         "change_pct": -1.23
       },
@@ -24354,7 +24354,7 @@
         "volume": 952940,
         "trade_value": 21586310699,
         "nav": 22361.68,
-        "base_index": 3752.6,
+        "base_index": 3757.53,
         "change": 340,
         "change_pct": 1.54
       },
@@ -24381,7 +24381,7 @@
         "volume": 102445,
         "trade_value": 756253803,
         "nav": 7298.61,
-        "base_index": 2502.21,
+        "base_index": 2505.89,
         "change": 135,
         "change_pct": 1.88
       },
@@ -24407,7 +24407,7 @@
         "volume": 4110,
         "trade_value": 207841800,
         "nav": 50573.57,
-        "base_index": 125.77,
+        "base_index": 125.88,
         "change": -20,
         "change_pct": -0.04
       },
@@ -24433,7 +24433,7 @@
         "volume": 21867,
         "trade_value": 1131694787,
         "nav": 51750.17,
-        "base_index": 123.69,
+        "base_index": 123.77,
         "change": 0,
         "change_pct": 0.0
       },
@@ -24460,7 +24460,7 @@
         "volume": 2819,
         "trade_value": 16881370,
         "nav": 6027.3,
-        "base_index": 6772.77,
+        "base_index": 6772.75,
         "change": -20,
         "change_pct": -0.33
       },
@@ -24487,7 +24487,7 @@
         "volume": 19011,
         "trade_value": 130890935,
         "nav": 6933.09,
-        "base_index": 1468.52,
+        "base_index": 1481.78,
         "change": 45,
         "change_pct": 0.66
       },
@@ -24513,7 +24513,7 @@
         "volume": 59234,
         "trade_value": 630554480,
         "nav": 10538.21,
-        "base_index": 1353.53,
+        "base_index": 1358.65,
         "change": 55,
         "change_pct": 0.53
       },
@@ -24540,7 +24540,7 @@
         "volume": 123,
         "trade_value": 471365,
         "nav": 3825.61,
-        "base_index": 2112.19,
+        "base_index": 2108.65,
         "change": -10,
         "change_pct": -0.26
       },
@@ -24567,7 +24567,7 @@
         "volume": 162371,
         "trade_value": 8869669326,
         "nav": 54625.71,
-        "base_index": 124.67,
+        "base_index": 124.7,
         "change": 10,
         "change_pct": 0.02
       },
@@ -24675,7 +24675,7 @@
         "volume": 86954,
         "trade_value": 1136369974,
         "nav": 13109.06,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 600,
         "change_pct": 4.8
       },
@@ -24728,7 +24728,7 @@
         "volume": 180201,
         "trade_value": 1545664958,
         "nav": 8600.04,
-        "base_index": 2778.93,
+        "base_index": 2779.02,
         "change": 80,
         "change_pct": 0.94
       },
@@ -24862,7 +24862,7 @@
         "volume": 294,
         "trade_value": 4577850,
         "nav": 15662.82,
-        "base_index": 447.13,
+        "base_index": 442.01,
         "change": -25,
         "change_pct": -0.16
       },
@@ -24916,7 +24916,7 @@
         "volume": 86278,
         "trade_value": 1153570408,
         "nav": 13366.57,
-        "base_index": 7222.66,
+        "base_index": 7276.4,
         "change": 115,
         "change_pct": 0.87
       },
@@ -24943,7 +24943,7 @@
         "volume": 27384,
         "trade_value": 2953082410,
         "nav": 107888.23,
-        "base_index": 158.08,
+        "base_index": 158.46,
         "change": -40,
         "change_pct": -0.04
       },
@@ -24970,7 +24970,7 @@
         "volume": 159,
         "trade_value": 2595160,
         "nav": 16231.42,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 170,
         "change_pct": 1.06
       },
@@ -24997,7 +24997,7 @@
         "volume": 220,
         "trade_value": 5901470,
         "nav": 26744.35,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -45,
         "change_pct": -0.17
       },
@@ -25024,7 +25024,7 @@
         "volume": 10,
         "trade_value": 169380,
         "nav": 16817.89,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 320,
         "change_pct": 1.93
       },
@@ -25051,7 +25051,7 @@
         "volume": 41,
         "trade_value": 738150,
         "nav": 17872.88,
-        "base_index": 4941.96,
+        "base_index": 4907.78,
         "change": 0,
         "change_pct": 0.0
       },
@@ -25078,7 +25078,7 @@
         "volume": 1929,
         "trade_value": 27115840,
         "nav": 13932.02,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 115,
         "change_pct": 0.83
       },
@@ -25105,7 +25105,7 @@
         "volume": 337,
         "trade_value": 3314880,
         "nav": 9847.24,
-        "base_index": 2161.22,
+        "base_index": 2172.47,
         "change": -10,
         "change_pct": -0.1
       },
@@ -25132,7 +25132,7 @@
         "volume": 293,
         "trade_value": 4817610,
         "nav": 16304.67,
-        "base_index": 69.55,
+        "base_index": 69.81,
         "change": -135,
         "change_pct": -0.82
       },
@@ -25213,7 +25213,7 @@
         "volume": 154478,
         "trade_value": 14119501895,
         "nav": 90667.98,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1660,
         "change_pct": 1.86
       },
@@ -25294,7 +25294,7 @@
         "volume": 34,
         "trade_value": 1878880,
         "nav": 55252.13,
-        "base_index": 123.81,
+        "base_index": 123.84,
         "change": 20,
         "change_pct": 0.04
       },
@@ -25321,7 +25321,7 @@
         "volume": 1672,
         "trade_value": 87682135,
         "nav": 52444.81,
-        "base_index": 107.47,
+        "base_index": 107.9,
         "change": 105,
         "change_pct": 0.2
       },
@@ -25348,7 +25348,7 @@
         "volume": 48340,
         "trade_value": 369304521,
         "nav": 7581.53,
-        "base_index": 4911.99,
+        "base_index": 4922.85,
         "change": 145,
         "change_pct": 1.95
       },
@@ -25374,7 +25374,7 @@
         "volume": 4969,
         "trade_value": 98159045,
         "nav": 19659.73,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -45,
         "change_pct": -0.23
       },
@@ -25401,7 +25401,7 @@
         "volume": 1309,
         "trade_value": 19258090,
         "nav": 14698.19,
-        "base_index": 6209.1,
+        "base_index": 6096.89,
         "change": 20,
         "change_pct": 0.14
       },
@@ -25428,7 +25428,7 @@
         "volume": 3134,
         "trade_value": 65286100,
         "nav": 20712.99,
-        "base_index": 34832.92,
+        "base_index": 34797.33,
         "change": 310,
         "change_pct": 1.52
       },
@@ -25455,7 +25455,7 @@
         "volume": 53905,
         "trade_value": 2194602979,
         "nav": 40817.55,
-        "base_index": 7536.81,
+        "base_index": 7543.63,
         "change": 1845,
         "change_pct": 4.72
       },
@@ -25482,7 +25482,7 @@
         "volume": 33922,
         "trade_value": 266054801,
         "nav": 7837.21,
-        "base_index": 2302.67,
+        "base_index": 2305.54,
         "change": 170,
         "change_pct": 2.21
       },
@@ -25535,7 +25535,7 @@
         "volume": 291,
         "trade_value": 14386400,
         "nav": 49448.49,
-        "base_index": 107.09,
+        "base_index": 107.36,
         "change": 45,
         "change_pct": 0.09
       },
@@ -25562,7 +25562,7 @@
         "volume": 1,
         "trade_value": 50590,
         "nav": 50657.72,
-        "base_index": 117.33,
+        "base_index": 117.4,
         "change": -45,
         "change_pct": -0.09
       },
@@ -25588,7 +25588,7 @@
         "volume": 7558,
         "trade_value": 83732030,
         "nav": 11022.9,
-        "base_index": 3731.52,
+        "base_index": 3735.9,
         "change": 185,
         "change_pct": 1.71
       },
@@ -25614,7 +25614,7 @@
         "volume": 309,
         "trade_value": 3186880,
         "nav": 10301.51,
-        "base_index": 1557.47,
+        "base_index": 1559.7,
         "change": 490,
         "change_pct": 5.01
       },
@@ -25666,7 +25666,7 @@
         "volume": 44,
         "trade_value": 3904890,
         "nav": 88524.51,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1705,
         "change_pct": 1.97
       },
@@ -25693,7 +25693,7 @@
         "volume": 3,
         "trade_value": 311470,
         "nav": 103280.92,
-        "base_index": 26274.77,
+        "base_index": 26287.9,
         "change": 1495,
         "change_pct": 1.46
       },
@@ -25720,7 +25720,7 @@
         "volume": 3112,
         "trade_value": 48989775,
         "nav": 15651.62,
-        "base_index": 9386.36,
+        "base_index": 9221.52,
         "change": -20,
         "change_pct": -0.13
       },
@@ -25828,7 +25828,7 @@
         "volume": 1261992,
         "trade_value": 113163330870,
         "nav": 88885.84,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1845,
         "change_pct": 2.12
       },
@@ -25926,7 +25926,7 @@
         "volume": 188716,
         "trade_value": 22188090489,
         "nav": 116604.79,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 2440,
         "change_pct": 2.14
       },
@@ -25953,7 +25953,7 @@
         "volume": 5976,
         "trade_value": 387203030,
         "nav": 64320.52,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": 2560,
         "change_pct": 4.15
       },
@@ -25980,7 +25980,7 @@
         "volume": 1978355,
         "trade_value": 206483297,
         "nav": 107.16,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -3,
         "change_pct": -2.73
       },
@@ -26007,7 +26007,7 @@
         "volume": 46349,
         "trade_value": 72312039,
         "nav": 1577.04,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -18,
         "change_pct": -1.13
       },
@@ -26034,7 +26034,7 @@
         "volume": 1449,
         "trade_value": 160900500,
         "nav": 111003.24,
-        "base_index": 1479.77,
+        "base_index": 1479.91,
         "change": 5,
         "change_pct": 0.0
       },
@@ -26061,7 +26061,7 @@
         "volume": 4397,
         "trade_value": 63405552,
         "nav": 14089.0,
-        "base_index": 14040.11,
+        "base_index": 14040.98,
         "change": 240,
         "change_pct": 1.74
       },
@@ -26088,7 +26088,7 @@
         "volume": 3655,
         "trade_value": 73305546,
         "nav": 19975.41,
-        "base_index": 22997.35,
+        "base_index": 23146.15,
         "change": -20,
         "change_pct": -0.1
       },
@@ -26115,7 +26115,7 @@
         "volume": 30281,
         "trade_value": 137645287,
         "nav": 4450.63,
-        "base_index": 7113.88,
+        "base_index": 7102.76,
         "change": 95,
         "change_pct": 2.18
       },
@@ -26194,7 +26194,7 @@
         "volume": 2061,
         "trade_value": 222823045,
         "nav": 108116.67,
-        "base_index": 10185.02,
+        "base_index": 10185.5,
         "change": -35,
         "change_pct": -0.03
       },
@@ -26248,7 +26248,7 @@
         "volume": 59425,
         "trade_value": 1818306559,
         "nav": 30407.23,
-        "base_index": 20064.72,
+        "base_index": 20064.8,
         "change": -505,
         "change_pct": -1.64
       },
@@ -26275,7 +26275,7 @@
         "volume": 572494,
         "trade_value": 4528958083,
         "nav": 7903.91,
-        "base_index": 5587.77,
+        "base_index": 5606.76,
         "change": 90,
         "change_pct": 1.15
       },
@@ -26298,7 +26298,7 @@
         "volume": 7448,
         "trade_value": 103386122,
         "nav": 13745.26,
-        "base_index": 1414.27,
+        "base_index": 1407.08,
         "change": -405,
         "change_pct": -2.86
       },
@@ -26352,7 +26352,7 @@
         "volume": 41,
         "trade_value": 4424275,
         "nav": 107909.88,
-        "base_index": 128.61,
+        "base_index": 128.67,
         "change": -10,
         "change_pct": -0.01
       },
@@ -26379,7 +26379,7 @@
         "volume": 247,
         "trade_value": 3882115,
         "nav": 15550.29,
-        "base_index": 9264.69,
+        "base_index": 9352.29,
         "change": 190,
         "change_pct": 1.22
       },
@@ -26406,7 +26406,7 @@
         "volume": 1707,
         "trade_value": 90485615,
         "nav": 53010.19,
-        "base_index": 120.05,
+        "base_index": 120.09,
         "change": 0,
         "change_pct": 0.0
       },
@@ -26486,7 +26486,7 @@
         "volume": 37091,
         "trade_value": 351466927,
         "nav": 9451.47,
-        "base_index": 4734.75,
+        "base_index": 4509.97,
         "change": 10,
         "change_pct": 0.11
       },
@@ -26511,7 +26511,7 @@
         "volume": 1610,
         "trade_value": 17120760,
         "nav": 10560.01,
-        "base_index": 823.65,
+        "base_index": 814.5,
         "change": 15,
         "change_pct": 0.14
       },
@@ -26537,7 +26537,7 @@
         "volume": 17459,
         "trade_value": 176643990,
         "nav": 10072.93,
-        "base_index": 6173.07,
+        "base_index": 6111.54,
         "change": -25,
         "change_pct": -0.25
       },
@@ -26563,7 +26563,7 @@
         "volume": 8469,
         "trade_value": 91534310,
         "nav": 10732.82,
-        "base_index": 611.56,
+        "base_index": 607.75,
         "change": 45,
         "change_pct": 0.42
       },
@@ -26589,7 +26589,7 @@
         "volume": 194036,
         "trade_value": 2109256126,
         "nav": 10750.82,
-        "base_index": 3587.42,
+        "base_index": 3506.08,
         "change": -20,
         "change_pct": -0.18
       },
@@ -26615,7 +26615,7 @@
         "volume": 3560,
         "trade_value": 73630860,
         "nav": 20503.62,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -35,
         "change_pct": -0.17
       },
@@ -26642,7 +26642,7 @@
         "volume": 30550,
         "trade_value": 572911510,
         "nav": 18796.3,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 155,
         "change_pct": 0.83
       },
@@ -26696,7 +26696,7 @@
         "volume": 13261,
         "trade_value": 307644215,
         "nav": 23203.65,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 235,
         "change_pct": 1.02
       },
@@ -26723,7 +26723,7 @@
         "volume": 607,
         "trade_value": 7459570,
         "nav": 12187.9,
-        "base_index": 1262.9,
+        "base_index": 1263.03,
         "change": -85,
         "change_pct": -0.69
       },
@@ -26750,7 +26750,7 @@
         "volume": 912,
         "trade_value": 4470595,
         "nav": 4969.06,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 105,
         "change_pct": 2.16
       },
@@ -26777,7 +26777,7 @@
         "volume": 1252,
         "trade_value": 17726139,
         "nav": 14031.57,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": -255,
         "change_pct": -1.78
       },
@@ -26804,7 +26804,7 @@
         "volume": 462,
         "trade_value": 3993015,
         "nav": 8712.63,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": 85,
         "change_pct": 0.99
       },
@@ -26831,7 +26831,7 @@
         "volume": 850,
         "trade_value": 13418407,
         "nav": 15683.06,
-        "base_index": 1495.06,
+        "base_index": 1494.42,
         "change": -140,
         "change_pct": -0.88
       },
@@ -26858,7 +26858,7 @@
         "volume": 301,
         "trade_value": 4547794,
         "nav": 15010.64,
-        "base_index": 1335.12,
+        "base_index": 1347.13,
         "change": 40,
         "change_pct": 0.27
       },
@@ -26885,7 +26885,7 @@
         "volume": 5752,
         "trade_value": 66779166,
         "nav": 11507.21,
-        "base_index": 2664.09,
+        "base_index": 2659.05,
         "change": 50,
         "change_pct": 0.44
       },
@@ -26912,7 +26912,7 @@
         "volume": 15,
         "trade_value": 290510,
         "nav": 19210.87,
-        "base_index": 7379.81,
+        "base_index": 7296.8,
         "change": 105,
         "change_pct": 0.55
       },
@@ -26939,7 +26939,7 @@
         "volume": 1219,
         "trade_value": 13635535,
         "nav": 11096.15,
-        "base_index": 29206.92,
+        "base_index": 28612.75,
         "change": 40,
         "change_pct": 0.36
       },
@@ -26965,7 +26965,7 @@
         "volume": 38630,
         "trade_value": 510986449,
         "nav": 13159.1,
-        "base_index": 8316.68,
+        "base_index": 7937.39,
         "change": 290,
         "change_pct": 2.25
       },
@@ -26992,7 +26992,7 @@
         "volume": 12282,
         "trade_value": 78392638,
         "nav": 6326.19,
-        "base_index": 5870.8,
+        "base_index": 5642.16,
         "change": 60,
         "change_pct": 0.95
       },
@@ -27044,7 +27044,7 @@
         "volume": 87292,
         "trade_value": 1407857723,
         "nav": 16054.26,
-        "base_index": 2514.74,
+        "base_index": 2576.06,
         "change": -430,
         "change_pct": -2.6
       },
@@ -27175,7 +27175,7 @@
         "volume": 903,
         "trade_value": 9326480,
         "nav": 10308.52,
-        "base_index": 7450.65,
+        "base_index": 7418.57,
         "change": -15,
         "change_pct": -0.15
       },
@@ -27229,7 +27229,7 @@
         "volume": 5509,
         "trade_value": 81715000,
         "nav": 14704.4,
-        "base_index": 592.28,
+        "base_index": 592.12,
         "change": -10,
         "change_pct": -0.07
       },
@@ -27256,7 +27256,7 @@
         "volume": 2615,
         "trade_value": 43505175,
         "nav": 16492.85,
-        "base_index": 797.04,
+        "base_index": 796.35,
         "change": -25,
         "change_pct": -0.15
       },
@@ -27283,7 +27283,7 @@
         "volume": 3184,
         "trade_value": 54352735,
         "nav": 16938.74,
-        "base_index": 954.62,
+        "base_index": 953.24,
         "change": -10,
         "change_pct": -0.06
       },
@@ -27310,7 +27310,7 @@
         "volume": 13,
         "trade_value": 1315755,
         "nav": 101212.86,
-        "base_index": 116.1,
+        "base_index": 116.39,
         "change": 80,
         "change_pct": 0.08
       },
@@ -27364,7 +27364,7 @@
         "volume": 245,
         "trade_value": 6618710,
         "nav": 26695.41,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 480,
         "change_pct": 1.83
       },
@@ -27391,7 +27391,7 @@
         "volume": 310,
         "trade_value": 10999655,
         "nav": 35389.19,
-        "base_index": 7027.15,
+        "base_index": 7029.43,
         "change": 660,
         "change_pct": 1.9
       },
@@ -27418,7 +27418,7 @@
         "volume": 210541,
         "trade_value": 634644155,
         "nav": 3115.83,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": 265,
         "change_pct": 9.35
       },
@@ -27445,7 +27445,7 @@
         "volume": 63786,
         "trade_value": 283813345,
         "nav": 4404.61,
-        "base_index": 1545.71,
+        "base_index": 1546.39,
         "change": -235,
         "change_pct": -5.05
       },
@@ -27472,7 +27472,7 @@
         "volume": 733364,
         "trade_value": 4841192570,
         "nav": 6680.26,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 300,
         "change_pct": 4.71
       },
@@ -27552,7 +27552,7 @@
         "volume": 26602,
         "trade_value": 284569616,
         "nav": 10700.33,
-        "base_index": 1915.37,
+        "base_index": 1873.85,
         "change": 40,
         "change_pct": 0.38
       },
@@ -27767,7 +27767,7 @@
         "volume": 203580,
         "trade_value": 10811921173,
         "nav": 52727.73,
-        "base_index": 557.77,
+        "base_index": 541.31,
         "change": 285,
         "change_pct": 0.54
       },
@@ -27821,7 +27821,7 @@
         "volume": 1066,
         "trade_value": 13821459,
         "nav": 12911.32,
-        "base_index": 1452.57,
+        "base_index": 1438.0,
         "change": 105,
         "change_pct": 0.82
       },
@@ -27848,7 +27848,7 @@
         "volume": 28740,
         "trade_value": 495078080,
         "nav": 17127.06,
-        "base_index": 2935.29,
+        "base_index": 2980.45,
         "change": 195,
         "change_pct": 1.15
       },
@@ -27875,7 +27875,7 @@
         "volume": 11325,
         "trade_value": 130940244,
         "nav": 11477.47,
-        "base_index": 2534.81,
+        "base_index": 2526.1,
         "change": 75,
         "change_pct": 0.66
       },
@@ -27901,7 +27901,7 @@
         "volume": 10807,
         "trade_value": 68443567,
         "nav": 6302.67,
-        "base_index": 3782.19,
+        "base_index": 3698.71,
         "change": 55,
         "change_pct": 0.88
       },
@@ -27927,7 +27927,7 @@
         "volume": 33123,
         "trade_value": 1018920526,
         "nav": 30515.06,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 0,
         "change_pct": 0.0
       },
@@ -27954,7 +27954,7 @@
         "volume": 857609,
         "trade_value": 36987317528,
         "nav": 42838.5,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": 65,
         "change_pct": 0.15
       },
@@ -28008,7 +28008,7 @@
         "volume": 70608,
         "trade_value": 1190055822,
         "nav": 16612.54,
-        "base_index": 3074.5,
+        "base_index": 3121.55,
         "change": 155,
         "change_pct": 0.94
       },
@@ -28115,7 +28115,7 @@
         "volume": 82,
         "trade_value": 1803830,
         "nav": 21895.18,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 525,
         "change_pct": 2.45
       },
@@ -28142,7 +28142,7 @@
         "volume": 15,
         "trade_value": 322590,
         "nav": 21358.24,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 705,
         "change_pct": 3.4
       },
@@ -28169,7 +28169,7 @@
         "volume": 104067,
         "trade_value": 2964893826,
         "nav": 28329.07,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 490,
         "change_pct": 1.76
       },
@@ -28196,7 +28196,7 @@
         "volume": 137321,
         "trade_value": 1372052929,
         "nav": 9994.61,
-        "base_index": 2021.16,
+        "base_index": 2021.17,
         "change": 120,
         "change_pct": 1.22
       },
@@ -28222,7 +28222,7 @@
         "volume": 3928,
         "trade_value": 413451743,
         "nav": 105249.38,
-        "base_index": 11919.36,
+        "base_index": 11922.54,
         "change": 15,
         "change_pct": 0.01
       },
@@ -28328,7 +28328,7 @@
         "volume": 89450,
         "trade_value": 428438173,
         "nav": 4717.21,
-        "base_index": 7113.88,
+        "base_index": 7102.76,
         "change": 70,
         "change_pct": 1.52
       },
@@ -28381,7 +28381,7 @@
         "volume": 267,
         "trade_value": 27375520,
         "nav": 102532.69,
-        "base_index": 117.7,
+        "base_index": 117.73,
         "change": 10,
         "change_pct": 0.01
       },
@@ -28407,7 +28407,7 @@
         "volume": 10794,
         "trade_value": 582886755,
         "nav": 54001.58,
-        "base_index": 121.19,
+        "base_index": 121.22,
         "change": 15,
         "change_pct": 0.03
       },
@@ -28434,7 +28434,7 @@
         "volume": 126223,
         "trade_value": 1430099558,
         "nav": 11235.26,
-        "base_index": 297.23,
+        "base_index": 295.66,
         "change": -75,
         "change_pct": -0.66
       },
@@ -28461,7 +28461,7 @@
         "volume": 93736,
         "trade_value": 1182120756,
         "nav": 12504.55,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -30,
         "change_pct": -0.24
       },
@@ -28488,7 +28488,7 @@
         "volume": 194000,
         "trade_value": 2056025876,
         "nav": 10523.82,
-        "base_index": 3175.53,
+        "base_index": 3136.35,
         "change": -35,
         "change_pct": -0.33
       },
@@ -28515,7 +28515,7 @@
         "volume": 83257,
         "trade_value": 1105094926,
         "nav": 13200.83,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -10,
         "change_pct": -0.08
       },
@@ -28569,7 +28569,7 @@
         "volume": 10881,
         "trade_value": 94136015,
         "nav": 8584.99,
-        "base_index": 4216.14,
+        "base_index": 4207.87,
         "change": 45,
         "change_pct": 0.53
       },
@@ -28648,7 +28648,7 @@
         "volume": 4370,
         "trade_value": 30536195,
         "nav": 6894.58,
-        "base_index": 1521.37,
+        "base_index": 1525.35,
         "change": -50,
         "change_pct": -0.72
       },
@@ -28675,7 +28675,7 @@
         "volume": 39617,
         "trade_value": 376223226,
         "nav": 9426.52,
-        "base_index": 3699.03,
+        "base_index": 3686.82,
         "change": -35,
         "change_pct": -0.37
       },
@@ -28700,7 +28700,7 @@
         "volume": 77411,
         "trade_value": 561610972,
         "nav": 7189.67,
-        "base_index": 3130.7,
+        "base_index": 3112.35,
         "change": 125,
         "change_pct": 1.76
       },
@@ -28726,7 +28726,7 @@
         "volume": 20,
         "trade_value": 1909940,
         "nav": 95502.46,
-        "base_index": 121.28,
+        "base_index": 121.58,
         "change": 40,
         "change_pct": 0.04
       },
@@ -28753,7 +28753,7 @@
         "volume": 1005,
         "trade_value": 51209885,
         "nav": 50989.35,
-        "base_index": 120.07,
+        "base_index": 120.14,
         "change": -30,
         "change_pct": -0.06
       },
@@ -28780,7 +28780,7 @@
         "volume": 3570,
         "trade_value": 94969935,
         "nav": 26457.93,
-        "base_index": 2694.23,
+        "base_index": 2694.3,
         "change": 555,
         "change_pct": 2.14
       },
@@ -28886,7 +28886,7 @@
         "volume": 3865,
         "trade_value": 42108002,
         "nav": 10892.91,
-        "base_index": 124.38,
+        "base_index": 124.41,
         "change": -3,
         "change_pct": -0.03
       },
@@ -29038,7 +29038,7 @@
         "volume": 11627,
         "trade_value": 116510225,
         "nav": 10020.11,
-        "base_index": 106.95,
+        "base_index": 107.1,
         "change": 5,
         "change_pct": 0.05
       },
@@ -29061,7 +29061,7 @@
         "volume": 2,
         "trade_value": 21590,
         "nav": 10790.05,
-        "base_index": 123.21,
+        "base_index": 123.24,
         "change": 0,
         "change_pct": 0.0
       },
@@ -29115,7 +29115,7 @@
         "volume": 0,
         "trade_value": 0,
         "nav": 10771.3,
-        "base_index": 121.85,
+        "base_index": 121.89,
         "change": 0,
         "change_pct": 0.0
       },
@@ -29142,7 +29142,7 @@
         "volume": 2,
         "trade_value": 21530,
         "nav": 10768.17,
-        "base_index": 123.52,
+        "base_index": 123.56,
         "change": -10,
         "change_pct": -0.09
       },
@@ -29196,7 +29196,7 @@
         "volume": 12736,
         "trade_value": 106415485,
         "nav": 8232.33,
-        "base_index": 1921.8,
+        "base_index": 1928.8,
         "change": 15,
         "change_pct": 0.18
       },
@@ -29223,7 +29223,7 @@
         "volume": 4839,
         "trade_value": 96390370,
         "nav": 19808.13,
-        "base_index": 3768.28,
+        "base_index": 3772.24,
         "change": 315,
         "change_pct": 1.62
       },
@@ -29433,7 +29433,7 @@
         "volume": 290,
         "trade_value": 4934820,
         "nav": 16951.02,
-        "base_index": 14018.07,
+        "base_index": 14286.64,
         "change": 120,
         "change_pct": 0.71
       },
@@ -29460,7 +29460,7 @@
         "volume": 455210,
         "trade_value": 1875544907,
         "nav": 4032.74,
-        "base_index": 3451.33,
+        "base_index": 3353.8,
         "change": -495,
         "change_pct": -10.87
       },
@@ -29540,7 +29540,7 @@
         "volume": 400342,
         "trade_value": 3302015941,
         "nav": 8193.49,
-        "base_index": 2228.14,
+        "base_index": 2230.39,
         "change": 65,
         "change_pct": 0.8
       },
@@ -29592,7 +29592,7 @@
         "volume": 2096,
         "trade_value": 90006455,
         "nav": 43427.41,
-        "base_index": 245.65,
+        "base_index": 244.65,
         "change": 1130,
         "change_pct": 2.67
       },
@@ -29646,7 +29646,7 @@
         "volume": 71,
         "trade_value": 7153770,
         "nav": 100792.69,
-        "base_index": 10185.02,
+        "base_index": 10185.5,
         "change": -95,
         "change_pct": -0.09
       },
@@ -29700,7 +29700,7 @@
         "volume": 8134,
         "trade_value": 149987494,
         "nav": 18300.98,
-        "base_index": 9404.39,
+        "base_index": 8935.37,
         "change": 65,
         "change_pct": 0.36
       },
@@ -29754,7 +29754,7 @@
         "volume": 37327,
         "trade_value": 712305965,
         "nav": 18886.31,
-        "base_index": 5071.91,
+        "base_index": 5065.06,
         "change": 100,
         "change_pct": 0.53
       },
@@ -29781,7 +29781,7 @@
         "volume": 7232,
         "trade_value": 92553412,
         "nav": 12742.98,
-        "base_index": 2343.91,
+        "base_index": 2349.72,
         "change": 60,
         "change_pct": 0.47
       },
@@ -29808,7 +29808,7 @@
         "volume": 178723,
         "trade_value": 1846265727,
         "nav": 10227.6,
-        "base_index": 764.03,
+        "base_index": 756.15,
         "change": 25,
         "change_pct": 0.24
       },
@@ -29835,7 +29835,7 @@
         "volume": 10558,
         "trade_value": 112062107,
         "nav": 10492.83,
-        "base_index": 305.44,
+        "base_index": 300.67,
         "change": -40,
         "change_pct": -0.38
       },
@@ -29889,7 +29889,7 @@
         "volume": 4200,
         "trade_value": 475171090,
         "nav": 113137.81,
-        "base_index": 124.32,
+        "base_index": 124.36,
         "change": 20,
         "change_pct": 0.02
       },
@@ -30050,7 +30050,7 @@
         "volume": 63945,
         "trade_value": 6799574239,
         "nav": 106345.36,
-        "base_index": 121.59,
+        "base_index": 121.62,
         "change": 10,
         "change_pct": 0.01
       },
@@ -30077,7 +30077,7 @@
         "volume": 882364,
         "trade_value": 8263004810,
         "nav": 9278.23,
-        "base_index": 111.0,
+        "base_index": 111.08,
         "change": -60,
         "change_pct": -0.64
       },
@@ -30104,7 +30104,7 @@
         "volume": 49035,
         "trade_value": 468107964,
         "nav": 9542.91,
-        "base_index": 111.0,
+        "base_index": 111.08,
         "change": 10,
         "change_pct": 0.1
       },
@@ -30131,7 +30131,7 @@
         "volume": 39788,
         "trade_value": 177361340,
         "nav": 4499.72,
-        "base_index": 101.47,
+        "base_index": 101.2,
         "change": 0,
         "change_pct": 0.0
       },
@@ -30158,7 +30158,7 @@
         "volume": 1509104,
         "trade_value": 12788672454,
         "nav": 8399.9,
-        "base_index": 560.53,
+        "base_index": 560.51,
         "change": -50,
         "change_pct": -0.59
       },
@@ -30185,7 +30185,7 @@
         "volume": 1132352,
         "trade_value": 7913968494,
         "nav": 6996.89,
-        "base_index": 560.53,
+        "base_index": 560.51,
         "change": 20,
         "change_pct": 0.29
       },
@@ -30212,7 +30212,7 @@
         "volume": 45933,
         "trade_value": 324937770,
         "nav": 7029.89,
-        "base_index": 101.52,
+        "base_index": 102.97,
         "change": -20,
         "change_pct": -0.28
       },
@@ -30239,7 +30239,7 @@
         "volume": 61608,
         "trade_value": 576163377,
         "nav": 9275.87,
-        "base_index": 1116.03,
+        "base_index": 1103.2,
         "change": 10,
         "change_pct": 0.11
       },
@@ -30292,7 +30292,7 @@
         "volume": 100,
         "trade_value": 2194705,
         "nav": 21996.57,
-        "base_index": 1347.3,
+        "base_index": 1301.72,
         "change": 85,
         "change_pct": 0.39
       },
@@ -30319,7 +30319,7 @@
         "volume": 279394,
         "trade_value": 3839704035,
         "nav": 13639.79,
-        "base_index": 297.23,
+        "base_index": 295.66,
         "change": -75,
         "change_pct": -0.55
       },
@@ -30346,7 +30346,7 @@
         "volume": 1646893,
         "trade_value": 43042131451,
         "nav": 25899.28,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -55,
         "change_pct": -0.21
       },
@@ -30373,7 +30373,7 @@
         "volume": 17062,
         "trade_value": 92638283,
         "nav": 5353.81,
-        "base_index": 3604.51,
+        "base_index": 3451.27,
         "change": 160,
         "change_pct": 3.06
       },
@@ -30399,7 +30399,7 @@
         "volume": 4936,
         "trade_value": 147963718,
         "nav": 29859.43,
-        "base_index": 16906.11,
+        "base_index": 16811.7,
         "change": 330,
         "change_pct": 1.12
       },
@@ -30453,7 +30453,7 @@
         "volume": 500854,
         "trade_value": 15286248168,
         "nav": 30370.98,
-        "base_index": 29935.6,
+        "base_index": 29187.55,
         "change": -10,
         "change_pct": -0.03
       },
@@ -30480,7 +30480,7 @@
         "volume": 97085,
         "trade_value": 1150442647,
         "nav": 11769.41,
-        "base_index": 1262.9,
+        "base_index": 1263.03,
         "change": -105,
         "change_pct": -0.88
       },
@@ -30507,7 +30507,7 @@
         "volume": 29733,
         "trade_value": 336238090,
         "nav": 11217.49,
-        "base_index": 153.81,
+        "base_index": 153.85,
         "change": -110,
         "change_pct": -0.97
       },
@@ -30534,7 +30534,7 @@
         "volume": 78805,
         "trade_value": 949257220,
         "nav": 11922.12,
-        "base_index": 3803.84,
+        "base_index": 3811.28,
         "change": 10,
         "change_pct": 0.08
       },
@@ -30560,7 +30560,7 @@
         "volume": 38169,
         "trade_value": 390764878,
         "nav": 10179.59,
-        "base_index": 7352.57,
+        "base_index": 7197.87,
         "change": -15,
         "change_pct": -0.15
       },
@@ -30586,7 +30586,7 @@
         "volume": 278898,
         "trade_value": 3614034719,
         "nav": 12901.67,
-        "base_index": 2032.9,
+        "base_index": 1955.7,
         "change": 65,
         "change_pct": 0.51
       },
@@ -30613,7 +30613,7 @@
         "volume": 376781,
         "trade_value": 5569495205,
         "nav": 14650.23,
-        "base_index": 7222.66,
+        "base_index": 7276.4,
         "change": -55,
         "change_pct": -0.37
       },
@@ -30640,7 +30640,7 @@
         "volume": 9727,
         "trade_value": 106372442,
         "nav": 10855.51,
-        "base_index": 1340.29,
+        "base_index": 1328.15,
         "change": -40,
         "change_pct": -0.37
       },
@@ -30667,7 +30667,7 @@
         "volume": 6990,
         "trade_value": 85867217,
         "nav": 12190.24,
-        "base_index": 844.96,
+        "base_index": 839.33,
         "change": -20,
         "change_pct": -0.16
       },
@@ -30694,7 +30694,7 @@
         "volume": 8285,
         "trade_value": 91065540,
         "nav": 10933.03,
-        "base_index": 1983.11,
+        "base_index": 1980.26,
         "change": -5,
         "change_pct": -0.05
       },
@@ -30748,7 +30748,7 @@
         "volume": 171032,
         "trade_value": 1644479125,
         "nav": 9549.51,
-        "base_index": 1829.42,
+        "base_index": 1793.5,
         "change": 15,
         "change_pct": 0.16
       },
@@ -30775,7 +30775,7 @@
         "volume": 7033,
         "trade_value": 294129542,
         "nav": 41279.85,
-        "base_index": 41115.59,
+        "base_index": 40355.35,
         "change": -35,
         "change_pct": -0.08
       },
@@ -30802,7 +30802,7 @@
         "volume": 159,
         "trade_value": 1024325,
         "nav": 6493.42,
-        "base_index": 41115.59,
+        "base_index": 40355.35,
         "change": -20,
         "change_pct": -0.31
       },
@@ -30829,7 +30829,7 @@
         "volume": 623112,
         "trade_value": 15096568876,
         "nav": 24058.72,
-        "base_index": 41115.59,
+        "base_index": 40355.35,
         "change": 25,
         "change_pct": 0.1
       },
@@ -30909,7 +30909,7 @@
         "volume": 160,
         "trade_value": 1743245,
         "nav": 10856.62,
-        "base_index": 312.42,
+        "base_index": 308.51,
         "change": -105,
         "change_pct": -0.96
       },
@@ -30936,7 +30936,7 @@
         "volume": 1083,
         "trade_value": 10292725,
         "nav": 9485.87,
-        "base_index": 2966.11,
+        "base_index": 2928.59,
         "change": 60,
         "change_pct": 0.64
       },
@@ -30963,7 +30963,7 @@
         "volume": 11856,
         "trade_value": 108476684,
         "nav": 9154.36,
-        "base_index": 394.04,
+        "base_index": 393.31,
         "change": 10,
         "change_pct": 0.11
       },
@@ -31015,7 +31015,7 @@
         "volume": 20593,
         "trade_value": 550194279,
         "nav": 26785.71,
-        "base_index": 1849.38,
+        "base_index": 1855.41,
         "change": -15,
         "change_pct": -0.06
       },
@@ -31174,7 +31174,7 @@
         "volume": 375,
         "trade_value": 4359975,
         "nav": 11569.79,
-        "base_index": 1140.72,
+        "base_index": 1138.7,
         "change": -30,
         "change_pct": -0.26
       },
@@ -31255,7 +31255,7 @@
         "volume": 41362,
         "trade_value": 1085379105,
         "nav": 26161.26,
-        "base_index": 10039.12,
+        "base_index": 9958.03,
         "change": -90,
         "change_pct": -0.34
       },
@@ -31282,7 +31282,7 @@
         "volume": 1234,
         "trade_value": 123653745,
         "nav": 100259.21,
-        "base_index": 118.91,
+        "base_index": 119.01,
         "change": -35,
         "change_pct": -0.03
       },
@@ -31336,7 +31336,7 @@
         "volume": 1477,
         "trade_value": 12418555,
         "nav": 8381.42,
-        "base_index": 632.98,
+        "base_index": 653.16,
         "change": 110,
         "change_pct": 1.33
       },
@@ -31363,7 +31363,7 @@
         "volume": 2846,
         "trade_value": 20563795,
         "nav": 7195.04,
-        "base_index": 4375.02,
+        "base_index": 4403.7,
         "change": -45,
         "change_pct": -0.62
       },
@@ -31390,7 +31390,7 @@
         "volume": 6718,
         "trade_value": 50940980,
         "nav": 7531.77,
-        "base_index": 3179.12,
+        "base_index": 3180.44,
         "change": -75,
         "change_pct": -0.99
       },
@@ -31417,7 +31417,7 @@
         "volume": 207873,
         "trade_value": 319190406,
         "nav": 1552.21,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -28,
         "change_pct": -1.78
       },
@@ -31444,7 +31444,7 @@
         "volume": 5960,
         "trade_value": 78627967,
         "nav": 13110.88,
-        "base_index": 3540.4,
+        "base_index": 3659.85,
         "change": 310,
         "change_pct": 2.43
       },
@@ -31525,7 +31525,7 @@
         "volume": 1945,
         "trade_value": 45925304,
         "nav": 23515.37,
-        "base_index": 7257.94,
+        "base_index": 7263.38,
         "change": 250,
         "change_pct": 1.07
       },
@@ -31579,7 +31579,7 @@
         "volume": 388,
         "trade_value": 39876235,
         "nav": 102743.07,
-        "base_index": 116.41,
+        "base_index": 116.69,
         "change": 95,
         "change_pct": 0.09
       },
@@ -31633,7 +31633,7 @@
         "volume": 16458,
         "trade_value": 169747275,
         "nav": 10238.65,
-        "base_index": 1355.52,
+        "base_index": 1358.65,
         "change": 80,
         "change_pct": 0.79
       },
@@ -31660,7 +31660,7 @@
         "volume": 2763,
         "trade_value": 84179365,
         "nav": 30419.73,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": -115,
         "change_pct": -0.38
       },
@@ -31687,7 +31687,7 @@
         "volume": 10990,
         "trade_value": 36492165,
         "nav": 3233.14,
-        "base_index": 0.0,
+        "base_index": 4170.61,
         "change": 30,
         "change_pct": 0.93
       },
@@ -31714,7 +31714,7 @@
         "volume": 22,
         "trade_value": 2352905,
         "nav": 106967.99,
-        "base_index": 155.81,
+        "base_index": 156.05,
         "change": 10,
         "change_pct": 0.01
       },
@@ -31741,7 +31741,7 @@
         "volume": 2653,
         "trade_value": 27505055,
         "nav": 10246.26,
-        "base_index": 1337.5,
+        "base_index": 1337.64,
         "change": 5,
         "change_pct": 0.05
       },
@@ -31768,7 +31768,7 @@
         "volume": 5107,
         "trade_value": 30305115,
         "nav": 5844.14,
-        "base_index": 4102.31,
+        "base_index": 4108.24,
         "change": 30,
         "change_pct": 0.51
       },
@@ -31795,7 +31795,7 @@
         "volume": 281244,
         "trade_value": 1569762952,
         "nav": 5577.23,
-        "base_index": 11702.17,
+        "base_index": 11705.39,
         "change": 170,
         "change_pct": 3.16
       },
@@ -31848,7 +31848,7 @@
         "volume": 855,
         "trade_value": 23898140,
         "nav": 27716.33,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 490,
         "change_pct": 1.8
       },
@@ -31875,7 +31875,7 @@
         "volume": 209705,
         "trade_value": 2811393643,
         "nav": 13526.98,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 625,
         "change_pct": 4.85
       },
@@ -31929,7 +31929,7 @@
         "volume": 682425,
         "trade_value": 11552697917,
         "nav": 16582.39,
-        "base_index": 9686.17,
+        "base_index": 9502.27,
         "change": 200,
         "change_pct": 1.2
       },
@@ -31983,7 +31983,7 @@
         "volume": 15556,
         "trade_value": 1640947805,
         "nav": 105484.8,
-        "base_index": 1165.63,
+        "base_index": 1165.69,
         "change": 3040,
         "change_pct": 2.94
       },
@@ -32010,7 +32010,7 @@
         "volume": 763702,
         "trade_value": 69265417700,
         "nav": 90137.49,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 1755,
         "change_pct": 1.99
       },
@@ -32108,7 +32108,7 @@
         "volume": 38829,
         "trade_value": 5113007700,
         "nav": 130504.31,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": 3810,
         "change_pct": 3.04
       },
@@ -32135,7 +32135,7 @@
         "volume": 1296562,
         "trade_value": 274086739,
         "nav": 215.77,
-        "base_index": 4295.4,
+        "base_index": 4283.48,
         "change": -4,
         "change_pct": -1.83
       },
@@ -32188,7 +32188,7 @@
         "volume": 201644,
         "trade_value": 1187120437,
         "nav": 5866.27,
-        "base_index": 2486.77,
+        "base_index": 2489.26,
         "change": 120,
         "change_pct": 2.08
       },
@@ -32401,7 +32401,7 @@
         "volume": 120276,
         "trade_value": 462735307,
         "nav": 3886.45,
-        "base_index": 4569.35,
+        "base_index": 4572.06,
         "change": 340,
         "change_pct": 9.54
       },
@@ -32508,7 +32508,7 @@
         "volume": 48912,
         "trade_value": 1478949145,
         "nav": 30234.25,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": 250,
         "change_pct": 0.83
       },
@@ -32535,7 +32535,7 @@
         "volume": 2148,
         "trade_value": 40198480,
         "nav": 18602.19,
-        "base_index": 3588.45,
+        "base_index": 3642.91,
         "change": -75,
         "change_pct": -0.4
       },
@@ -32641,7 +32641,7 @@
         "volume": 53793,
         "trade_value": 531429180,
         "nav": 9804.08,
-        "base_index": 1460.92,
+        "base_index": 1462.4,
         "change": 55,
         "change_pct": 0.56
       },
@@ -32668,7 +32668,7 @@
         "volume": 406741,
         "trade_value": 2481012153,
         "nav": 6085.75,
-        "base_index": 1059.27,
+        "base_index": 1062.86,
         "change": 25,
         "change_pct": 0.41
       },
@@ -32722,7 +32722,7 @@
         "volume": 65,
         "trade_value": 3392020,
         "nav": 52156.52,
-        "base_index": 109.94,
+        "base_index": 110.26,
         "change": -25,
         "change_pct": -0.05
       },
@@ -32749,7 +32749,7 @@
         "volume": 71,
         "trade_value": 6314405,
         "nav": 88809.91,
-        "base_index": 80.4,
+        "base_index": 80.97,
         "change": -65,
         "change_pct": -0.07
       },
@@ -32776,7 +32776,7 @@
         "volume": 5759,
         "trade_value": 303546420,
         "nav": 52703.0,
-        "base_index": 121.46,
+        "base_index": 121.49,
         "change": 15,
         "change_pct": 0.03
       },
@@ -32857,7 +32857,7 @@
         "volume": 661343,
         "trade_value": 56317523096,
         "nav": 85021.69,
-        "base_index": 21774.64,
+        "base_index": 21203.46,
         "change": 1405,
         "change_pct": 1.68
       },
@@ -32955,7 +32955,7 @@
         "volume": 3758,
         "trade_value": 58578715,
         "nav": 15575.94,
-        "base_index": 3601.14,
+        "base_index": 3730.19,
         "change": 400,
         "change_pct": 2.64
       },
@@ -33009,7 +33009,7 @@
         "volume": 309696,
         "trade_value": 3485495375,
         "nav": 11177.17,
-        "base_index": 5113.12,
+        "base_index": 5030.58,
         "change": 255,
         "change_pct": 2.33
       },
@@ -33036,7 +33036,7 @@
         "volume": 10134,
         "trade_value": 95915250,
         "nav": 9409.5,
-        "base_index": 1155.76,
+        "base_index": 1135.38,
         "change": 165,
         "change_pct": 1.79
       },
@@ -33062,7 +33062,7 @@
         "volume": 12838,
         "trade_value": 222364305,
         "nav": 17256.95,
-        "base_index": 7117.15,
+        "base_index": 7136.09,
         "change": 165,
         "change_pct": 0.96
       },
@@ -33089,7 +33089,7 @@
         "volume": 38966,
         "trade_value": 196517998,
         "nav": 4965.49,
-        "base_index": 364.71,
+        "base_index": 362.56,
         "change": -55,
         "change_pct": -1.09
       },
@@ -33169,7 +33169,7 @@
         "volume": 9043,
         "trade_value": 486026468,
         "nav": 53748.47,
-        "base_index": 121.6,
+        "base_index": 121.63,
         "change": 10,
         "change_pct": 0.02
       },
@@ -33196,7 +33196,7 @@
         "volume": 6329,
         "trade_value": 53693195,
         "nav": 8452.84,
-        "base_index": 3076.18,
+        "base_index": 2978.99,
         "change": 220,
         "change_pct": 2.68
       },
@@ -33223,7 +33223,7 @@
         "volume": 2181,
         "trade_value": 41906260,
         "nav": 19053.73,
-        "base_index": 7744.06,
+        "base_index": 7659.44,
         "change": -40,
         "change_pct": -0.21
       },
@@ -33250,7 +33250,7 @@
         "volume": 49251,
         "trade_value": 560505269,
         "nav": 11293.8,
-        "base_index": 296.31,
+        "base_index": 294.74,
         "change": -70,
         "change_pct": -0.62
       },
@@ -33277,7 +33277,7 @@
         "volume": 1639,
         "trade_value": 23137175,
         "nav": 13978.53,
-        "base_index": 5714.32,
+        "base_index": 5603.18,
         "change": -60,
         "change_pct": -0.43
       },
@@ -33330,7 +33330,7 @@
         "volume": 49990,
         "trade_value": 548735171,
         "nav": 10911.11,
-        "base_index": 3124.03,
+        "base_index": 3085.48,
         "change": -40,
         "change_pct": -0.36
       },
@@ -33357,7 +33357,7 @@
         "volume": 1496,
         "trade_value": 79672260,
         "nav": 52998.98,
-        "base_index": 17187.63,
+        "base_index": 16454.09,
         "change": 410,
         "change_pct": 0.78
       },
@@ -33384,7 +33384,7 @@
         "volume": 413,
         "trade_value": 50269533,
         "nav": 120965.19,
-        "base_index": 603.29,
+        "base_index": 603.71,
         "change": -1420,
         "change_pct": -1.16
       },
@@ -33411,7 +33411,7 @@
         "volume": 515,
         "trade_value": 30161350,
         "nav": 58019.49,
-        "base_index": 1262.9,
+        "base_index": 1263.03,
         "change": -385,
         "change_pct": -0.66
       },
@@ -33465,7 +33465,7 @@
         "volume": 2973,
         "trade_value": 25630970,
         "nav": 8577.62,
-        "base_index": 1584.1,
+        "base_index": 1577.88,
         "change": -15,
         "change_pct": -0.17
       },
@@ -33492,7 +33492,7 @@
         "volume": 18422,
         "trade_value": 253532163,
         "nav": 13650.2,
-        "base_index": 6597.5,
+        "base_index": 6262.01,
         "change": 525,
         "change_pct": 3.99
       },
@@ -33519,7 +33519,7 @@
         "volume": 504,
         "trade_value": 42349602,
         "nav": 83340.02,
-        "base_index": 1128.65,
+        "base_index": 1127.2,
         "change": -725,
         "change_pct": -0.86
       },
@@ -33546,7 +33546,7 @@
         "volume": 28112,
         "trade_value": 1274843245,
         "nav": 45112.86,
-        "base_index": 90.77,
+        "base_index": 90.76,
         "change": -325,
         "change_pct": -0.72
       },
@@ -33573,7 +33573,7 @@
         "volume": 625,
         "trade_value": 14063429,
         "nav": 22344.95,
-        "base_index": 7931.2,
+        "base_index": 7772.03,
         "change": -60,
         "change_pct": -0.27
       },
@@ -33679,7 +33679,7 @@
         "volume": 226,
         "trade_value": 2690500,
         "nav": 11799.14,
-        "base_index": 2772.1,
+        "base_index": 2772.38,
         "change": -95,
         "change_pct": -0.8
       },
@@ -33867,7 +33867,7 @@
         "volume": 57940,
         "trade_value": 728918481,
         "nav": 12467.39,
-        "base_index": 3392.47,
+        "base_index": 3392.33,
         "change": 160,
         "change_pct": 1.3
       },
@@ -33894,7 +33894,7 @@
         "volume": 26785,
         "trade_value": 482506199,
         "nav": 17836.81,
-        "base_index": 3041.78,
+        "base_index": 3008.97,
         "change": -60,
         "change_pct": -0.33
       },
@@ -33921,7 +33921,7 @@
         "volume": 9,
         "trade_value": 980125,
         "nav": 108982.21,
-        "base_index": 116.21,
+        "base_index": 116.49,
         "change": 50,
         "change_pct": 0.05
       },
@@ -33948,7 +33948,7 @@
         "volume": 374,
         "trade_value": 7210475,
         "nav": 19467.34,
-        "base_index": 2936.08,
+        "base_index": 2938.28,
         "change": 815,
         "change_pct": 4.3
       },
@@ -33975,7 +33975,7 @@
         "volume": 12000,
         "trade_value": 1212820000,
         "nav": 101083.04,
-        "base_index": 113.75,
+        "base_index": 113.84,
         "change": -25,
         "change_pct": -0.02
       },
@@ -34028,7 +34028,7 @@
         "volume": 1549,
         "trade_value": 12737995,
         "nav": 8084.19,
-        "base_index": 1817.44,
+        "base_index": 1816.91,
         "change": 170,
         "change_pct": 2.09
       },
@@ -34055,7 +34055,7 @@
         "volume": 1008,
         "trade_value": 6094040,
         "nav": 5951.67,
-        "base_index": 2941.65,
+        "base_index": 2976.48,
         "change": 55,
         "change_pct": 0.93
       },
@@ -34106,7 +34106,7 @@
         "volume": 207,
         "trade_value": 5514025,
         "nav": 26372.5,
-        "base_index": 2694.25,
+        "base_index": 2694.3,
         "change": 1115,
         "change_pct": 4.34
       },
@@ -34133,7 +34133,7 @@
         "volume": 46173,
         "trade_value": 372984306,
         "nav": 8226.62,
-        "base_index": 1346.43,
+        "base_index": 1346.76,
         "change": 375,
         "change_pct": 4.76
       },
@@ -34159,7 +34159,7 @@
         "volume": 14849,
         "trade_value": 196047420,
         "nav": 13523.16,
-        "base_index": 1346.76,
+        "base_index": 1346.94,
         "change": 605,
         "change_pct": 4.71
       },
@@ -34266,7 +34266,7 @@
         "volume": 128144,
         "trade_value": 3215927248,
         "nav": 24999.16,
-        "base_index": 5203.37,
+        "base_index": 5209.44,
         "change": 1165,
         "change_pct": 4.88
       },
@@ -34293,7 +34293,7 @@
         "volume": 4133,
         "trade_value": 150354275,
         "nav": 36057.15,
-        "base_index": 7931.2,
+        "base_index": 7772.03,
         "change": -165,
         "change_pct": -0.45
       },
@@ -34347,7 +34347,7 @@
         "volume": 5,
         "trade_value": 128525,
         "nav": 25604.16,
-        "base_index": 1135.83,
+        "base_index": 1129.1,
         "change": 305,
         "change_pct": 1.2
       },
@@ -34374,7 +34374,7 @@
         "volume": 6491,
         "trade_value": 103433485,
         "nav": 16001.4,
-        "base_index": 3106.29,
+        "base_index": 3122.04,
         "change": 90,
         "change_pct": 0.57
       },
@@ -34401,7 +34401,7 @@
         "volume": 19834,
         "trade_value": 286383582,
         "nav": 14491.26,
-        "base_index": 1617.72,
+        "base_index": 1620.63,
         "change": -15,
         "change_pct": -0.1
       },
@@ -34454,7 +34454,7 @@
         "volume": 11,
         "trade_value": 216750,
         "nav": 19634.24,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 765,
         "change_pct": 4.04
       },
@@ -34481,7 +34481,7 @@
         "volume": 79389,
         "trade_value": 3273007963,
         "nav": 41640.9,
-        "base_index": 8101.51,
+        "base_index": 8105.0,
         "change": 1345,
         "change_pct": 3.36
       },
@@ -34562,7 +34562,7 @@
         "volume": 83633,
         "trade_value": 7473271175,
         "nav": 89530.82,
-        "base_index": 878.1,
+        "base_index": 878.16,
         "change": 2175,
         "change_pct": 2.49
       },
@@ -34589,7 +34589,7 @@
         "volume": 0,
         "trade_value": 0,
         "nav": 102255.16,
-        "base_index": 110.64,
+        "base_index": 110.67,
         "change": 15,
         "change_pct": 0.01
       },
@@ -34616,7 +34616,7 @@
         "volume": 0,
         "trade_value": 0,
         "nav": 16205.76,
-        "base_index": 12116.86,
+        "base_index": 12182.03,
         "change": 145,
         "change_pct": 0.91
       },
@@ -34643,7 +34643,7 @@
         "volume": 28808,
         "trade_value": 2962398124,
         "nav": 102828.23,
-        "base_index": 117.58,
+        "base_index": 117.61,
         "change": 10,
         "change_pct": 0.01
       },
@@ -34670,7 +34670,7 @@
         "volume": 71,
         "trade_value": 1704310,
         "nav": 23637.2,
-        "base_index": 877.88,
+        "base_index": 878.03,
         "change": 885,
         "change_pct": 3.84
       },
@@ -34697,7 +34697,7 @@
         "volume": 169,
         "trade_value": 16848475,
         "nav": 99683.64,
-        "base_index": 115.79,
+        "base_index": 116.07,
         "change": 60,
         "change_pct": 0.06
       },
